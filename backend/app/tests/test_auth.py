@@ -1,5 +1,3 @@
-"""Pruebas de la rebanada auth + usuario. Cubren camino feliz y errores."""
-
 from app.core.security import hashear_password, verificar_password
 
 
@@ -162,3 +160,21 @@ def test_token_por_formulario(cliente, usuario_registrado):
     )
     assert respuesta.status_code == 200
     assert respuesta.json()["access_token"]
+
+
+# --- /token debe tolerar un username que no es correo ------------------------
+# Regresion: antes devolvia 500 porque ValidationError no se capturaba.
+
+def test_token_username_que_no_es_correo_da_401(cliente):
+    respuesta = cliente.post(
+        "/api/v1/auth/token", data={"username": "jhoan", "password": "secreta123"}
+    )
+    assert respuesta.status_code == 401
+
+
+def test_token_password_vacia_da_401(cliente, usuario_registrado):
+    respuesta = cliente.post(
+        "/api/v1/auth/token",
+        data={"username": usuario_registrado["correo"], "password": " "},
+    )
+    assert respuesta.status_code in (401, 422)

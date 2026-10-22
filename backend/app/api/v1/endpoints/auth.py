@@ -1,9 +1,9 @@
-"""Endpoints de autenticacion. Solo HTTP: reciben, delegan al servicio, devuelven."""
-
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import ValidationError
 
 from app.core.dependencies import SesionBD, UsuarioActual
+from app.core.exceptions import NoAutorizado
 from app.schemas.usuario import LoginEntrada, TokenSalida, UsuarioCrear, UsuarioRespuesta
 from app.services import auth as servicio
 
@@ -28,10 +28,20 @@ def token_oauth2(
     sesion: SesionBD,
     formulario: OAuth2PasswordRequestForm = Depends(),
 ):
-    """Login compatible con el boton Authorize de /docs (form-urlencoded)."""
-    usuario = servicio.autenticar(
-        sesion, LoginEntrada(correo=formulario.username, password=formulario.password)
-    )
+    """Login compatible con el boton Authorize de /docs (form-urlencoded).
+
+    El campo `username` del formulario OAuth2 no viene validado: si no es un
+    correo valido, Pydantic lanzaria ValidationError y el cliente recibiria un
+    500 en vez de un 401. Se traduce a NoAutorizado.
+    """
+    try:
+        credenciales = LoginEntrada(
+            correo=formulario.username, password=formulario.password
+        )
+    except ValidationError:
+        raise NoAutorizado("Correo o contrasena incorrectos")
+
+    usuario = servicio.autenticar(sesion, credenciales)
     return servicio.generar_token(usuario)
 
 
