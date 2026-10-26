@@ -20,12 +20,20 @@ from app.main import app as aplicacion
 # Este listener traduce las PK BIGINT a INTEGER solo para el motor SQLite de
 # pruebas, sin tocar los modelos (que siguen siendo BIGINT en MySQL).
 @event.listens_for(Table, "before_create")
-def _bigint_a_integer_en_sqlite(tabla, conexion, **kw):
+def _adaptar_tablas_a_sqlite(tabla, conexion, **kw):
+    """Dos ajustes solo para el SQLite de pruebas:
+
+    1. SQLite solo auto-incrementa INTEGER PRIMARY KEY, no BIGINT.
+    2. Los server_default b'0' de MySQL no son SQL valido en SQLite.
+    Los modelos NO se tocan: en MySQL siguen siendo BIGINT y BIT(1).
+    """
     if conexion.dialect.name != "sqlite":
         return
     for columna in tabla.primary_key.columns:
         if isinstance(columna.type, BigInteger):
             columna.type = Integer()
+    for columna in tabla.columns:
+        columna.server_default = None
 
 
 @pytest.fixture()
@@ -42,6 +50,10 @@ def motor_sqlite():
             modelos.Usuario.__table__,
             modelos.Rol.__table__,
             modelos.UsuarioRol.__table__,
+            modelos.Producto.__table__,
+            modelos.Inventario.__table__,
+            modelos.MovimientoInventario.__table__,
+            modelos.AlertaStock.__table__,
         ],
     )
     yield motor

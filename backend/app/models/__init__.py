@@ -13,6 +13,7 @@ from app.models.alerta_stock import AlertaStock
 from app.models.carrito import Carrito
 from app.models.detalle_carrito import DetalleCarrito
 from app.models.detalle_pedido import DetallePedido
+from app.models.descuento import Descuento
 from app.models.detalle_venta import DetalleVenta
 from app.models.devolucion import Devolucion
 from app.models.factura import Factura
@@ -30,6 +31,7 @@ __all__ = [
     "Carrito",
     "DetalleCarrito",
     "DetallePedido",
+    "Descuento",
     "DetalleVenta",
     "Devolucion",
     "Factura",

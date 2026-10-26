@@ -5,8 +5,13 @@ traduce a respuestas HTTP. Asi la logica de negocio es reutilizable fuera de
 la API (scripts, tareas, tests).
 """
 
+import logging
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError
+
+logger = logging.getLogger(__name__)
 
 
 class ErrorDominio(Exception):
@@ -45,6 +50,13 @@ class ReglaNegocio(ErrorDominio):
     codigo_http = status.HTTP_400_BAD_REQUEST
 
 
+class ServicioNoDisponible(ErrorDominio):
+    """La base de datos no responde (MySQL apagado, puerto cerrado, etc.)."""
+
+    mensaje = "La base de datos no esta disponible"
+    codigo_http = status.HTTP_503_SERVICE_UNAVAILABLE
+
+
 def registrar_manejadores(app: FastAPI) -> None:
     """Conecta las excepciones de dominio con respuestas JSON uniformes."""
 
@@ -53,4 +65,20 @@ def registrar_manejadores(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.codigo_http,
             content={"error": type(exc).__name__, "detalle": exc.detalle},
+        )
+
+    @app.exception_handler(OperationalError)
+    async def manejador_bd_caida(request: Request, exc: OperationalError):
+        """Sin esto, MySQL apagado devuelve un 500 con traceback completo.
+
+        Con esto, el cliente recibe un 503 claro y el detalle queda en el log.
+        """
+        logger.exception("Fallo de conexion con la base de datos")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "error": "ServicioNoDisponible",
+                "detalle": "No se pudo conectar con la base de datos. Verifica "
+                "que MySQL este encendido y que DATABASE_URL sea correcta.",
+            },
         )
