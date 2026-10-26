@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 26-10-2026 a las 23:10:13
+-- Tiempo de generación: 26-10-2026 a las 23:54:35
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -31,7 +31,8 @@ CREATE TABLE `alerta_stock` (
   `id_alerta` int(11) NOT NULL,
   `id_producto_fk` bigint(20) DEFAULT NULL,
   `nivel_stock` int(11) DEFAULT NULL,
-  `fecha_alerta` date DEFAULT NULL
+  `fecha_alerta` date DEFAULT NULL,
+  `atendida` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -43,7 +44,8 @@ CREATE TABLE `alerta_stock` (
 CREATE TABLE `carrito` (
   `id_carrito` int(11) NOT NULL,
   `id_usuario_fk` bigint(20) DEFAULT NULL,
-  `fecha_creacion` date DEFAULT NULL
+  `fecha_creacion` date DEFAULT NULL,
+  `inhabilitado` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -56,7 +58,8 @@ CREATE TABLE `descuento` (
   `id_descuento` int(11) NOT NULL,
   `id_producto_fk` bigint(20) DEFAULT NULL,
   `tipo_descuento` varchar(50) DEFAULT NULL,
-  `valor_descuento` decimal(10,2) DEFAULT NULL
+  `valor_descuento` decimal(10,2) DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -69,7 +72,8 @@ CREATE TABLE `detalle_carrito` (
   `id_detalle_carrito` bigint(20) NOT NULL,
   `id_carrito_fk` int(11) DEFAULT NULL,
   `id_producto_fk` bigint(20) DEFAULT NULL,
-  `cantidad` int(11) DEFAULT NULL
+  `cantidad` int(11) DEFAULT NULL,
+  `inhabilitado` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -83,21 +87,24 @@ CREATE TABLE `detalle_pedido` (
   `id_pedido_fk` bigint(20) DEFAULT NULL,
   `id_producto_fk` bigint(20) DEFAULT NULL,
   `precio_unitario` decimal(38,2) DEFAULT NULL,
-  `cantidad` int(11) DEFAULT NULL
+  `cantidad` int(11) DEFAULT NULL,
+  `inhabilitado` tinyint(1) NOT NULL DEFAULT 0,
+  `precio_lista` decimal(38,2) DEFAULT NULL,
+  `descuento_unitario` decimal(38,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `detalle_pedido`
 --
 
-INSERT INTO `detalle_pedido` (`id_detalle_pedido`, `id_pedido_fk`, `id_producto_fk`, `precio_unitario`, `cantidad`) VALUES
-(6, 6, 11, 45000.00, 5),
-(7, 7, 12, 30000.00, 4),
-(8, 8, 12, 30000.00, 4),
-(9, 9, 12, 30000.00, 1),
-(10, 9, 11, 45000.00, 1),
-(11, 9, 10, 30000.00, 1),
-(12, 9, 9, 5000.00, 1);
+INSERT INTO `detalle_pedido` (`id_detalle_pedido`, `id_pedido_fk`, `id_producto_fk`, `precio_unitario`, `cantidad`, `inhabilitado`, `precio_lista`, `descuento_unitario`) VALUES
+(6, 6, 11, 45000.00, 5, 0, NULL, 0.00),
+(7, 7, 12, 30000.00, 4, 0, NULL, 0.00),
+(8, 8, 12, 30000.00, 4, 0, NULL, 0.00),
+(9, 9, 12, 30000.00, 1, 0, NULL, 0.00),
+(10, 9, 11, 45000.00, 1, 0, NULL, 0.00),
+(11, 9, 10, 30000.00, 1, 0, NULL, 0.00),
+(12, 9, 9, 5000.00, 1, 0, NULL, 0.00);
 
 -- --------------------------------------------------------
 
@@ -110,19 +117,22 @@ CREATE TABLE `detalle_venta` (
   `id_venta_fk` bigint(20) DEFAULT NULL,
   `id_producto_fk` bigint(20) DEFAULT NULL,
   `cantidad` int(11) DEFAULT NULL,
-  `precio_unitario` decimal(38,2) DEFAULT NULL
+  `precio_unitario` decimal(38,2) DEFAULT NULL,
+  `inhabilitado` tinyint(1) NOT NULL DEFAULT 0,
+  `precio_lista` decimal(38,2) DEFAULT NULL,
+  `descuento_unitario` decimal(38,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `detalle_venta`
 --
 
-INSERT INTO `detalle_venta` (`id_detalle_venta`, `id_venta_fk`, `id_producto_fk`, `cantidad`, `precio_unitario`) VALUES
-(1, 1, 12, 4, 30000.00),
-(2, 2, 12, 1, 30000.00),
-(3, 2, 11, 1, 45000.00),
-(4, 2, 10, 1, 30000.00),
-(5, 2, 9, 1, 5000.00);
+INSERT INTO `detalle_venta` (`id_detalle_venta`, `id_venta_fk`, `id_producto_fk`, `cantidad`, `precio_unitario`, `inhabilitado`, `precio_lista`, `descuento_unitario`) VALUES
+(1, 1, 12, 4, 30000.00, 0, NULL, 0.00),
+(2, 2, 12, 1, 30000.00, 0, NULL, 0.00),
+(3, 2, 11, 1, 45000.00, 0, NULL, 0.00),
+(4, 2, 10, 1, 30000.00, 0, NULL, 0.00),
+(5, 2, 9, 1, 5000.00, 0, NULL, 0.00);
 
 -- --------------------------------------------------------
 
@@ -156,7 +166,8 @@ CREATE TABLE `factura` (
   `id_factura` int(11) NOT NULL,
   `id_venta_fk` bigint(20) DEFAULT NULL,
   `total_factura` decimal(10,2) DEFAULT NULL,
-  `fecha_factura` datetime DEFAULT NULL
+  `fecha_factura` datetime DEFAULT NULL,
+  `estado` varchar(50) NOT NULL DEFAULT 'Vigente'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -454,18 +465,19 @@ INSERT INTO `resolucion_facturacion` (`id_resolucion`, `tipo_documento`, `numero
 CREATE TABLE `rol` (
   `id_rol` int(11) NOT NULL,
   `nombre_rol` varchar(50) DEFAULT NULL,
-  `descripcion_rol` varchar(150) DEFAULT NULL
+  `descripcion_rol` varchar(150) DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `rol`
 --
 
-INSERT INTO `rol` (`id_rol`, `nombre_rol`, `descripcion_rol`) VALUES
-(1, 'Administrador', 'Control total del sistema'),
-(2, 'Cliente', 'Usuario que compra productos'),
-(3, 'Vendedor', 'Gestiona ventas'),
-(4, 'Bodeguero', 'Administra inventario');
+INSERT INTO `rol` (`id_rol`, `nombre_rol`, `descripcion_rol`, `activo`) VALUES
+(1, 'Administrador', 'Control total del sistema', 1),
+(2, 'Cliente', 'Usuario que compra productos', 1),
+(3, 'Vendedor', 'Gestiona ventas', 1),
+(4, 'Bodeguero', 'Administra inventario', 1);
 
 -- --------------------------------------------------------
 
@@ -507,25 +519,26 @@ INSERT INTO `usuario` (`id_usuario`, `nombre`, `documento`, `correo`, `telefono`
 CREATE TABLE `usuario_rol` (
   `id_usuario_rol` int(11) NOT NULL,
   `id_usuario_fk` bigint(20) NOT NULL,
-  `id_rol_fk` int(11) NOT NULL
+  `id_rol_fk` int(11) NOT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `usuario_rol`
 --
 
-INSERT INTO `usuario_rol` (`id_usuario_rol`, `id_usuario_fk`, `id_rol_fk`) VALUES
-(1, 12, 1),
-(8, 12, 3),
-(11, 13, 1),
-(12, 13, 2),
-(13, 13, 3),
-(14, 14, 2),
-(5, 14, 3),
-(15, 15, 2),
-(6, 15, 4),
-(2, 16, 1),
-(4, 17, 2);
+INSERT INTO `usuario_rol` (`id_usuario_rol`, `id_usuario_fk`, `id_rol_fk`, `activo`) VALUES
+(1, 12, 1, 1),
+(2, 16, 1, 1),
+(4, 17, 2, 1),
+(5, 14, 3, 1),
+(6, 15, 4, 1),
+(8, 12, 3, 1),
+(11, 13, 1, 1),
+(12, 13, 2, 1),
+(13, 13, 3, 1),
+(14, 14, 2, 1),
+(15, 15, 2, 1);
 
 -- --------------------------------------------------------
 
@@ -538,16 +551,17 @@ CREATE TABLE `venta` (
   `id_usuario_fk` bigint(20) DEFAULT NULL,
   `id_pedido_fk` bigint(20) DEFAULT NULL,
   `fecha_venta` datetime(6) DEFAULT NULL,
-  `total_pagado` double DEFAULT NULL
+  `total_pagado` double DEFAULT NULL,
+  `estado` varchar(50) NOT NULL DEFAULT 'Completada'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `venta`
 --
 
-INSERT INTO `venta` (`id_venta`, `id_usuario_fk`, `id_pedido_fk`, `fecha_venta`, `total_pagado`) VALUES
-(1, 13, 7, '2026-09-16 01:49:59.000000', 120000),
-(2, 13, 9, '2026-10-23 18:44:25.000000', 110000);
+INSERT INTO `venta` (`id_venta`, `id_usuario_fk`, `id_pedido_fk`, `fecha_venta`, `total_pagado`, `estado`) VALUES
+(1, 13, 7, '2026-09-16 01:49:59.000000', 120000, 'Completada'),
+(2, 13, 9, '2026-10-23 18:44:25.000000', 110000, 'Completada');
 
 --
 -- Índices para tablas volcadas
