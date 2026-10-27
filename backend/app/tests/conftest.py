@@ -10,7 +10,7 @@ from sqlalchemy import BigInteger, Integer, Table, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import app.models as modelos  # noqa: F401  (registra los 15 modelos)
+import app.models as modelos  # noqa: F401  (registra los 16 modelos)
 from app.database.base import Base
 from app.database.connection import obtener_sesion
 from app.main import app as aplicacion
@@ -54,6 +54,7 @@ def motor_sqlite():
             modelos.Inventario.__table__,
             modelos.MovimientoInventario.__table__,
             modelos.AlertaStock.__table__,
+            modelos.Descuento.__table__,
         ],
     )
     yield motor
