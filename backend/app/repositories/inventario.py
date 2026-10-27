@@ -1,3 +1,5 @@
+"""Acceso a datos de inventario y movimientos. No hace commit."""
+
 from datetime import date, datetime
 
 from sqlalchemy import func, select
@@ -11,7 +13,7 @@ from app.schemas.inventario import InventarioCrear
 
 
 class InventarioRepositorio:
-    def _init_(self, sesion: Session) -> None:
+    def __init__(self, sesion: Session) -> None:
         self.sesion = sesion
 
     # --- inventario -------------------------------------------------------

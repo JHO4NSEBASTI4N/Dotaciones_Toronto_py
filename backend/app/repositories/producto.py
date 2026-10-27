@@ -6,7 +6,7 @@ from app.schemas.producto import ProductoActualizar, ProductoCrear
 
 
 class ProductoRepositorio:
-    def _init_(self, sesion: Session) -> None:
+    def __init__(self, sesion: Session) -> None:
         self.sesion = sesion
 
     def buscar_por_id(self, id_producto: int) -> Producto | None:

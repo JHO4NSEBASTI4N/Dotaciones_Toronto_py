@@ -1,3 +1,13 @@
+"""Servicio de inventario. No importa fastapi: logica pura + SQLAlchemy.
+
+Reglas de negocio implementadas aqui:
+  - Toda variacion de stock genera un MovimientoInventario (trazabilidad).
+  - Una salida no puede dejar el stock en negativo.
+  - Si el stock queda en o por debajo del minimo, se genera una AlertaStock
+    (una por producto y dia, para no llenar la tabla).
+  - La transaccion (commit) se cierra en el servicio, no en el repositorio.
+"""
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import Conflicto, NoEncontrado, ReglaNegocio
@@ -123,3 +133,89 @@ def registrar_salida(
         )
 
     fila.cantidad_actual = anterior - datos.cantidad
+
+    producto = ProductoRepositorio(sesion).buscar_por_id(fila.id_producto_fk)
+    movimiento = repo.registrar_movimiento(
+        id_inventario=fila.id_inventario,
+        nombre_producto=producto.nombre if producto else None,
+        tipo="SALIDA",
+        cantidad=datos.cantidad,
+        motivo=datos.motivo,
+        usuario_responsable=usuario_responsable,
+    )
+
+    _verificar_alerta(
+        repo, fila.id_producto_fk, fila.cantidad_actual, fila.stock_minimo or 0
+    )
+
+    sesion.commit()
+    sesion.refresh(fila)
+    sesion.refresh(movimiento)
+    return fila, movimiento
+
+
+def registrar_ajuste(
+    sesion: Session,
+    id_inventario: int,
+    datos: AjusteStock,
+    usuario_responsable: str | None = None,
+) -> tuple[Inventario, MovimientoInventario]:
+    """Conteo fisico: fija el stock en un valor absoluto.
+
+    El movimiento guarda la DIFERENCIA (nuevo - anterior), que es lo que permite
+    reconstruir el historial; si se guardara el valor absoluto no se sabria
+    cuanto cambio.
+    """
+    repo = InventarioRepositorio(sesion)
+    fila = _obtener_fila_o_fallar(repo, id_inventario)
+
+    anterior = fila.cantidad_actual or 0
+    diferencia = datos.cantidad_actual - anterior
+    if diferencia == 0:
+        raise ReglaNegocio(f"El stock ya es {anterior}; no hay nada que ajustar")
+
+    fila.cantidad_actual = datos.cantidad_actual
+
+    producto = ProductoRepositorio(sesion).buscar_por_id(fila.id_producto_fk)
+    movimiento = repo.registrar_movimiento(
+        id_inventario=fila.id_inventario,
+        nombre_producto=producto.nombre if producto else None,
+        tipo="AJUSTE",
+        cantidad=diferencia,
+        motivo=datos.motivo or f"Ajuste de {anterior} a {datos.cantidad_actual}",
+        usuario_responsable=usuario_responsable,
+    )
+
+    _verificar_alerta(
+        repo, fila.id_producto_fk, fila.cantidad_actual, fila.stock_minimo or 0
+    )
+
+    sesion.commit()
+    sesion.refresh(fila)
+    sesion.refresh(movimiento)
+    return fila, movimiento
+
+
+def listar_movimientos(
+    sesion: Session,
+    saltar: int = 0,
+    limite: int = 20,
+    id_inventario: int | None = None,
+    tipo_movimiento: str | None = None,
+):
+    repo = InventarioRepositorio(sesion)
+    items = repo.listar_movimientos(
+        saltar=saltar,
+        limite=limite,
+        id_inventario=id_inventario,
+        tipo_movimiento=tipo_movimiento,
+    )
+    total = repo.contar_movimientos(
+        id_inventario=id_inventario, tipo_movimiento=tipo_movimiento
+    )
+    return items, total
+
+
+def listar_alertas(sesion: Session, saltar: int = 0, limite: int = 20):
+    repo = InventarioRepositorio(sesion)
+    return repo.listar_alertas(saltar=saltar, limite=limite), repo.contar_alertas()
