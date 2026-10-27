@@ -1,5 +1,3 @@
-backend/app/services/producto.py:
-
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import Conflicto, NoEncontrado, ReglaNegocio

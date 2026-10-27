@@ -1,5 +1,3 @@
-backend/app/schemas/producto.py:
-
 from decimal import Decimal
 from typing import Optional
 

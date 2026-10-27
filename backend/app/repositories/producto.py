@@ -1,5 +1,3 @@
-backend/app/repositories/producto.py:
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
