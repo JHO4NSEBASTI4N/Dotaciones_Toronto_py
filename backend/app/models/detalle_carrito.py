@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import BigInteger, ForeignKey, Integer
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -17,6 +17,9 @@ class DetalleCarrito(Base):
         BigInteger, ForeignKey("producto.id_producto"), nullable=True
     )
     cantidad: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    inhabilitado: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("0"), default=False, nullable=False
+    )
 
     carrito: Mapped[Optional["Carrito"]] = relationship("Carrito", back_populates="detalles")
     producto: Mapped[Optional["Producto"]] = relationship(
