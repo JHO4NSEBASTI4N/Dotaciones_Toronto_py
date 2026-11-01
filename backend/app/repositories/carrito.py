@@ -7,7 +7,7 @@ from app.models.inventario import Inventario
 
 
 class CarritoRepositorio:
-    def _init_(self, sesion: Session) -> None:
+    def __init__(self, sesion: Session) -> None:
         self.sesion = sesion
 
     # --- carrito -------------------------------------------------------------
