@@ -10,7 +10,7 @@ from sqlalchemy import BigInteger, Integer, Table, create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import app.models as modelos  # noqa: F401  (registra los 17 modelos)
+import app.models as modelos  # noqa: F401  (registra los 20 modelos)
 from app.database.base import Base
 from app.database.connection import obtener_sesion
 from app.main import app as aplicacion
@@ -57,6 +57,12 @@ def motor_sqlite():
             modelos.Descuento.__table__,
             modelos.Carrito.__table__,
             modelos.DetalleCarrito.__table__,
+            modelos.Pedido.__table__,
+            modelos.DetallePedido.__table__,
+            modelos.Venta.__table__,
+            modelos.DetalleVenta.__table__,
+            modelos.Factura.__table__,
+            modelos.Devolucion.__table__,
         ],
     )
     yield motor

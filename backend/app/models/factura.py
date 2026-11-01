@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Numeric
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -17,5 +17,8 @@ class Factura(Base):
     )
     total_factura: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2), nullable=True)
     fecha_factura: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(50), server_default=text("'Vigente'"), default="Vigente", nullable=False
+    )
 
     venta: Mapped[Optional["Venta"]] = relationship("Venta", back_populates="facturas")
