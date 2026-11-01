@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Servidor: 127.0.0.1
--- Tiempo de generación: 26-10-2026 a las 23:54:35
+-- Servidor: localhost
+-- Tiempo de generación: 01-11-2026 a las 22:22:10
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -165,7 +165,7 @@ INSERT INTO `devolucion` (`id_devolucion`, `id_detalle_venta_fk`, `cantidad`, `m
 CREATE TABLE `factura` (
   `id_factura` int(11) NOT NULL,
   `id_venta_fk` bigint(20) DEFAULT NULL,
-  `total_factura` decimal(10,2) DEFAULT NULL,
+  `total_factura` decimal(19,2) DEFAULT NULL,
   `fecha_factura` datetime DEFAULT NULL,
   `estado` varchar(50) NOT NULL DEFAULT 'Vigente'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
