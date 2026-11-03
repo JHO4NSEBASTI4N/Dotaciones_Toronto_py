@@ -8,7 +8,7 @@ from app.database.base import Base
 
 
 class DetalleVenta(Base):
-    _tablename_ = "detalle_venta"
+    __tablename__ = "detalle_venta"
 
     id_detalle_venta: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     id_venta_fk: Mapped[Optional[int]] = mapped_column(
