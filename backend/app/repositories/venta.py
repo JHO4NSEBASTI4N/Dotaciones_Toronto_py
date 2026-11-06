@@ -1,9 +1,3 @@
-"""Acceso a datos de ventas, detalles de venta y facturas.
-
-No hace commit: la transaccion la cierra el servicio (la entrega del pedido
-debe ser atomica: inventario + venta + factura, todo o nada).
-"""
-
 from datetime import datetime
 from decimal import Decimal
 
@@ -17,7 +11,7 @@ from app.models.venta import Venta
 
 
 class VentaRepositorio:
-    def __init__(self, sesion: Session) -> None:
+    def _init_(self, sesion: Session) -> None:
         self.sesion = sesion
 
     # --- venta ---------------------------------------------------------------
@@ -28,7 +22,7 @@ class VentaRepositorio:
     def buscar_por_pedido(self, id_pedido: int) -> Venta | None:
         """IDEMPOTENCIA: un pedido tiene como maximo una venta.
 
-        Replica `ventaRepository.findByIdPedido()` del proyecto Java: si ya
+        Replica ventaRepository.findByIdPedido() del proyecto Java: si ya
         existe, se devuelve en vez de crear otra.
         """
         return self.sesion.scalar(
@@ -136,10 +130,16 @@ class VentaRepositorio:
         return list(self.sesion.scalars(consulta))
 
     def cantidad_devuelta(self, id_detalle_venta: int) -> int:
-        """Cuanto de esa linea ya se devolvio (para no devolver de mas)."""
+        """Cuanto de esa linea se devolvio REALMENTE.
+
+        Solo cuentan las devoluciones *Aprobadas*: una rechazada nunca
+        devolvio nada y una pendiente todavia esta en tramite. El cupo
+        disponible se calcula en el modulo de devoluciones.
+        """
         return self.sesion.scalar(
             select(func.coalesce(func.sum(Devolucion.cantidad), 0)).where(
-                Devolucion.id_detalle_venta_fk == id_detalle_venta
+                Devolucion.id_detalle_venta_fk == id_detalle_venta,
+                Devolucion.estado == "Aprobada",
             )
         ) or 0
 

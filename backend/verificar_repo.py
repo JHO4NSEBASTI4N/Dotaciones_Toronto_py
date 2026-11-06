@@ -1,20 +1,3 @@
-"""Verificador del repo: detecta los errores tipicos al subir codigo a mano.
-
-Uso (desde la carpeta backend/):
-
-    python verificar_repo.py
-
-Revisa 5 cosas:
-  1. Archivos .py vacios (0 bytes)  -> GitHub creo la ruta pero sin contenido
-  2. Dunders destruidos por Markdown (`_init_` en vez de `__init__`)
-     Markdown convierte __texto__ en negrita y deja _texto_
-  3. Archivos truncados (terminan a mitad de una funcion)
-  4. Funciones que los endpoints llaman y no existen en el servicio
-  5. Tablas del .sql sin modelo en el ORM
-
-No modifica nada: solo informa.
-"""
-
 from __future__ import annotations
 
 import ast
@@ -27,34 +10,63 @@ APP = RAIZ / "app"
 
 # roto -> correcto
 DUNDERS = {
-    "_init_": "__init__",
-    "_tablename_": "__tablename__",
-    "_all_": "__all__",
-    "_repr_": "__repr__",
-    "_str_": "__str__",
+    "init": "_init_",
+    "tablename": "_tablename_",
+    "all": "_all_",
+    "repr": "_repr_",
+    "str": "_str_",
 }
 
 problemas: list[str] = []
 avisos: list[str] = []
 
 
+# Nombres que Markdown dejo a medio comer, con el nombre que deberia tener.
+NOMBRES_ROTOS = {
+    "init.py": "_init_.py",
+    "main.py": "_main_.py",
+    "tablename.py": None,
+}
+
+
+def revisar_nombres() -> None:
+    """Archivos cuyo NOMBRE quedo mal (Markdown se comio los guiones bajos).
+
+    Un archivo llamado _init_.py no sirve para nada: Python no lo reconoce
+    como inicializador del paquete. Ahi esta el error, no en que este vacio.
+    """
+    for archivo in sorted(APP.rglob("*.py")):
+        if "_pycache_" in archivo.parts:
+            continue
+        correcto = NOMBRES_ROTOS.get(archivo.name)
+        if correcto:
+            problemas.append(
+                f"NOMBRE      {archivo.relative_to(RAIZ)}  "
+                f"deberia llamarse '{correcto}' (no '{archivo.name}')"
+            )
+
+
 def revisar_vacios() -> None:
     for archivo in sorted(APP.rglob("*.py")):
-        if "__pycache__" in archivo.parts:
+        if "_pycache_" in archivo.parts:
             continue
-        if archivo.stat().st_size == 0 and archivo.name != "__init__.py":
+        if archivo.name in NOMBRES_ROTOS:
+            continue  # ya se reporta como NOMBRE, no como VACIO
+        # Un _init_.py vacio es lo normal: solo marca que la carpeta es un
+        # paquete de Python. No es un error.
+        if archivo.stat().st_size == 0 and archivo.name != "_init_.py":
             problemas.append(f"VACIO       {archivo.relative_to(RAIZ)}")
 
 
 def revisar_dunders() -> None:
     for archivo in sorted(APP.rglob("*.py")):
-        if "__pycache__" in archivo.parts:
+        if "_pycache_" in archivo.parts:
             continue
         texto = archivo.read_text(encoding="utf-8", errors="ignore")
         for i, linea in enumerate(texto.splitlines(), 1):
             for roto, correcto in DUNDERS.items():
                 # exactamente un guion bajo a cada lado
-                if re.search(rf"(?<!_){re.escape(roto)}(?!_)", linea):
+                if re.search(rf"(?<!){re.escape(roto)}(?!)", linea):
                     problemas.append(
                         f"DUNDER      {archivo.relative_to(RAIZ)}:{i}  "
                         f"'{roto}' deberia ser '{correcto}'"
@@ -65,7 +77,7 @@ def revisar_dunders() -> None:
 
 def revisar_truncados() -> None:
     for archivo in sorted(APP.rglob("*.py")):
-        if "__pycache__" in archivo.parts:
+        if "_pycache_" in archivo.parts:
             continue
         try:
             ast.parse(archivo.read_text(encoding="utf-8"))
@@ -83,7 +95,7 @@ def revisar_servicios() -> None:
         return
 
     for ep in sorted(endpoints.glob("*.py")):
-        if ep.name == "__init__.py":
+        if ep.name == "_init_.py":
             continue
         texto = ep.read_text(encoding="utf-8", errors="ignore")
         modulo = None
@@ -116,14 +128,14 @@ def revisar_modelos_vs_sql() -> None:
     sql = max(sqls, key=lambda p: p.stat().st_mtime).read_text(
         encoding="utf-8", errors="ignore"
     )
-    en_sql = set(re.findall(r"CREATE TABLE `(\w+)`", sql))
+    en_sql = set(re.findall(r"CREATE TABLE (\w+)", sql))
     try:
         import app.models  # noqa: F401
         from app.database.base import Base
 
         en_orm = set(Base.metadata.tables)
     except Exception as e:  # pragma: no cover
-        avisos.append(f"MODELOS     no se pudo cargar el ORM: {type(e).__name__}: {e}")
+        avisos.append(f"MODELOS     no se pudo cargar el ORM: {type(e)._name_}: {e}")
         return
     sin_modelo = sorted(en_sql - en_orm)
     if sin_modelo:
@@ -131,6 +143,7 @@ def revisar_modelos_vs_sql() -> None:
 
 
 def main() -> int:
+    revisar_nombres()
     revisar_vacios()
     revisar_dunders()
     revisar_truncados()
