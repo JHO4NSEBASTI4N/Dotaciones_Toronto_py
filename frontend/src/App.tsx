@@ -2,6 +2,7 @@
 
 import type { ReactElement } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import Dashboard from "./pages/Dashboard";
@@ -28,6 +29,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Página principal */}
+        <Route path="/" element={<Index />} />
+
         <Route
           path="/login"
           element={
@@ -64,9 +68,7 @@ function App() {
           }
         />
 
-        {/* "/" aún no tiene página: va al login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
