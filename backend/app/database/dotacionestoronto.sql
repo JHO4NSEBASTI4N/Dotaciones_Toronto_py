@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Servidor: localhost
--- Tiempo de generación: 01-11-2026 a las 22:22:10
+-- Servidor: 127.0.0.1
+-- Tiempo de generación: 06-11-2026 a las 02:57:39
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -165,7 +165,7 @@ INSERT INTO `devolucion` (`id_devolucion`, `id_detalle_venta_fk`, `cantidad`, `m
 CREATE TABLE `factura` (
   `id_factura` int(11) NOT NULL,
   `id_venta_fk` bigint(20) DEFAULT NULL,
-  `total_factura` decimal(19,2) DEFAULT NULL,
+  `total_factura` decimal(10,2) DEFAULT NULL,
   `fecha_factura` datetime DEFAULT NULL,
   `estado` varchar(50) NOT NULL DEFAULT 'Vigente'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -426,7 +426,8 @@ INSERT INTO `producto` (`id_producto`, `nombre`, `precio`, `talla`, `color`, `im
 (9, 'Medias', 5000.00, 'S', 'Azul', NULL, 'Disponible', b'0', 'Calzado'),
 (10, 'Zapatos', 30000.00, 'L', 'Azul', NULL, 'Disponible', b'0', 'Calzado'),
 (11, 'Chaqueta ', 45000.00, 'S', 'Azul', NULL, 'Disponible', b'0', 'Chaquetas'),
-(12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones');
+(12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones'),
+(13, 'string', 1.00, 'string', 'string', 'string', 'Disponible', b'0', 'General');
 
 -- --------------------------------------------------------
 
@@ -806,7 +807,7 @@ ALTER TABLE `pedido`
 -- AUTO_INCREMENT de la tabla `producto`
 --
 ALTER TABLE `producto`
-  MODIFY `id_producto` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_producto` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `resolucion_facturacion`
