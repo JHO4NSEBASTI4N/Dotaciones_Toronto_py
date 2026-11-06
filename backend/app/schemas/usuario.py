@@ -44,11 +44,44 @@ class UsuarioRespuesta(BaseModel):
 
 
 class LoginEntrada(BaseModel):
+    """Credenciales. `id_rol` es opcional y solo hace falta si el usuario
+    tiene MAS de un rol y quiere entrar con uno distinto al de por defecto."""
+
     correo: EmailStr
     password: str = Field(min_length=1, max_length=72)
+    id_rol: Optional[int] = Field(
+        default=None,
+        gt=0,
+        description="Rol con el que se quiere entrar. Si se omite, se usa el de por defecto",
+    )
+
+
+class RolDisponible(BaseModel):
+    """Un rol que el usuario puede elegir al iniciar sesion."""
+
+    id_rol: int
+    nombre_rol: Optional[str] = None
+    descripcion_rol: Optional[str] = None
+    es_por_defecto: bool = False
+
+
+class MisRolesRespuesta(BaseModel):
+    """Lo que devuelve el boton 'cambiar rol': con cuales puede entrar."""
+
+    id_usuario: int
+    nombre: str
+    rol_actual: Optional[int] = None
+    roles: list[RolDisponible]
+
+
+class CambiarRolEntrada(BaseModel):
+    id_rol: int = Field(gt=0, description="Rol con el que se quiere continuar")
 
 
 class TokenSalida(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expira_en_minutos: int
+    # Cual de sus roles quedo activo en este token.
+    id_rol: Optional[int] = None
+    nombre_rol: Optional[str] = None

@@ -17,7 +17,7 @@ ESTADOS_QUE_OCUPAN_CUPO = (ESTADO_PENDIENTE, ESTADO_APROBADA)
 
 
 class DevolucionRepositorio:
-    def _init_(self, sesion: Session) -> None:
+    def __init__(self, sesion: Session) -> None:
         self.sesion = sesion
 
     # --- consultas ------------------------------------------------------------
@@ -129,7 +129,7 @@ class DevolucionRepositorio:
         return devolucion
 
 
-_all_ = [
+__all__ = [
     "DevolucionRepositorio",
     "ESTADOS_QUE_OCUPAN_CUPO",
     "ESTADO_APROBADA",

@@ -7,7 +7,7 @@ from app.models.usuario import Usuario
 from app.models.usuario_rol import UsuarioRol
 
 def crear_usuario(sesion, correo: str, id_rol: int=2) -> Usuario:
-    usuario = Usuario(nombre=correo.split('@')[0], correo=correo, password=hashear_password('secreta123'), estado='Habilitado')
+    usuario = Usuario(nombre=correo.split('@')[0], correo=correo, password=hashear_password('secreta123'), estado='Habilitado', id_rol_fk=id_rol)
     sesion.add(usuario)
     sesion.flush()
     sesion.add(UsuarioRol(id_usuario_fk=usuario.id_usuario, id_rol_fk=id_rol))

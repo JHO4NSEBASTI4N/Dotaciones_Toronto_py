@@ -11,7 +11,7 @@ from app.models.venta import Venta
 
 
 class VentaRepositorio:
-    def _init_(self, sesion: Session) -> None:
+    def __init__(self, sesion: Session) -> None:
         self.sesion = sesion
 
     # --- venta ---------------------------------------------------------------

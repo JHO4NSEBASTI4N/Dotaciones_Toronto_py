@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base
 
@@ -19,5 +19,12 @@ class UsuarioRol(Base):
         ForeignKey("rol.id_rol", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
     )
+    # La base trae `activo tinyint(1) NOT NULL DEFAULT 1`.
+    # Quitarle un rol a un usuario es poner esto en 0, NUNCA borrar la fila:
+    # asi queda el historial de que alguna vez tuvo ese rol.
+    activo: Mapped[bool] = mapped_column(
+        Boolean, server_default=text("1"), default=True, nullable=False
+    )
+
     usuario: Mapped["Usuario"] = relationship("Usuario", back_populates="usuario_roles")
     rol: Mapped["Rol"] = relationship("Rol", back_populates="usuario_roles")

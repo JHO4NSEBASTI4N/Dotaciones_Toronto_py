@@ -11,6 +11,9 @@ def crear_usuario_con_rol(sesion, correo: str, id_rol: int) -> Usuario:
         correo=correo,
         password=hashear_password("secreta123"),
         estado="Habilitado",
+        # Se deja el rol de defecto igual al rol asignado: la columna vieja
+        # usuario.id_rol_fk y la tabla usuario_rol deben decir lo mismo.
+        id_rol_fk=id_rol,
     )
     sesion.add(usuario)
     sesion.flush()

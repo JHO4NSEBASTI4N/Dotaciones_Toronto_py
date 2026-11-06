@@ -1,3 +1,12 @@
+"""Tests del modulo de devoluciones.
+
+Cubre: creacion en Pendiente, validacion de cantidad contra lo vendido,
+motivo obligatorio, estados finales, que aprobar NO mueva el stock,
+visibilidad por rol y que no exista un DELETE.
+"""
+
+import pytest
+
 from app.core.security import hashear_password
 from app.models.inventario import Inventario
 from app.models.usuario import Usuario
@@ -10,6 +19,9 @@ def crear_usuario(sesion, correo: str, id_rol: int = 2) -> Usuario:
         correo=correo,
         password=hashear_password("secreta123"),
         estado="Habilitado",
+        # Se deja el rol de defecto igual al rol asignado: la columna vieja
+        # usuario.id_rol_fk y la tabla usuario_rol deben decir lo mismo.
+        id_rol_fk=id_rol,
     )
     sesion.add(usuario)
     sesion.flush()

@@ -1,3 +1,5 @@
+"""Agregador de routers de la version 1 de la API."""
+
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
@@ -8,6 +10,7 @@ from app.api.v1.endpoints import (
     inventario,
     pedido,
     producto,
+    rol,
     venta,
 )
 
@@ -23,3 +26,4 @@ api_router.include_router(venta.router, prefix="/ventas", tags=["Ventas"])
 api_router.include_router(
     devolucion.router, prefix="/devoluciones", tags=["Devoluciones"]
 )
+api_router.include_router(rol.router, prefix="/roles", tags=["Roles"])
