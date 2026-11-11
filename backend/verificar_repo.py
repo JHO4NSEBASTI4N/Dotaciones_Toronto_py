@@ -31,13 +31,50 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent
 APP = RAIZ / "app"
 
+# Si el script esta en la carpeta equivocada, `APP.rglob` no encuentra nada y
+# el resultado seria un "Sin problemas" enganoso: parece que todo esta bien
+# cuando en realidad no reviso nada. Por eso se valida ANTES de empezar.
+CARPETA_BACKEND = RAIZ
+if not APP.is_dir():
+    # Caso tipico: se corre desde la raiz del repo y el codigo esta en backend/
+    posible = RAIZ / "backend" / "app"
+    if posible.is_dir():
+        print("=" * 66)
+        print("ESTAS EN LA CARPETA EQUIVOCADA")
+        print("=" * 66)
+        print()
+        print("  Estas en:        " + str(RAIZ))
+        print("  El codigo esta:  " + str(posible.parent))
+        print()
+        print("  Entra primero a la carpeta backend y vuelve a correrlo:")
+        print()
+        print("      cd backend")
+        print("      python verificar_repo.py")
+        print()
+        print("  (o en una sola linea, desde donde estas)")
+        print()
+        print("      python backend\\verificar_repo.py")
+        print()
+        print("  OJO: el script tiene que estar DENTRO de backend/, junto a la")
+        print("  carpeta app/. Si lo copiaste a la raiz, ese es el problema.")
+        print()
+        sys.exit(2)
+
+    print("=" * 66)
+    print("No encuentro la carpeta 'app/' junto a este script.")
+    print("=" * 66)
+    print()
+    print("  Copia verificar_repo.py DENTRO de la carpeta backend/ y correlo ahi.")
+    print()
+    sys.exit(2)
+
 # roto -> correcto
 DUNDERS = {
-    "__init__": "__init__",
-    "__tablename__": "__tablename__",
-    "__all__": "__all__",
-    "__repr__": "__repr__",
-    "__str__": "__str__",
+    "_init_": "__init__",
+    "_tablename_": "__tablename__",
+    "_all_": "__all__",
+    "_repr_": "__repr__",
+    "_str_": "__str__",
 }
 
 problemas: list[str] = []
@@ -46,8 +83,8 @@ avisos: list[str] = []
 
 # Nombres que Markdown dejo a medio comer, con el nombre que deberia tener.
 NOMBRES_ROTOS = {
-    "__init__.py": "__init__.py",
-    "__main__.py": "__main__.py",
+    "_init_.py": "__init__.py",
+    "_main_.py": "__main__.py",
     "_tablename_.py": None,
 }
 
