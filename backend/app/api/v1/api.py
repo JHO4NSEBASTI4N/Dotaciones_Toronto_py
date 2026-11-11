@@ -7,11 +7,11 @@ from app.api.v1.endpoints import (
     carrito,
     descuento,
     devolucion,
+    factura_electronica,
     inventario,
     pedido,
     producto,
     rol,
-    usuario,
     venta,
 )
 
@@ -28,4 +28,8 @@ api_router.include_router(
     devolucion.router, prefix="/devoluciones", tags=["Devoluciones"]
 )
 api_router.include_router(rol.router, prefix="/roles", tags=["Roles"])
-api_router.include_router(usuario.router, prefix="/usuarios", tags=["Usuarios"])
+api_router.include_router(
+    factura_electronica.router,
+    prefix="/facturas-electronicas",
+    tags=["Facturacion electronica (DIAN)"],
+)

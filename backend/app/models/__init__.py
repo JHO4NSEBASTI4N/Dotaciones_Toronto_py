@@ -19,8 +19,12 @@ from app.models.devolucion import Devolucion
 from app.models.factura import Factura
 from app.models.inventario import Inventario
 from app.models.movimiento_inventario import MovimientoInventario
+from app.models.factura_electronica import FacturaElectronica
+from app.models.factura_electronica_detalle import FacturaElectronicaDetalle
+from app.models.factura_electronica_evento import FacturaElectronicaEvento
 from app.models.pedido import Pedido
 from app.models.producto import Producto
+from app.models.resolucion_facturacion import ResolucionFacturacion
 from app.models.rol import Rol
 from app.models.usuario import Usuario
 from app.models.usuario_rol import UsuarioRol
@@ -35,10 +39,14 @@ __all__ = [
     "DetalleVenta",
     "Devolucion",
     "Factura",
+    "FacturaElectronica",
+    "FacturaElectronicaDetalle",
+    "FacturaElectronicaEvento",
     "Inventario",
     "MovimientoInventario",
     "Pedido",
     "Producto",
+    "ResolucionFacturacion",
     "Rol",
     "Usuario",
     "UsuarioRol",

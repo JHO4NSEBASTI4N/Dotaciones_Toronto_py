@@ -63,6 +63,10 @@ def motor_sqlite():
             modelos.DetalleVenta.__table__,
             modelos.Factura.__table__,
             modelos.Devolucion.__table__,
+            modelos.ResolucionFacturacion.__table__,
+            modelos.FacturaElectronica.__table__,
+            modelos.FacturaElectronicaDetalle.__table__,
+            modelos.FacturaElectronicaEvento.__table__,
         ],
     )
     yield motor
