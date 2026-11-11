@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <defs>
+    <!-- Fondo blanco a gris muy claro -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcfcfd"/>
+      <stop offset="100%" stop-color="#f3f4f6"/>
+    </linearGradient>
+
+    <!-- Resplandor rojo suave superior -->
+    <radialGradient id="topGlow" cx="60%" cy="0%" r="60%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Resplandor rojo suave inferior -->
+    <radialGradient id="bottomGlow" cx="80%" cy="100%" r="50%">
+      <stop offset="0%" stop-color="#b91c1c" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#b91c1c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Base de fondo -->
+  <rect width="1920" height="1080" fill="url(#bgGrad)"/>
+  <rect width="1920" height="1080" fill="url(#topGlow)"/>
+  <rect width="1920" height="1080" fill="url(#bottomGlow)"/>
+
+  <!-- Líneas curvas rojas en la esquina superior derecha -->
+  <g fill="none" stroke="#ef4444" stroke-linecap="round">
+    <path d="M 1200 0 C 1350 200, 1600 400, 1920 480" stroke-opacity="0.25" stroke-width="1.5"/>
+    <path d="M 1260 0 C 1400 220, 1640 430, 1920 520" stroke-opacity="0.28" stroke-width="1.5"/>
+    <path d="M 1320 0 C 1450 240, 1680 460, 1920 560" stroke-opacity="0.32" stroke-width="1.8"/>
+    <path d="M 1380 0 C 1500 260, 1720 490, 1920 600" stroke-opacity="0.35" stroke-width="2.0"/>
+    <path d="M 1440 0 C 1550 280, 1760 520, 1920 640" stroke-opacity="0.30" stroke-width="1.8"/>
+    <path d="M 1500 0 C 1600 300, 1800 550, 1920 680" stroke-opacity="0.25" stroke-width="1.5"/>
+    <path d="M 1560 0 C 1650 320, 1840 580, 1920 720" stroke-opacity="0.20" stroke-width="1.2"/>
+    <path d="M 1620 0 C 1700 340, 1880 610, 1920 760" stroke-opacity="0.15" stroke-width="1.0"/>
+  </g>
+</svg>
