@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 06-11-2026 a las 03:26:24
+-- Tiempo de generación: 11-11-2026 a las 23:17:29
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -426,8 +426,7 @@ INSERT INTO `producto` (`id_producto`, `nombre`, `precio`, `talla`, `color`, `im
 (9, 'Medias', 5000.00, 'S', 'Azul', NULL, 'Disponible', b'0', 'Calzado'),
 (10, 'Zapatos', 30000.00, 'L', 'Azul', NULL, 'Disponible', b'0', 'Calzado'),
 (11, 'Chaqueta ', 45000.00, 'S', 'Azul', NULL, 'Disponible', b'0', 'Chaquetas'),
-(12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones'),
-(13, 'string', 1.00, 'string', 'string', 'string', 'Disponible', b'0', 'General');
+(12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones');
 
 -- --------------------------------------------------------
 
