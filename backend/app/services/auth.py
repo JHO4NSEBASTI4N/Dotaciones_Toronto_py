@@ -26,6 +26,17 @@ from app.repositories.usuario import UsuarioRepositorio
 from app.schemas.usuario import LoginEntrada, UsuarioCrear
 
 
+# Se reexporta para que los endpoints de auth tengan una sola puerta de
+# entrada al cambio de contrasena (el servicio vive en services/usuario.py).
+def cambiar_mi_password(
+    sesion: Session, usuario: Usuario, password_actual: str, password_nueva: str
+) -> Usuario:
+    """Delega en el servicio de usuarios: aqui solo queda el atajo."""
+    from app.services.usuario import cambiar_mi_password as _cambiar
+
+    return _cambiar(sesion, usuario, password_actual, password_nueva)
+
+
 def registrar(sesion: Session, datos: UsuarioCrear) -> Usuario:
     repo = UsuarioRepositorio(sesion)
     if repo.buscar_por_correo(datos.correo):

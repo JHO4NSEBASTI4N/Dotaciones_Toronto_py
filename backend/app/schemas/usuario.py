@@ -43,6 +43,33 @@ class UsuarioRespuesta(BaseModel):
     id_rol_fk: Optional[int] = None
 
 
+class UsuarioDetalleRespuesta(UsuarioRespuesta):
+    """Ficha de un usuario con los roles que tiene activos.
+
+    `roles_activos` se calcula (no es una columna): sale de la tabla puente
+    usuario_rol mas el rol por defecto. Es lo que el administrador necesita
+    ver para saber con cuales roles puede entrar esa persona.
+    """
+
+    roles_activos: list[int] = []
+
+
+class CambioPasswordEntrada(BaseModel):
+    """El propio usuario cambia su contrasena: tiene que saber la actual."""
+
+    password_actual: str = Field(min_length=1, max_length=72)
+    password_nueva: str = Field(min_length=8, max_length=72)
+
+
+class RestablecerPasswordEntrada(BaseModel):
+    """El administrador le pone una contrasena nueva a un usuario.
+
+    No se pide la anterior: el administrador no la conoce.
+    """
+
+    password_nueva: str = Field(min_length=8, max_length=72)
+
+
 class LoginEntrada(BaseModel):
     """Credenciales. `id_rol` es opcional y solo hace falta si el usuario
     tiene MAS de un rol y quiere entrar con uno distinto al de por defecto."""

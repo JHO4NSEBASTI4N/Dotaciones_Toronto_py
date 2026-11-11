@@ -6,6 +6,7 @@ from app.core.dependencies import SesionBD, UsuarioActual
 from app.core.exceptions import NoAutorizado
 from app.schemas.usuario import (
     CambiarRolEntrada,
+    CambioPasswordEntrada,
     LoginEntrada,
     MisRolesRespuesta,
     TokenSalida,
@@ -58,6 +59,20 @@ def token_oauth2(
 def perfil(usuario: UsuarioActual):
     """Datos del usuario autenticado."""
     return usuario
+
+
+@router.post("/cambiar-password", response_model=UsuarioRespuesta)
+def cambiar_password(
+    datos: CambioPasswordEntrada, sesion: SesionBD, usuario: UsuarioActual
+):
+    """El propio usuario cambia su contrasena.
+
+    Pide la contrasena actual: asi, si alguien deja la sesion abierta, no
+    puede cambiarla sin saberla.
+    """
+    return servicio.cambiar_mi_password(
+        sesion, usuario, datos.password_actual, datos.password_nueva
+    )
 
 
 @router.get("/mis-roles", response_model=MisRolesRespuesta)
