@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { autenticacion } from "../services/autenticacion";
-import logo from "../assets/logo-negro.png";
+import logo from "../assets/images/logo negro.png";
 
 type EstadoCampo = "" | "is-valid" | "is-invalid";
 type NombreCampo =

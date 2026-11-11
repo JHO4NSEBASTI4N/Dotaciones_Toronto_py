@@ -4,7 +4,7 @@ import { Fragment, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { autenticacion } from "../services/autenticacion";
-import logo from "../assets/logo-negro.png";
+import logo from "../assets/images/logo negro.png";
 
 const ESTADISTICAS = [
   "13 años en el mercado",

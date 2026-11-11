@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { autenticacion } from "../services/autenticacion";
-import logo from "../assets/logo-negro.png";
+import logo from "../assets/images/logo negro.png";
 
 type TipoAlerta = "error" | "inhabilitado" | "logout" | "registro" | null;
 type EstadoCampo = "" | "is-valid" | "is-invalid";
