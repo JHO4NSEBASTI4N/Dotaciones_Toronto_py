@@ -9,7 +9,19 @@ class Configuracion(BaseSettings):
     
     secret_key: str
     algorithm: str = "HS256"
-    
+
+    # --- administrador inicial -----------------------------------------
+    # Al arrancar, la aplicacion crea este usuario si no existe.
+    # Se puede poner en False en el .env para desactivarlo (por ejemplo en
+    # produccion, cuando el admin ya esta creado y se quiere controlar a mano).
+    crear_admin_al_iniciar: bool = True
+    admin_nombre: str = "Administrador"
+    admin_correo: str = "admin@dotacionestoronto.com"
+    admin_password: str = "Admin123"
+    admin_documento: str = "0000000000"
+    admin_telefono: str = "0000000000"
+    admin_direccion: str = "Oficina principal"
+
     # --- facturacion electronica (DIAN) --------------------------------
     # Todos con valor por defecto para que el proyecto corra sin tocar el
     # .env. En produccion se cambian desde el .env, no en el codigo.

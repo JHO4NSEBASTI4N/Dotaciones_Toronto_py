@@ -1,14 +1,31 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.api import api_router
 from app.core.config import configuracion
 from app.core.exceptions import registrar_manejadores
+from app.database.inicializador import crear_admin_al_arrancar
+
+
+@asynccontextmanager
+async def ciclo_de_vida(app: FastAPI):
+    """Se ejecuta UNA vez al arrancar el servidor y otra al apagarlo.
+
+    Aqui va lo que tiene que pasar una sola vez, no en cada peticion: en este
+    caso, crear el usuario administrador si la base todavia no lo tiene (igual
+    que el AdminInitializer.java del proyecto en Spring Boot).
+    """
+    crear_admin_al_arrancar()
+    yield
+
 
 app = FastAPI(
     title=configuracion.app_name,
     version=configuracion.app_version,
     description="API REST para el control de inventario de dotaciones en Toronto",
+    lifespan=ciclo_de_vida,
 )
 
 # --- CORS -------------------------------------------------------------------
