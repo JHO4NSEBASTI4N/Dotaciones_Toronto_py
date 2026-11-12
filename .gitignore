@@ -1,5 +1,39 @@
+# --- Python ---------------------------------------------------------------
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*.so
 venv/
+.venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Variables de entorno -------------------------------------------------
+# NUNCA se suben: llevan la SECRET_KEY y la clave de la base de datos.
+# En el repo queda solo backend/.env.example (sin valores reales).
+.env
+.env.*
+!.env.example
+
+# --- Respaldos de la limpieza --------------------------------------------
+*.anterior
+*.respaldo
+
+# --- Editores y sistema ---------------------------------------------------
 .vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Frontend -------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
