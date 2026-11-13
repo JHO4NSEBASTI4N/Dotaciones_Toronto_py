@@ -1,3 +1,4 @@
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -51,5 +52,60 @@ class Configuracion(BaseSettings):
         env_file_encoding = "utf-8",
         case_sensitive = False
     )
-    
-configuracion = Configuracion()
+
+
+def _cargar_configuracion() -> "Configuracion":
+    """Carga la configuracion y, si falta el .env, lo explica en cristiano.
+
+    El archivo `.env` NO esta en el repositorio a proposito (lleva la
+    SECRET_KEY y la clave de la base de datos). La consecuencia es que un clon
+    nuevo no arranca hasta que cada uno cree el suyo. Antes eso salia como un
+    `ValidationError` de pydantic que no decia que hacer; ahora sale una
+    instruccion clara.
+    """
+    try:
+        return Configuracion()
+    except ValidationError as error:
+        faltan = [
+            str(fallo["loc"][0]).upper()
+            for fallo in error.errors()
+            if fallo["type"] == "missing"
+        ]
+        if not faltan:
+            raise
+
+        mensaje = [
+            "",
+            "=" * 70,
+            "FALTA CONFIGURAR EL ARCHIVO .env",
+            "=" * 70,
+            "",
+            f"  No encuentro: {', '.join(faltan)}",
+            "",
+            "  El archivo `.env` no se sube al repositorio, asi que hay que",
+            "  crearlo una vez en tu maquina. Son dos pasos:",
+            "",
+            "    1) Entra a la carpeta backend/",
+            "",
+            "           cd backend",
+            "",
+            "    2) Copia la plantilla y pon tus valores:",
+            "",
+            "           Windows:  copy .env.example .env",
+            "           Linux:    cp .env.example .env",
+            "",
+            "  Despues abre `backend/.env` y cambia SECRET_KEY por una clave",
+            "  propia. Para generarla:",
+            "",
+            '      python -c "import secrets; print(secrets.token_hex(32))"',
+            "",
+            "  Si ya tienes un .env, revisa que este DENTRO de backend/ y no",
+            "  en la raiz del repositorio.",
+            "",
+            "=" * 70,
+            "",
+        ]
+        raise SystemExit("\n".join(mensaje)) from error
+
+
+configuracion = _cargar_configuracion()

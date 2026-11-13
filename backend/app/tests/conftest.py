@@ -4,6 +4,18 @@ Se usa StaticPool para que todas las conexiones compartan la misma base
 en memoria (si no, cada conexion crea una BD nueva y vacia).
 """
 
+import os
+
+# Las pruebas NO deben depender de que exista `backend/.env`: el .env no se
+# sube al repositorio (lleva la SECRET_KEY real), asi que en un clon nuevo no
+# esta y la aplicacion fallaba al importarse con un error de pydantic que no
+# decia nada util. Aqui se le dan valores de mentira solo para las pruebas.
+# `setdefault` respeta el .env si existe: solo rellena lo que falte.
+os.environ.setdefault("SECRET_KEY", "clave-solo-para-pruebas")
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+# Durante pytest el inicializador del admin no toca ninguna base real.
+os.environ.setdefault("CREAR_ADMIN_AL_INICIAR", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import BigInteger, Integer, Table, create_engine, event
