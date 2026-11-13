@@ -191,7 +191,7 @@ export default function Registro() {
       });
       setListo(true);
     } catch (error) {
-      if (error instanceof ErrorApi && error.status === 400) {
+      if (error instanceof ErrorApi && error.estado === 400) {
         setMensajeError("Ese correo ya está registrado. Prueba iniciando sesión.");
       } else {
         setMensajeError(

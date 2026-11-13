@@ -233,3 +233,20 @@ def anular_venta(sesion: Session, id_venta: int) -> dict:
 def es_del_usuario(sesion: Session, id_venta: int, id_usuario: int) -> bool:
     venta = VentaRepositorio(sesion).buscar_por_id(id_venta)
     return venta is not None and venta.id_usuario_fk == id_usuario
+
+
+def ingresos_por_mes(sesion: Session) -> list[dict]:
+    """Ingresos por mes (ventas Completadas) para la grafica del modulo de ventas.
+
+    Devuelve una lista ordenada por periodo ascendente con las claves
+    periodo (YYYY-MM), ingreso (Decimal redondeado a centavos) y ventas.
+    """
+    filas = VentaRepositorio(sesion).ingresos_por_mes()
+    return [
+        {
+            "periodo": str(periodo),
+            "ingreso": _centavos(ingreso),
+            "ventas": int(ventas),
+        }
+        for periodo, ingreso, ventas in filas
+    ]

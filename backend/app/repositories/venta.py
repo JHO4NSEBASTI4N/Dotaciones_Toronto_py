@@ -69,6 +69,24 @@ class VentaRepositorio:
             select(func.count()).select_from(consulta.subquery())
         ) or 0
 
+    def ingresos_por_mes(self) -> list[tuple[str, float, int]]:
+        """Ingresos agrupados por mes (YYYY-MM) de ventas Completadas.
+
+        Devuelve tuplas (periodo, ingreso, ventas) ordenadas por periodo.
+        Se usa para la grafica del modulo de ventas.
+        """
+        consulta = (
+            select(
+                func.date_format(Venta.fecha_venta, "%Y-%m").label("periodo"),
+                func.coalesce(func.sum(Venta.total_pagado), 0.0).label("ingreso"),
+                func.count(Venta.id_venta).label("ventas"),
+            )
+            .where(Venta.estado == "Completada", Venta.fecha_venta.is_not(None))
+            .group_by("periodo")
+            .order_by("periodo")
+        )
+        return [tuple(fila) for fila in self.sesion.execute(consulta)]
+
     def crear(
         self,
         id_usuario: int | None,

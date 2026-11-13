@@ -270,6 +270,12 @@ a {
   display: grid;
   gap: 2px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dt-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .dt-nav-enlace {
@@ -2545,6 +2551,66 @@ a {
 }
 
 /* =========================================================================
+   15. GRAFICA DE INGRESOS (SVG puro)
+========================================================================= */
+
+.dt-grafica {
+  padding: 20px 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+  background: var(--white);
+  box-shadow: var(--card-shadow);
+}
+
+.dt-grafica-encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dt-grafica-encabezado strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.dt-grafica-encabezado span {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.dt-grafica-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.dt-grafica-svg rect {
+  transition: fill 0.16s;
+}
+
+.dt-grafica-svg rect:hover {
+  fill: var(--orange-deep);
+}
+
+.dt-grafica {
+  display: flex;
+  flex-direction: column;
+}
+
+.dt-grafica-vacia {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 220px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+/* =========================================================================
    14. AJUSTES FINALES PARA PANTALLAS PEQUEÑAS
 ========================================================================= */
 
@@ -2739,4 +2805,255 @@ a {
   font-size: 11px;
   font-weight: 500;
   line-height: 1.45;
+}
+
+/* --- Catálogo cliente: tarjetas de producto al estilo Toronto --- */
+.dt-productos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+  gap: 18px;
+  padding: 4px 2px 12px;
+}
+
+.dt-producto-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #edf0f5;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(22, 33, 58, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.dt-producto-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(250, 129, 59, 0.34);
+  box-shadow: 0 17px 32px rgba(250, 129, 59, 0.15);
+}
+
+.dt-producto-card-imagen {
+  position: relative;
+  display: grid;
+  aspect-ratio: 4 / 3;
+  max-height: 205px;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f8fafc, #eef2f7);
+}
+
+.dt-producto-card-imagen > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.dt-producto-card:hover .dt-producto-card-imagen > img {
+  transform: scale(1.05);
+}
+
+.dt-producto-sin-imagen {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #aab5c5;
+}
+
+.dt-producto-categoria,
+.dt-producto-descuento {
+  position: absolute;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dt-producto-categoria {
+  left: 12px;
+  max-width: 65%;
+  overflow: hidden;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.92);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.dt-producto-descuento {
+  right: 12px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), #ff512f);
+  box-shadow: 0 5px 12px rgba(250, 129, 59, 0.25);
+}
+
+.dt-producto-card-cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.dt-producto-titulo h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-producto-titulo > span {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.dt-producto-atributos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.dt-producto-atributos > span {
+  padding: 6px 8px;
+  border: 1px solid #edf0f5;
+  border-radius: 7px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 10.5px;
+}
+
+.dt-producto-atributos strong {
+  margin-left: 3px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.dt-producto-precio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 66px;
+  margin-top: 13px;
+  padding: 10px 0;
+  border-top: 1px solid #f1f3f7;
+  color: var(--orange);
+}
+
+.dt-producto-precio > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 7px;
+}
+
+.dt-producto-precio-etiqueta {
+  flex-basis: 100%;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dt-producto-precio strong {
+  color: #1e293b;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.dt-producto-precio s {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.dt-producto-precio > svg {
+  color: var(--orange);
+}
+
+.dt-producto-compra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 9px;
+}
+
+.dt-producto-cantidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dt-producto-cantidad > span {
+  min-width: 22px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.dt-producto-cantidad .dt-boton-icono {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.dt-producto-agregar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), #ff512f);
+  box-shadow: 0 6px 14px rgba(250, 129, 59, 0.22);
+  font-size: 11.5px;
+  font-weight: 800;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dt-producto-agregar:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 18px rgba(250, 129, 59, 0.3);
+}
+
+.dt-producto-agregar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+  .dt-productos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+    gap: 12px;
+  }
+
+  .dt-producto-card-cuerpo {
+    padding: 13px;
+  }
+
+  .dt-producto-compra {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dt-producto-cantidad {
+    justify-content: center;
+  }
 }

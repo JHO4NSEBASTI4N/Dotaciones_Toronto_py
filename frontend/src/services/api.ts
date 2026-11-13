@@ -39,6 +39,7 @@ import type {
   UsuarioCrear,
   UsuarioDetalle,
   Venta,
+  IngresoPorMes,
 } from "../types";
 
 export const BASE_URL =
@@ -335,6 +336,8 @@ export const ventas = {
   obtener: (id: number) => api.get<Venta>(`/ventas/${id}`),
   anular: (id: number) => api.post<Venta>(`/ventas/${id}/anular`),
   facturaInterna: (id: number) => api.get<unknown>(`/ventas/${id}/factura`),
+  ingresosPorMes: () =>
+    api.get<IngresoPorMes[]>(`/ventas/estadisticas/ingresos-por-mes`),
 };
 
 // ---------------------------------------------------------------------------

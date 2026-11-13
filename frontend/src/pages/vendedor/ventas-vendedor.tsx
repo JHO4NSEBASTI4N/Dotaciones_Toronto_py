@@ -22,7 +22,8 @@ import {
   fecha,
   tonoDeEstado,
 } from "../../components/indicadores";
-import type { Venta } from "../../types";
+import GraficaIngresos from "../../components/grafica-ingresos";
+import type { IngresoPorMes, Venta } from "../../types";
 
 export default function VentasVendedor() {
   const { usuario } = useSesion();
@@ -32,6 +33,8 @@ export default function VentasVendedor() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [ingresos, setIngresos] = useState<IngresoPorMes[]>([]);
+  const [graficaCargando, setGraficaCargando] = useState(true);
 
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
@@ -51,9 +54,22 @@ export default function VentasVendedor() {
     }
   }, []);
 
+  const cargarGrafica = useCallback(async () => {
+    setGraficaCargando(true);
+    try {
+      const datos = await ventas.ingresosPorMes();
+      setIngresos(datos);
+    } catch {
+      setIngresos([]);
+    } finally {
+      setGraficaCargando(false);
+    }
+  }, []);
+
   useEffect(() => {
     void cargarDatos();
-  }, [cargarDatos]);
+    void cargarGrafica();
+  }, [cargarDatos, cargarGrafica]);
 
   const resumen = useMemo(() => {
     const completadas = lista.filter((venta) => venta.estado === "Completada");
@@ -131,6 +147,10 @@ export default function VentasVendedor() {
         <Indicador etiqueta="Completadas" valor={resumen.completadas} descripcion="Con factura vigente" icono={Receipt} tono="morado" cargando={cargando} />
         <Indicador etiqueta="Anuladas" valor={resumen.anuladas} descripcion="No cuentan en ingresos" icono={Ban} tono="rojo" cargando={cargando} />
       </FilaIndicadores>
+
+      <div style={{ marginBottom: 22 }}>
+        <GraficaIngresos datos={ingresos} cargando={graficaCargando} />
+      </div>
 
       <section className="dt-listado">
         <BarraListado

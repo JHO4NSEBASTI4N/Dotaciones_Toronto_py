@@ -12,7 +12,7 @@ from app.core.dependencies import (
 )
 from app.core.exceptions import NoEncontrado
 from app.core.pagination import PaginaRespuesta, ParametrosPaginacion
-from app.schemas.venta import FacturaRespuesta, VentaRespuesta
+from app.schemas.venta import FacturaRespuesta, IngresoPorMes, VentaRespuesta
 from app.services import venta as servicio
 
 router = APIRouter()
@@ -55,6 +55,19 @@ def listar(
         limite=paginacion.limite,
         items=[VentaRespuesta.model_validate(v) for v in items],
     )
+
+
+@router.get(
+    "/estadisticas/ingresos-por-mes",
+    response_model=list[IngresoPorMes],
+    dependencies=[PuedeGestionar],
+)
+def ingresos_por_mes_endpoint(sesion: SesionBD):
+    """Ingresos por mes (ventas Completadas) para la grafica del modulo de ventas.
+
+    Requiere Administrador o Vendedor (el modulo de ventas es de staff).
+    """
+    return servicio.ingresos_por_mes(sesion)
 
 
 @router.get("/{id_venta}", response_model=VentaRespuesta)

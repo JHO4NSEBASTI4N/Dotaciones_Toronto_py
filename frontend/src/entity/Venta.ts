@@ -46,3 +46,13 @@ export interface FiltrosVenta extends ParametrosPagina {
   id_usuario?: number;
   id_pedido?: number;
 }
+
+/** Datos para la grafica de ingresos por mes (endpoint /ventas/estadisticas). */
+export interface IngresoPorMes {
+  /** Mes en formato "YYYY-MM". */
+  periodo: string;
+  /** Ingreso del mes (string con decimales, p. ej. "1540000.00"). */
+  ingreso: string;
+  /** Cantidad de ventas completadas en el mes. */
+  ventas: number;
+}
