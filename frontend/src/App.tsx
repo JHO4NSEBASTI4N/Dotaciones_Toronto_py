@@ -237,6 +237,14 @@ function BannerRol({ rutaActual }: { rutaActual: string }) {
   );
 }
 
+/** Cada carpeta de primer nivel (admin, vendedor…) pertenece a UN rol. */
+const ROL_DE_AREA: Record<string, number> = {
+  admin: 1,
+  cliente: 2,
+  vendedor: 3,
+  bodeguero: 4,
+};
+
 function EstructuraPanel() {
   const { usuario, salir, cambiarRol } = useSesion();
   const ubicacion = useLocation();
@@ -252,6 +260,16 @@ function EstructuraPanel() {
 
   if (!usuario) return null;
 
+  // Si la dirección es de otra área (ej. /vendedor/... con sesión de Cliente),
+  // se manda a la pantalla 403. Antes se veía la pantalla del otro rol con el
+  // menú del rol actual, y eso confundía al cambiar de rol.
+  const area = ubicacion.pathname.split("/")[1] ?? "";
+  const rolDelArea = ROL_DE_AREA[area];
+
+  if (rolDelArea !== undefined && rolDelArea !== usuario.id_rol) {
+    return <Navigate to="/error/403" replace />;
+  }
+
   const entrarConRol = async (idRol: number) => {
     setCambiando(true);
     try {
@@ -263,7 +281,7 @@ function EstructuraPanel() {
   };
 
   return (
-    <div className="dt-layout">
+    <div className={`dt-layout dt-layout-${claseRol}`}>
       {menuAbierto && (
         <button
           type="button"

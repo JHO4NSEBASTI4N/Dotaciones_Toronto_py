@@ -1,16 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-// Hojas de estilo, una por área (igual que el proyecto Java separaba
-// admin.css, vendedor.css, cliente.css, bodeguero.css, login.css...).
-import './styles/index.css'
-import './styles/login.css'
-import './styles/registro.css'
-import './styles/portada.css'
-import './styles/admin.css'
-import './styles/vendedor.css'
-import './styles/bodeguero.css'
-import './styles/cliente.css'
+// Una sola hoja de estilos: si hubiera varias (styles/admin.css, styles/login.css...)
+// y alguna no se copia al proyecto, Vite falla con "Failed to resolve import".
+// Todo el CSS vive aquí, así que no hay forma de que falte un archivo.
+import './index.css'
 
 import App from './App.tsx'
 

@@ -68,8 +68,19 @@ export default function Login() {
       await autenticacion.cambiarRol(idRol);
       await recargar();
       navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
-    } catch {
-      setError("No se pudo cambiar de rol. Intenta de nuevo.");
+    } catch (fallo) {
+      // Si el backend responde 409 significa que ya estabamos con ese rol:
+      // no es un error, el token ya sirve. Se entra directo.
+      if (fallo instanceof ErrorApi && fallo.estado === 409) {
+        await recargar();
+        navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
+        return;
+      }
+      setError(
+        fallo instanceof ErrorApi
+          ? `No se pudo cambiar de rol: ${fallo.message}.`
+          : "No se pudo cambiar de rol. Revisa que el backend esté encendido."
+      );
       setEntrando(false);
     }
   };

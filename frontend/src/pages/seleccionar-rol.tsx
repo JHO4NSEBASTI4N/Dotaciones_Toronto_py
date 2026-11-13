@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "../components/iconos";
+import { ErrorApi } from "../services/api";
 import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticacion";
 import { useSesion } from "../context/sesion-contexto";
 import { Aviso } from "../components/indicadores";
@@ -71,8 +72,18 @@ export default function SeleccionarRol() {
       await autenticacion.cambiarRol(idRol);
       await recargar();
       navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
-    } catch {
-      setError("No se pudo entrar con ese rol. Intenta de nuevo.");
+    } catch (fallo) {
+      // 409 = ya estabamos operando con ese rol; el token actual ya sirve.
+      if (fallo instanceof ErrorApi && fallo.estado === 409) {
+        await recargar();
+        navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
+        return;
+      }
+      setError(
+        fallo instanceof ErrorApi
+          ? `No se pudo entrar con ese rol: ${fallo.message}.`
+          : "No se pudo entrar con ese rol. Revisa que el backend esté encendido."
+      );
       setEntrando(null);
     }
   };
