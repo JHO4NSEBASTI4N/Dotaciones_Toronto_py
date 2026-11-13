@@ -2365,3 +2365,69 @@ a {
     transition-duration: 0.001s !important;
   }
 }
+
+/* Selector y vista previa de imágenes en el formulario de productos */
+.dt-imagen-producto-campo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dt-selector-imagen {
+  max-width: 100%;
+  padding: 8px !important;
+  border: 1px dashed #cbd5e1 !important;
+  background: #f8fafc !important;
+  cursor: pointer;
+}
+
+.dt-imagen-producto-campo > small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dt-imagen-producto-previa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.dt-imagen-producto-previa img {
+  width: 74px;
+  height: 74px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #ffffff;
+}
+
+.dt-imagen-producto-previa > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dt-imagen-producto-previa strong {
+  overflow: hidden;
+  max-width: 100%;
+  color: #334155;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-producto-miniatura {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}

@@ -4,6 +4,9 @@ from app.models.rol import Rol
 from app.models.usuario import Usuario
 from app.models.usuario_rol import UsuarioRol
 from app.core.security import hashear_password
+from app.models.producto import Producto as ModeloProducto
+from app.schemas.producto import ProductoRespuesta
+from app.services.producto import _esta_inhabilitado
 
 
 def crear_usuario_con_rol(sesion, correo: str, id_rol: int) -> Usuario:
@@ -23,6 +26,55 @@ def crear_usuario_con_rol(sesion, correo: str, id_rol: int) -> Usuario:
     sesion.commit()
     sesion.refresh(usuario)
     return usuario
+
+
+
+
+@pytest.mark.parametrize(
+    ("valor", "esperado"),
+    [
+        (b"\x00", False),
+        (b"\x01", True),
+        (b"0", False),
+        (b"1", True),
+        ("0", False),
+        ("1", True),
+        (False, False),
+        (True, True),
+        (None, False),
+    ],
+)
+def test_interpreta_bit_de_producto_sin_confundir_cero_con_verdadero(valor, esperado):
+    assert _esta_inhabilitado(valor) is esperado
+
+
+def test_tipo_sqlalchemy_lee_el_bit_mysql_cero_y_uno_sin_invertirlos():
+    from sqlalchemy.dialects.mysql import dialect as dialecto_mysql
+
+    tipo = ModeloProducto.__table__.c.inhabilitado.type
+    convertir = tipo.result_processor(dialecto_mysql(), None)
+    assert convertir is not None
+    assert convertir(b"\x00") is False
+    assert convertir(b"\x01") is True
+
+    enlazar = tipo.bind_processor(dialecto_mysql())
+    assert enlazar is not None
+    assert enlazar(False) == 0
+    assert enlazar(True) == 1
+
+
+def test_respuesta_producto_convierte_bit_de_mysql_a_booleano():
+    producto = ProductoRespuesta.model_validate(
+        {
+            "id_producto": 1,
+            "nombre": "Camisa",
+            "precio": "1000.00",
+            "categoria": "Dotación",
+            "estado": "Disponible",
+            "inhabilitado": b"\x00",
+        }
+    )
+    assert producto.inhabilitado is False
 
 
 def token_de(cliente, correo: str) -> dict:
@@ -227,6 +279,47 @@ def test_actualizar_a_nombre_existente_da_409(cliente, cabeceras_admin, producto
         headers=cabeceras_admin,
     )
     assert respuesta.status_code == 409
+
+
+# --- carga de imágenes -------------------------------------------------------
+
+def test_subir_imagen_producto_la_guarda_y_devuelve_su_ruta(
+    cliente, cabeceras_admin, monkeypatch, tmp_path
+):
+    from app.api.v1.endpoints import producto as endpoint_producto
+
+    monkeypatch.setattr(endpoint_producto, "DIRECTORIO_IMAGENES", tmp_path)
+    contenido = b"\xff\xd8\xff" + b"imagen-de-prueba"
+    respuesta = cliente.post(
+        "/api/v1/productos/imagen",
+        headers=cabeceras_admin,
+        files={"archivo": ("camisa.jpg", contenido, "image/jpeg")},
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    ruta = respuesta.json()["imagen"]
+    assert ruta.startswith("/uploads/productos/")
+    assert (tmp_path / ruta.rsplit("/", 1)[-1]).read_bytes() == contenido
+
+
+def test_subir_imagen_rechaza_archivo_que_no_es_imagen(
+    cliente, cabeceras_admin
+):
+    respuesta = cliente.post(
+        "/api/v1/productos/imagen",
+        headers=cabeceras_admin,
+        files={"archivo": ("camisa.jpg", b"no es una imagen", "image/jpeg")},
+    )
+    assert respuesta.status_code == 415
+
+
+def test_subir_imagen_requiere_administrador(cliente, cabeceras_cliente):
+    respuesta = cliente.post(
+        "/api/v1/productos/imagen",
+        headers=cabeceras_cliente,
+        files={"archivo": ("camisa.jpg", b"\xff\xd8\xff", "image/jpeg")},
+    )
+    assert respuesta.status_code == 403
 
 
 # --- borrado logico ----------------------------------------------------------
