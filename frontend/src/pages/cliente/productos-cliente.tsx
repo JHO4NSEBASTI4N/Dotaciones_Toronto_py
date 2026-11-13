@@ -205,112 +205,95 @@ export default function CatalogoVista() {
             Icono={Search}
           />
         ) : (
-          <div className="dt-tabla-scroll">
-            <table className="dt-tabla">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Categoría</th>
-                  <th>Talla</th>
-                  <th>Color</th>
-                  <th>Precio</th>
-                  <th>Cantidad</th>
-                  <th className="dt-columna-acciones">Agregar</th>
-                </tr>
-              </thead>
+          <div className="dt-productos-grid">
+            {filtrados.map((producto) => {
+              const precio = precios[producto.id_producto];
+              const cantidad = cantidades[producto.id_producto] ?? 1;
 
-              <tbody>
-                {filtrados.map((producto) => {
-                  const precio = precios[producto.id_producto];
-                  const cantidad = cantidades[producto.id_producto] ?? 1;
+              return (
+                <article className="dt-producto-card" key={producto.id_producto}>
+                  <div className="dt-producto-card-imagen">
+                    {producto.imagen ? (
+                      <img
+                        src={urlImagenProducto(producto.imagen)}
+                        alt={producto.nombre}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="dt-producto-sin-imagen" aria-label="Sin imagen">
+                        <Shirt size={42} strokeWidth={1.4} />
+                      </div>
+                    )}
+                    <span className="dt-producto-categoria">
+                      {producto.categoria || "Dotación"}
+                    </span>
+                    {precio?.tiene_descuento && (
+                      <span className="dt-producto-descuento">Oferta</span>
+                    )}
+                  </div>
 
-                  return (
-                    <tr key={producto.id_producto}>
-                      <td>
-                        <div className="dt-identidad-fila">
-                          <span className="dt-avatar-fila">
-                            {producto.imagen ? (
-                              <img
-                                className="dt-producto-miniatura"
-                                src={urlImagenProducto(producto.imagen)}
-                                alt={producto.nombre}
-                              />
-                            ) : (
-                              <Shirt size={15} />
-                            )}
-                          </span>
-                          <div>
-                            <span className="dt-fila-principal">{producto.nombre}</span>
-                            <span className="dt-fila-secundaria">
-                              Código #{producto.id_producto}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
+                  <div className="dt-producto-card-cuerpo">
+                    <div className="dt-producto-titulo">
+                      <h3>{producto.nombre}</h3>
+                      <span>Código #{producto.id_producto}</span>
+                    </div>
 
-                      <td>{producto.categoria}</td>
-                      <td>{producto.talla ?? "—"}</td>
-                      <td>{producto.color ?? "—"}</td>
+                    <div className="dt-producto-atributos">
+                      <span>Talla <strong>{producto.talla || "Única"}</strong></span>
+                      <span>Color <strong>{producto.color || "—"}</strong></span>
+                    </div>
 
-                      <td>
-                        <span className="dt-fila-principal">
-                          {pesos(precio?.precio_final ?? producto.precio)}
-                        </span>
+                    <div className="dt-producto-precio">
+                      <div>
+                        <span className="dt-producto-precio-etiqueta">Precio unitario</span>
                         {precio?.tiene_descuento && (
-                          <span className="dt-fila-secundaria">
-                            <s>{pesos(precio.precio_lista)}</s> con descuento
-                          </span>
+                          <s>{pesos(precio.precio_lista)}</s>
                         )}
-                      </td>
+                        <strong>{pesos(precio?.precio_final ?? producto.precio)}</strong>
+                      </div>
+                      {precio?.tiene_descuento && (
+                        <Tag size={17} aria-label="Precio con descuento" />
+                      )}
+                    </div>
 
-                      <td>
-                        <div className="dt-acciones-fila" style={{ justifyContent: "flex-start" }}>
-                          <button
-                            type="button"
-                            className="dt-boton-icono"
-                            onClick={() => cambiarCantidad(producto.id_producto, -1)}
-                            aria-label="Quitar una unidad"
-                          >
-                            <Minus size={13} />
-                          </button>
-
-                          <span style={{ minWidth: 26, textAlign: "center", fontWeight: 700 }}>
-                            {cantidad}
-                          </span>
-
-                          <button
-                            type="button"
-                            className="dt-boton-icono"
-                            onClick={() => cambiarCantidad(producto.id_producto, 1)}
-                            aria-label="Agregar una unidad"
-                          >
-                            <Plus size={13} />
-                          </button>
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="dt-acciones-fila">
-                          <button
-                            type="button"
-                            className="dt-boton-secundario"
-                            disabled={agregando === producto.id_producto}
-                            onClick={() => void agregar(producto)}
-                          >
-                            {agregando === producto.id_producto ? (
-                              <span className="dt-spinner" />
-                            ) : (
-                              <ShoppingCart size={13} />
-                            )}
-                            Agregar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    <div className="dt-producto-compra">
+                      <div className="dt-producto-cantidad" aria-label="Cantidad a agregar">
+                        <button
+                          type="button"
+                          className="dt-boton-icono"
+                          onClick={() => cambiarCantidad(producto.id_producto, -1)}
+                          aria-label={`Quitar una unidad de ${producto.nombre}`}
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span>{cantidad}</span>
+                        <button
+                          type="button"
+                          className="dt-boton-icono"
+                          onClick={() => cambiarCantidad(producto.id_producto, 1)}
+                          aria-label={`Agregar una unidad de ${producto.nombre}`}
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="dt-producto-agregar"
+                        disabled={agregando === producto.id_producto}
+                        onClick={() => void agregar(producto)}
+                      >
+                        {agregando === producto.id_producto ? (
+                          <span className="dt-spinner" />
+                        ) : (
+                          <ShoppingCart size={15} />
+                        )}
+                        Agregar
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
 
