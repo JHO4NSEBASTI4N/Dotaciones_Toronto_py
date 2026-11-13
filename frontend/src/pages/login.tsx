@@ -4,7 +4,7 @@
 // la derecha (se apila en celular). Si el usuario tiene varios roles, después
 // de autenticarse elige con cuál trabajar.
 
-import { useState, type CSSProperties, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BadgeCheck, Boxes, Check, Eye, EyeOff, Lock, Mail, Package, ShieldCheck } from "../components/iconos";
 
@@ -12,38 +12,6 @@ import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticaci
 import { ErrorApi } from "../services/api";
 import { useSesion } from "../context/sesion-contexto";
 import type { RolDisponible } from "../types";
-
-/* Botón "Volver": estilos inline para que funcione aunque el CSS no cargue.
-   Al ser position:absolute queda FUERA del grid y no rompe las 2 columnas. */
-const ESTILO_VOLVER: CSSProperties = {
-  position: "absolute",
-  top: 18,
-  right: 18,
-  zIndex: 50,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 8,
-  height: 38,
-  padding: "0 16px",
-  border: "1px solid rgba(22, 33, 58, 0.12)",
-  borderRadius: 999,
-  background: "#ffffff",
-  color: "#16213a",
-  fontFamily: "inherit",
-  fontSize: 13,
-  fontWeight: 700,
-  lineHeight: 1,
-  textDecoration: "none",
-  boxShadow: "0 6px 18px rgba(22, 33, 58, 0.18)",
-};
-
-const ESTILO_FLECHA: CSSProperties = {
-  color: "#fa813b",
-  fontSize: 17,
-  lineHeight: 1,
-  fontWeight: 700,
-};
 
 export default function Login() {
   const navegar = useNavigate();
@@ -83,7 +51,8 @@ export default function Login() {
           ? fallo.estado === 401
             ? "Correo o contraseña incorrectos."
             : fallo.estado === 403
-              ? "Tu usuario no tiene un rol asignado. Pide al administrador que te asigne uno."
+              ? (fallo.message ||
+                  "Tu usuario no tiene un rol asignado. Pide al administrador que te asigne uno.")
               : fallo.message
           : "No se pudo contactar el servidor. Revisa que el backend esté encendido.";
       setError(mensaje);
@@ -118,20 +87,7 @@ export default function Login() {
   };
 
   return (
-    <div className="login-pagina" style={{ position: "relative" }}>
-      {/* ---------------- Botón: volver a la portada (index.tsx) ---------------- */}
-      <Link
-        to="/"
-        className="login-volver"
-        style={ESTILO_VOLVER}
-        aria-label="Volver a la página principal"
-      >
-        <span className="login-volver-flecha" style={ESTILO_FLECHA} aria-hidden="true">
-          ←
-        </span>
-        Volver
-      </Link>
-
+    <div className="login-pagina">
       {/* ---------------- Presentación ---------------- */}
       <section className="login-presentacion">
         <div className="marca">
