@@ -1,0 +1,22 @@
+/* =========================================================================
+   ESTILOS DEL ROL VENDEDOR
+========================================================================= */
+
+.dt-identidad-vendedor {
+  border-color: #d8cdf3;
+  background: #f3effd;
+}
+
+.dt-identidad-vendedor .dt-identidad-avatar {
+  background: #5b3fb5;
+}
+
+.dt-banner-vendedor {
+  border-color: #d8cdf3;
+  background: linear-gradient(120deg, #f3effd, #fbf9ff);
+}
+
+.dt-rol-vendedor {
+  color: #45309c;
+  background: #f1ecfd;
+}

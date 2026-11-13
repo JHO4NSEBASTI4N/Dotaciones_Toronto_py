@@ -1,0 +1,250 @@
+/* =========================================================================
+   ESTILOS DE ACCESO: login, registro, selección de rol y portada
+========================================================================= */
+
+/* =========================================================================
+   LOGIN
+========================================================================= */
+
+.login-pagina {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.login-presentacion {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 42px clamp(28px, 6vw, 80px) 25px;
+  color: #ffffff;
+  background: linear-gradient(145deg, #063d28, #0f6b46 62%, #179b66);
+}
+
+.login-presentacion::after {
+  content: "";
+  position: absolute;
+  inset: auto -120px -160px auto;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff22, transparent 65%);
+  pointer-events: none;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+.marca-icono {
+  display: grid;
+  place-items: center;
+  width: 47px;
+  height: 47px;
+  border: 1px solid #ffffff55;
+  border-radius: 14px;
+  background: #ffffff18;
+}
+
+.marca-verde {
+  color: #8ff0c4;
+}
+
+.presentacion-contenido {
+  max-width: 540px;
+  margin: 40px 0;
+}
+
+.etiqueta {
+  color: #8ff0c4;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.presentacion-contenido h1 {
+  margin: 20px 0 18px;
+  font-size: clamp(34px, 3.6vw, 54px);
+  line-height: 1.12;
+  letter-spacing: -1.8px;
+}
+
+.presentacion-contenido p {
+  color: #d5efe1;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.presentacion-lista {
+  display: grid;
+  gap: 12px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.presentacion-lista li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e4f7ec;
+  font-size: 14px;
+}
+
+.presentacion-lista svg {
+  flex: none;
+  color: #8ff0c4;
+}
+
+.presentacion-pie {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b6ddc9;
+  font-size: 12px;
+}
+
+.login-formulario-lado {
+  display: grid;
+  place-items: center;
+  padding: 32px clamp(24px, 5vw, 70px);
+}
+
+.login-caja {
+  width: 100%;
+  max-width: 392px;
+}
+
+.login-caja h2 {
+  font-size: 26px;
+  letter-spacing: -0.8px;
+}
+
+.login-caja > p {
+  margin-top: 8px;
+  color: var(--dt-texto-suave);
+  font-size: 14px;
+}
+
+.login-formulario {
+  display: grid;
+  gap: 16px;
+  margin-top: 26px;
+}
+
+.campo {
+  display: grid;
+  gap: 7px;
+}
+
+.campo > span {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.campo-caja {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  border: 1px solid var(--dt-borde);
+  border-radius: 11px;
+  background: #fbfcfe;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.campo-caja:focus-within {
+  border-color: var(--dt-verde);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px #0f6b4614;
+}
+
+.campo-caja > svg {
+  flex: none;
+  color: #94a3b8;
+}
+
+.campo-caja input {
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: #172b4d;
+  outline: none;
+}
+
+.campo-caja input::placeholder {
+  color: #a9b4c4;
+}
+
+.campo-ojo {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+}
+
+.campo-ojo:hover {
+  background: #eef2f7;
+  color: #475569;
+}
+
+.boton-principal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 11px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #128055, #0f6b46);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px #0f6b4633;
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+}
+
+.boton-principal:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 22px #0f6b4640;
+}
+
+.boton-principal:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.mensaje-error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 13px;
+  border: 1px solid #f3c7c3;
+  border-radius: 10px;
+  color: #8f1d15;
+  background: #fdf1f0;
+  font-size: 13px;
+}
+
+.login-pie {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--dt-borde);
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+}
+

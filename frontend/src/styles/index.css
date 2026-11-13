@@ -1,0 +1,18 @@
+/* =========================================================================
+   ESTILOS DEL ROL CLIENTE
+========================================================================= */
+
+.dt-identidad-cliente {
+  border-color: var(--dt-verde-borde);
+  background: var(--dt-verde-claro);
+}
+
+.dt-banner-cliente {
+  border-color: var(--dt-verde-borde);
+  background: linear-gradient(120deg, #eefaf3, #f7fcfa);
+}
+
+.dt-rol-cliente {
+  color: #0b5234;
+  background: var(--dt-verde-claro);
+}
