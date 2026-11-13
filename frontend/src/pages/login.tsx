@@ -5,7 +5,7 @@
 // de autenticarse elige con cuál trabajar.
 
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, BadgeCheck, Boxes, Check, Eye, EyeOff, Lock, Mail, Package, ShieldCheck } from "../components/iconos";
 
 import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticacion";
@@ -125,7 +125,6 @@ export default function Login() {
 
         <div className="presentacion-pie">
           <ShieldCheck size={14} />
-          Proyecto académico · SENA · ADSO
         </div>
       </section>
 
@@ -245,7 +244,10 @@ export default function Login() {
               </form>
 
               <p className="login-pie">
-                ¿No tienes cuenta? Pide a un administrador que te registre.
+                ¿No tienes cuenta?{" "}
+                <Link to="/registro" className="dt-boton-secundario">
+                  Regístrate aquí
+                </Link>
               </p>
             </>
           )}
