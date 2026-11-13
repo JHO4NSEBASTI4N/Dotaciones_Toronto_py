@@ -83,6 +83,37 @@ def test_crear_inventario_registra_stock_y_movimiento_inicial(cliente, inventari
     assert movimiento["usuario_responsable"] == "admin"
 
 
+def test_crear_inventario_bajo_minimo_genera_alerta(cliente, cabeceras_admin, producto):
+    respuesta = cliente.post(
+        "/api/v1/inventario",
+        json={
+            "id_producto_fk": producto["id_producto"],
+            "cantidad_actual": 3,
+            "stock_minimo": 5,
+        },
+        headers=cabeceras_admin,
+    )
+    assert respuesta.status_code == 201, respuesta.text
+
+    alertas = cliente.get("/api/v1/inventario/alertas").json()
+    assert alertas["total"] == 1
+    assert alertas["items"][0]["nivel_stock"] == 3
+
+
+def test_cambiar_minimo_bajo_stock_genera_alerta(
+    cliente, cabeceras_admin, inventario
+):
+    respuesta = cliente.patch(
+        f"/api/v1/inventario/{inventario['id_inventario']}",
+        json={"stock_minimo": 12},
+        headers=cabeceras_admin,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    alertas = cliente.get("/api/v1/inventario/alertas").json()
+    assert alertas["total"] == 1
+    assert alertas["items"][0]["nivel_stock"] == 10
+
+
 def test_crear_para_producto_inexistente_da_404(cliente, cabeceras_admin):
     r = cliente.post(
         "/api/v1/inventario",
