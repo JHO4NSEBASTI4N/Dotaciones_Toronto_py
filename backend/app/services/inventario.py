@@ -88,6 +88,12 @@ def crear_inventario(
         motivo="Registro inicial de inventario",
         usuario_responsable=usuario_responsable,
     )
+    _verificar_alerta(
+        repo,
+        fila.id_producto_fk,
+        fila.cantidad_actual or 0,
+        fila.stock_minimo or 0,
+    )
     sesion.commit()
     sesion.refresh(fila)
     return fila
@@ -99,6 +105,9 @@ def actualizar_stock_minimo(
     repo = InventarioRepositorio(sesion)
     fila = _obtener_fila_o_fallar(repo, id_inventario)
     fila.stock_minimo = nuevo_minimo
+    _verificar_alerta(
+        repo, fila.id_producto_fk, fila.cantidad_actual or 0, nuevo_minimo
+    )
     sesion.commit()
     sesion.refresh(fila)
     return fila
@@ -125,6 +134,9 @@ def registrar_entrada(
         cantidad=datos.cantidad,
         motivo=datos.motivo,
         usuario_responsable=usuario_responsable,
+    )
+    _verificar_alerta(
+        repo, fila.id_producto_fk, fila.cantidad_actual, fila.stock_minimo or 0
     )
 
     sesion.commit()

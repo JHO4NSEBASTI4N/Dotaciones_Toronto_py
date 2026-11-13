@@ -1,7 +1,5 @@
-// src/pages/bodeguero/alertas.tsx
-//
-// Alertas de stock que genera el backend cuando un producto cae por debajo del
-// mínimo. Se muestran tal cual y se cruzan con el stock actual.
+// Alertas activas construidas desde el stock actual, no desde el historial.
+// El historial puede no contener alertas para inventarios creados antes de esta corrección.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Bell, BellRing, Package, RefreshCw, TriangleAlert } from "../../components/iconos";
@@ -19,14 +17,12 @@ import {
   Indicador,
   TablaCargando,
   TablaVacia,
-  fecha,
 } from "../../components/indicadores";
-import type { AlertaStock, StockPorProducto } from "../../types";
+import type { StockPorProducto } from "../../types";
 
 export default function AlertasVista() {
   const { usuario } = useSesion();
 
-  const [alertas, setAlertas] = useState<AlertaStock[]>([]);
   const [stock, setStock] = useState<StockPorProducto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -38,12 +34,7 @@ export default function AlertasVista() {
     setError("");
 
     try {
-      const [listaAlertas, existencias] = await Promise.all([
-        traerTodo((saltar, limite) => inventario.alertas(saltar, limite)),
-        traerTodo((saltar, limite) => inventario.stock(saltar, limite)),
-      ]);
-
-      setAlertas(listaAlertas.items);
+      const existencias = await traerTodo((saltar, limite) => inventario.stock(saltar, limite));
       setStock(existencias.items);
     } catch (fallo) {
       setError(fallo instanceof Error ? fallo.message : "No se pudieron cargar las alertas.");
@@ -56,58 +47,44 @@ export default function AlertasVista() {
     void cargarDatos();
   }, [cargarDatos]);
 
-  /** Cruza cada alerta con el nombre y stock actual del producto. */
-  const detalladas = useMemo(
-    () =>
-      alertas.map((alerta) => {
-        const producto = stock.find((fila) => fila.id_producto === alerta.id_producto_fk);
-
-        return {
-          ...alerta,
-          nombre: producto?.nombre ?? `Producto #${alerta.id_producto_fk ?? "—"}`,
-          categoria: producto?.categoria ?? "—",
-          stock_total: producto?.stock_total ?? 0,
-          stock_minimo: producto?.stock_minimo ?? 0,
-        };
-      }),
-    [alertas, stock]
+  const alertas = useMemo(
+    () => stock.filter((fila) => !fila.inhabilitado && fila.bajo_minimo),
+    [stock]
   );
 
   const resumen = useMemo(
     () => ({
-      total: detalladas.length,
-      agotados: detalladas.filter((alerta) => alerta.stock_total === 0).length,
-      criticos: detalladas.filter((alerta) => alerta.nivel_stock === "CRITICO").length,
-      productos: new Set(detalladas.map((alerta) => alerta.id_producto_fk)).size,
+      total: alertas.length,
+      agotados: alertas.filter((fila) => fila.stock_total === 0).length,
+      conStock: alertas.filter((fila) => fila.stock_total > 0).length,
     }),
-    [detalladas]
+    [alertas]
   );
 
   const filtradas = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
 
-    return detalladas.filter((alerta) => {
+    return alertas.filter((fila) => {
       const coincideTexto =
         !texto ||
-        alerta.nombre.toLowerCase().includes(texto) ||
-        alerta.categoria.toLowerCase().includes(texto);
+        fila.nombre.toLowerCase().includes(texto) ||
+        (fila.categoria ?? "").toLowerCase().includes(texto);
 
       const coincideFiltro =
         !filtro ||
-        (filtro === "agotado" && alerta.stock_total === 0) ||
-        (filtro === "critico" && alerta.nivel_stock === "CRITICO") ||
-        (filtro === "bajo" && alerta.stock_total > 0);
+        (filtro === "agotado" && fila.stock_total === 0) ||
+        (filtro === "bajo" && fila.stock_total > 0);
 
       return coincideTexto && coincideFiltro;
     });
-  }, [detalladas, busqueda, filtro]);
+  }, [alertas, busqueda, filtro]);
 
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
         seccion="Bodega"
         titulo="Alertas de stock"
-        descripcion="Productos que bajaron de su mínimo. Cada alerta se cruza con el stock real del momento."
+        descripcion="Productos cuyo stock actual está en o por debajo del mínimo configurado."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "bodeguero" } : undefined}
         accion={
           <button
@@ -125,16 +102,16 @@ export default function AlertasVista() {
       {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
 
       <FilaIndicadores>
-        <Indicador etiqueta="Alertas" valor={resumen.total} descripcion="Registradas por el sistema" icono={BellRing} tono="azul" cargando={cargando} />
-        <Indicador etiqueta="Agotados" valor={resumen.agotados} descripcion="Sin unidades" icono={TriangleAlert} tono="rojo" cargando={cargando} />
-        <Indicador etiqueta="Nivel crítico" valor={resumen.criticos} descripcion="Marcadas como CRITICO" icono={AlertTriangle} tono="ambar" cargando={cargando} />
-        <Indicador etiqueta="Productos" valor={resumen.productos} descripcion="Afectados distintos" icono={Package} tono="morado" cargando={cargando} />
+        <Indicador etiqueta="Bajo mínimo" valor={resumen.total} descripcion="Alertas activas ahora" icono={BellRing} tono="azul" cargando={cargando} />
+        <Indicador etiqueta="Agotados" valor={resumen.agotados} descripcion="Sin unidades disponibles" icono={TriangleAlert} tono="rojo" cargando={cargando} />
+        <Indicador etiqueta="Con existencias" valor={resumen.conStock} descripcion="Pero bajo el mínimo" icono={AlertTriangle} tono="ambar" cargando={cargando} />
+        <Indicador etiqueta="Productos" valor={resumen.total} descripcion="Productos afectados" icono={Package} tono="morado" cargando={cargando} />
       </FilaIndicadores>
 
       <section className="dt-listado">
         <BarraListado
-          titulo="Historial de alertas"
-          descripcion={`${filtradas.length} de ${detalladas.length} alertas`}
+          titulo="Alertas activas"
+          descripcion={`${filtradas.length} de ${alertas.length} productos`}
           Icono={Bell}
         >
           <CajaBusqueda valor={busqueda} onCambio={setBusqueda} marcador="Producto o categoría" />
@@ -145,7 +122,6 @@ export default function AlertasVista() {
             opciones={[
               { valor: "", texto: "Todas las alertas" },
               { valor: "agotado", texto: "Agotados" },
-              { valor: "critico", texto: "Nivel crítico" },
               { valor: "bajo", texto: "Con algo de stock" },
             ]}
           />
@@ -162,11 +138,11 @@ export default function AlertasVista() {
         </BarraListado>
 
         {cargando ? (
-          <TablaCargando mensaje="Consultando alertas…" />
+          <TablaCargando mensaje="Consultando stock actual…" />
         ) : filtradas.length === 0 ? (
           <TablaVacia
-            titulo="Sin alertas"
-            mensaje="No hay productos por debajo del mínimo. La bodega está al día."
+            titulo="Sin alertas activas"
+            mensaje="No hay productos activos en o por debajo de su stock mínimo."
             Icono={BellRing}
           />
         ) : (
@@ -176,43 +152,33 @@ export default function AlertasVista() {
                 <tr>
                   <th>Producto</th>
                   <th>Categoría</th>
-                  <th>Nivel</th>
                   <th>Stock actual</th>
                   <th>Mínimo</th>
-                  <th>Fecha</th>
                   <th>Estado</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filtradas.map((alerta) => (
-                  <tr key={alerta.id_alerta}>
+                {filtradas.map((fila) => (
+                  <tr key={fila.id_producto}>
                     <td>
                       <div className="dt-identidad-fila">
                         <span className="dt-avatar-fila">
                           <Package size={15} />
                         </span>
                         <div>
-                          <span className="dt-fila-principal">{alerta.nombre}</span>
-                          <span className="dt-fila-secundaria">
-                            Alerta #{alerta.id_alerta}
-                          </span>
+                          <span className="dt-fila-principal">{fila.nombre}</span>
+                          <span className="dt-fila-secundaria">Producto #{fila.id_producto}</span>
                         </div>
                       </div>
                     </td>
-
-                    <td>{alerta.categoria}</td>
-                    <td>{alerta.nivel_stock ?? "—"}</td>
-                    <td>
-                      <span className="dt-fila-principal">{alerta.stock_total}</span>
-                    </td>
-                    <td>{alerta.stock_minimo}</td>
-                    <td>{fecha(alerta.fecha_alerta)}</td>
-
+                    <td>{fila.categoria ?? "—"}</td>
+                    <td><span className="dt-fila-principal">{fila.stock_total}</span></td>
+                    <td>{fila.stock_minimo}</td>
                     <td>
                       <EtiquetaEstado
-                        tipo={alerta.stock_total === 0 ? "inactivo" : "pendiente"}
-                        texto={alerta.stock_total === 0 ? "Agotado" : "Bajo mínimo"}
+                        tipo={fila.stock_total === 0 ? "inactivo" : "pendiente"}
+                        texto={fila.stock_total === 0 ? "Agotado" : "Bajo mínimo"}
                       />
                     </td>
                   </tr>
