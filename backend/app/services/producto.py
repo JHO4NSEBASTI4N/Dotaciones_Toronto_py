@@ -6,13 +6,32 @@ from app.repositories.producto import ProductoRepositorio
 from app.schemas.producto import ProductoActualizar, ProductoCrear
 
 
+def _esta_inhabilitado(valor: object) -> bool:
+    """Interpreta de forma fiable los BIT(1) que MySQL puede devolver como bytes."""
+    if isinstance(valor, (bytes, bytearray)):
+        try:
+            texto = bytes(valor).decode("ascii").strip()
+            if texto in {"0", "1"}:
+                return texto == "1"
+        except UnicodeDecodeError:
+            pass
+        return any(valor)
+    if isinstance(valor, str):
+        texto = valor.strip().lower()
+        if texto in {"0", "false", "f", "no", "n", ""}:
+            return False
+        if texto in {"1", "true", "t", "yes", "s"}:
+            return True
+    return bool(valor)
+
+
 def _obtener_o_fallar(
     repo: ProductoRepositorio, id_producto: int, incluir_inhabilitados: bool = True
 ) -> Producto:
     producto = repo.buscar_por_id(id_producto)
     if producto is None:
         raise NoEncontrado(f"No existe el producto con id {id_producto}")
-    if producto.inhabilitado and not incluir_inhabilitados:
+    if _esta_inhabilitado(producto.inhabilitado) and not incluir_inhabilitados:
         raise NoEncontrado(f"No existe el producto con id {id_producto}")
     return producto
 
@@ -87,7 +106,7 @@ def actualizar_producto(
 def inhabilitar_producto(sesion: Session, id_producto: int) -> Producto:
     repo = ProductoRepositorio(sesion)
     producto = _obtener_o_fallar(repo, id_producto)
-    if producto.inhabilitado:
+    if _esta_inhabilitado(producto.inhabilitado):
         raise Conflicto("El producto ya esta inhabilitado")
 
     producto = repo.inhabilitar(producto)
@@ -99,7 +118,7 @@ def inhabilitar_producto(sesion: Session, id_producto: int) -> Producto:
 def habilitar_producto(sesion: Session, id_producto: int) -> Producto:
     repo = ProductoRepositorio(sesion)
     producto = _obtener_o_fallar(repo, id_producto)
-    if not producto.inhabilitado:
+    if not _esta_inhabilitado(producto.inhabilitado):
         raise Conflicto("El producto ya esta habilitado")
 
     producto = repo.habilitar(producto)

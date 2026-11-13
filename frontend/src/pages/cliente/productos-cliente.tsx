@@ -13,6 +13,7 @@ import {
   pesos,
   productos,
   traerTodo,
+  urlImagenProducto,
 } from "../../services/api";
 import { useSesion } from "../../context/sesion-contexto";
 import {
@@ -228,7 +229,15 @@ export default function CatalogoVista() {
                       <td>
                         <div className="dt-identidad-fila">
                           <span className="dt-avatar-fila">
-                            <Shirt size={15} />
+                            {producto.imagen ? (
+                              <img
+                                className="dt-producto-miniatura"
+                                src={urlImagenProducto(producto.imagen)}
+                                alt={producto.nombre}
+                              />
+                            ) : (
+                              <Shirt size={15} />
+                            )}
                           </span>
                           <div>
                             <span className="dt-fila-principal">{producto.nombre}</span>

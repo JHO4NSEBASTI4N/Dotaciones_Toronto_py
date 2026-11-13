@@ -4,6 +4,8 @@
 // proyecto Java: /admin, /vendedor, /bodeguero, /cliente, y fuera de ellos
 // /index (portada), /login, /registro, /seleccionar-rol y /error/*.
 
+import "./App.css";
+
 import { useMemo, useState } from "react";
 import {
   BrowserRouter,
@@ -16,13 +18,13 @@ import {
 } from "react-router-dom";
 import {
   ArrowLeftRight,
+  ArrowRight,
   BadgeCheck,
   Boxes,
   ClipboardList,
   CreditCard,
   FileText,
   LayoutDashboard,
-  Lock,
   LogOut,
   Menu,
   Package,
@@ -171,9 +173,9 @@ function PantallaCargando() {
 }
 
 function RutaProtegida() {
-  const { usuario, cargando } = useSesion();
+  const { usuario, cargando, cambioRolEnCurso } = useSesion();
 
-  if (cargando) return <PantallaCargando />;
+  if (cargando || cambioRolEnCurso) return <PantallaCargando />;
   if (!usuario) return <Navigate to="/login" replace />;
 
   return <Outlet />;
@@ -250,10 +252,11 @@ function EstructuraPanel() {
   const ubicacion = useLocation();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [cambiando, setCambiando] = useState(false);
+  const [errorCambioRol, setErrorCambioRol] = useState("");
 
   const claseRol = CLASE_ROL[usuario?.id_rol ?? 2] ?? "cliente";
   const enlaces = MENU[usuario?.id_rol ?? 2] ?? [];
-  const bloqueados = useMemo(
+  const rolesDisponibles = useMemo(
     () => (usuario?.roles ?? []).filter((rol) => rol.id_rol !== usuario?.id_rol),
     [usuario]
   );
@@ -272,8 +275,15 @@ function EstructuraPanel() {
 
   const entrarConRol = async (idRol: number) => {
     setCambiando(true);
+    setErrorCambioRol("");
     try {
       await cambiarRol(idRol);
+    } catch (fallo) {
+      setErrorCambioRol(
+        fallo instanceof Error
+          ? `No se pudo cambiar de rol: ${fallo.message}`
+          : "No se pudo cambiar de rol. Vuelve a intentarlo."
+      );
     } finally {
       setCambiando(false);
       setMenuAbierto(false);
@@ -337,25 +347,30 @@ function EstructuraPanel() {
             </NavLink>
           ))}
 
-          {bloqueados.length > 0 && (
-            <div className="dt-nav-restringido">
+          {rolesDisponibles.length > 0 && (
+            <div className="dt-nav-roles-disponibles">
               <p>
-                <Lock size={11} /> Bloqueado para tu rol
+                <ArrowLeftRight size={12} /> Roles disponibles
               </p>
 
-              {bloqueados.map((rol) => (
+              {rolesDisponibles.map((rol) => (
                 <button
                   key={rol.id_rol}
                   type="button"
-                  className="dt-nav-bloqueado"
+                  className="dt-nav-rol-disponible"
                   onClick={() => void entrarConRol(rol.id_rol)}
                   disabled={cambiando}
-                  title={`Entrar como ${NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}`}
+                  title={`Cambiar al rol ${NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}`}
                 >
-                  <Lock size={13} />
                   {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
+                  <ArrowRight size={13} />
                 </button>
               ))}
+              {errorCambioRol && (
+                <span className="dt-error-cambio-rol" role="alert">
+                  {errorCambioRol}
+                </span>
+              )}
             </div>
           )}
         </nav>

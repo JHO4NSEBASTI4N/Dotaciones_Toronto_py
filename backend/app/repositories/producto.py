@@ -72,7 +72,10 @@ class ProductoRepositorio:
         ) or 0
 
     def crear(self, datos: ProductoCrear) -> Producto:
-        producto = Producto(**datos.model_dump(), estado="Disponible")
+        # Se fija explícitamente: el DDL usa BIT(1), cuyo default debe ser 0.
+        producto = Producto(
+            **datos.model_dump(), estado="Disponible", inhabilitado=False
+        )
         self.sesion.add(producto)
         self.sesion.flush()
         return producto

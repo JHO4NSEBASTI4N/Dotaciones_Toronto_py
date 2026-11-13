@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Package, PackageMinus, PackagePlus, Pencil, Plus, RefreshCw, Shirt, Tag, X } from "../../components/iconos";
 
-import { pesos, productos, traerTodo } from "../../services/api";
+import { pesos, productos, traerTodo, urlImagenProducto } from "../../services/api";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -55,6 +55,8 @@ export default function ProductosAdmin() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [formulario, setFormulario] = useState<Formulario>(FORMULARIO_VACIO);
+  const [archivoImagen, setArchivoImagen] = useState<File | null>(null);
+  const [vistaPrevia, setVistaPrevia] = useState("");
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -115,6 +117,8 @@ export default function ProductosAdmin() {
   const abrirNuevo = () => {
     setEditando(null);
     setFormulario(FORMULARIO_VACIO);
+    setArchivoImagen(null);
+    setVistaPrevia("");
     setError("");
     setModalAbierto(true);
   };
@@ -129,6 +133,8 @@ export default function ProductosAdmin() {
       color: producto.color ?? "",
       imagen: producto.imagen ?? "",
     });
+    setArchivoImagen(null);
+    setVistaPrevia(urlImagenProducto(producto.imagen));
     setError("");
     setModalAbierto(true);
   };
@@ -148,6 +154,11 @@ export default function ProductosAdmin() {
     };
 
     try {
+      if (archivoImagen) {
+        const subida = await productos.subirImagen(archivoImagen);
+        datos.imagen = subida.imagen;
+      }
+
       if (editando) {
         await productos.actualizar(editando.id_producto, datos);
         setMensaje(`Producto ${formulario.nombre} actualizado.`);
@@ -188,6 +199,38 @@ export default function ProductosAdmin() {
     }
   };
 
+  const seleccionarImagen = (evento: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = evento.currentTarget.files?.[0];
+    evento.currentTarget.value = "";
+    if (!archivo) return;
+
+    const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+    if (!tiposPermitidos.includes(archivo.type)) {
+      setArchivoImagen(null);
+      setVistaPrevia(editando ? urlImagenProducto(editando.imagen) : "");
+      setError("Selecciona una imagen JPG, PNG o WebP.");
+      return;
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+      setArchivoImagen(null);
+      setVistaPrevia(editando ? urlImagenProducto(editando.imagen) : "");
+      setError("La imagen no puede superar 5 MB.");
+      return;
+    }
+
+    setError("");
+    setArchivoImagen(archivo);
+    const lector = new FileReader();
+    lector.onload = () => setVistaPrevia(String(lector.result ?? ""));
+    lector.readAsDataURL(archivo);
+  };
+
+  const quitarImagen = () => {
+    setArchivoImagen(null);
+    setVistaPrevia("");
+    setFormulario((previo) => ({ ...previo, imagen: "" }));
+  };
+
   const cierraSiEsFondo = (evento: React.MouseEvent<HTMLDivElement>) => {
     if (evento.target === evento.currentTarget) setModalAbierto(false);
   };
@@ -207,7 +250,7 @@ export default function ProductosAdmin() {
         }
       />
 
-      {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
+      {error && !modalAbierto && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
       {mensaje && <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />}
 
       <FilaIndicadores>
@@ -289,7 +332,15 @@ export default function ProductosAdmin() {
                     <td>
                       <div className="dt-identidad-fila">
                         <span className="dt-avatar-fila">
-                          <Shirt size={16} />
+                          {producto.imagen ? (
+                            <img
+                              className="dt-producto-miniatura"
+                              src={urlImagenProducto(producto.imagen)}
+                              alt={producto.nombre}
+                            />
+                          ) : (
+                            <Shirt size={16} />
+                          )}
                         </span>
                         <div>
                           <span className="dt-fila-principal">{producto.nombre}</span>
@@ -368,6 +419,8 @@ export default function ProductosAdmin() {
               </button>
             </header>
 
+            {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
+
             <form onSubmit={guardar}>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid">
@@ -424,14 +477,29 @@ export default function ProductosAdmin() {
                     />
                   </label>
 
-                  <label className="dt-campo-ancho">
-                    URL de la imagen
+                  <div className="dt-campo-ancho dt-imagen-producto-campo">
+                    <span>Imagen del producto</span>
                     <input
-                      value={formulario.imagen}
-                      onChange={(e) => setFormulario({ ...formulario, imagen: e.target.value })}
-                      placeholder="https://…"
+                      className="dt-selector-imagen"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={seleccionarImagen}
+                      disabled={guardando}
+                      aria-label="Elegir imagen del producto"
                     />
-                  </label>
+                    <small>JPG, PNG o WebP · máximo 5 MB</small>
+                    {vistaPrevia && (
+                      <div className="dt-imagen-producto-previa">
+                        <img src={vistaPrevia} alt="Vista previa del producto" />
+                        <div>
+                          <strong>{archivoImagen?.name ?? "Imagen actual"}</strong>
+                          <button type="button" className="dt-boton-secundario" onClick={quitarImagen} disabled={guardando}>
+                            Quitar imagen
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -44,6 +44,15 @@ import type {
 export const BASE_URL =
   import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
 
+/** Convierte una ruta almacenada en la BD en una URL cargable desde el navegador. */
+export function urlImagenProducto(ruta: string | null | undefined): string {
+  if (!ruta) return "";
+  if (/^(https?:|data:|blob:)/i.test(ruta)) return ruta;
+  if (typeof window === "undefined") return ruta;
+  const origenApi = new URL(BASE_URL, window.location.href).origin;
+  return new URL(ruta, origenApi).toString();
+}
+
 type Metodo = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 /** Construye ?a=1&b=2 saltandose los valores vacios. */
@@ -75,10 +84,15 @@ async function peticion<T>(
   const respuesta = await fetch(`${BASE_URL}${endpoint}`, {
     method: metodo,
     headers: {
-      "Content-Type": "application/json",
+      ...(cuerpo instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+    body:
+      cuerpo === undefined
+        ? undefined
+        : cuerpo instanceof FormData
+          ? cuerpo
+          : JSON.stringify(cuerpo),
   });
 
   if (!respuesta.ok) {
@@ -198,6 +212,11 @@ export const productos = {
     api.get<Pagina<Producto>>(`/productos${aQuery(filtros)}`),
   obtener: (id: number) => api.get<Producto>(`/productos/${id}`),
   crear: (datos: ProductoCrear) => api.post<Producto>("/productos", datos),
+  subirImagen: (archivo: File) => {
+    const formulario = new FormData();
+    formulario.append("archivo", archivo);
+    return api.post<{ imagen: string }>("/productos/imagen", formulario);
+  },
   actualizar: (id: number, datos: Partial<ProductoCrear>) =>
     api.patch<Producto>(`/productos/${id}`, datos),
   habilitar: (id: number) => api.post<Producto>(`/productos/${id}/habilitar`),
@@ -237,11 +256,11 @@ export const inventario = {
     datos: { cantidad_actual?: number; stock_minimo?: number }
   ) => api.patch<Inventario>(`/inventario/${id}`, datos),
   entrada: (id: number, cantidad: number, motivo?: string) =>
-    api.post<Inventario>(`/inventario/${id}/entrada`, { cantidad, motivo }),
+    api.post<MovimientoInventario>(`/inventario/${id}/entrada`, { cantidad, motivo }),
   salida: (id: number, cantidad: number, motivo?: string) =>
-    api.post<Inventario>(`/inventario/${id}/salida`, { cantidad, motivo }),
+    api.post<MovimientoInventario>(`/inventario/${id}/salida`, { cantidad, motivo }),
   ajuste: (id: number, cantidad_actual: number, motivo?: string) =>
-    api.post<Inventario>(`/inventario/${id}/ajuste`, {
+    api.post<MovimientoInventario>(`/inventario/${id}/ajuste`, {
       cantidad_actual,
       motivo,
     }),

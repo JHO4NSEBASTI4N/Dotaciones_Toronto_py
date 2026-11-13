@@ -1,3 +1,4 @@
+
 /* ########## index.css ########## */
 @import url("https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
 
@@ -308,13 +309,13 @@ a {
 
 /* --- Bloqueo por rol --- */
 
-.dt-nav-restringido {
+.dt-nav-roles-disponibles {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
-.dt-nav-restringido p {
+.dt-nav-roles-disponibles p {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -326,9 +327,10 @@ a {
   text-transform: uppercase;
 }
 
-.dt-nav-bloqueado {
+.dt-nav-rol-disponible {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   width: 100%;
   margin-bottom: 6px;
@@ -343,15 +345,23 @@ a {
   transition: background 0.16s, color 0.16s, border-color 0.16s;
 }
 
-.dt-nav-bloqueado:hover:not(:disabled) {
+.dt-nav-rol-disponible:hover:not(:disabled) {
   color: var(--gold);
   border-color: var(--gold);
   background: rgba(226, 185, 111, 0.12);
 }
 
-.dt-nav-bloqueado:disabled {
+.dt-nav-rol-disponible:disabled {
   opacity: 0.55;
   cursor: progress;
+}
+
+.dt-error-cambio-rol {
+  display: block;
+  margin: 6px 3px 0;
+  color: #fecaca;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* --- Pie de la barra --- */
@@ -1759,10 +1769,277 @@ a {
 }
 
 /* =========================================================================
-   11. REGISTRO Y SELECCIÓN DE ROL  (registro.css)
+   11. REGISTRO  (mismo estilo compacto que el login)
+   Clases usadas en src/pages/registro.tsx
 ========================================================================= */
 
-.registro-pagina,
+.registro-pagina {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 40px 22px;
+  background:
+    radial-gradient(700px 400px at 85% 10%, rgba(250, 129, 59, 0.08), transparent 65%),
+    var(--bg);
+}
+
+.registro-tarjeta {
+  width: min(430px, 100%);
+  padding: 34px 32px 30px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--white);
+  box-shadow: 0 18px 40px rgba(22, 33, 58, 0.1);
+}
+
+.registro-tarjeta h1 {
+  color: var(--ink);
+  font-family: "Big Shoulders Display", "Inter", sans-serif;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.registro-sub {
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.registro-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.registro-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.registro-campo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.registro-etiqueta {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.registro-entrada {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.registro-icono {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  color: var(--ink-mute);
+  pointer-events: none;
+}
+
+.registro-entrada input {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px 0 36px;
+  border: 1.5px solid #dee2e6;
+  border-radius: var(--radio-sm);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 13px;
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+
+.registro-entrada input.registro-con-ojo {
+  padding-right: 38px;
+}
+
+.registro-entrada input::placeholder {
+  color: var(--ink-mute);
+}
+
+.registro-entrada input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.16);
+}
+
+.registro-ojo {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ink-mute);
+  background: transparent;
+}
+
+.registro-ojo:hover {
+  color: var(--orange-deep);
+}
+
+.registro-campo-invalido .registro-entrada input {
+  border-color: #f87171;
+}
+
+.registro-campo-invalido .registro-entrada input:focus {
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.16);
+}
+
+.registro-error {
+  color: var(--danger);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.registro-requisitos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-mute);
+  font-size: 11.5px;
+}
+
+.registro-requisitos li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.registro-requisitos li.ok {
+  color: var(--orange-deep);
+  font-weight: 700;
+}
+
+.registro-requisitos li.ok svg {
+  color: var(--orange);
+}
+
+.registro-punto {
+  width: 5px;
+  height: 5px;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.registro-alerta {
+  padding: 10px 12px;
+  border: 1px solid #f7cccc;
+  border-radius: var(--radio-sm);
+  color: #b91c1c;
+  background: var(--danger-bg);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.registro-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radio-sm);
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  box-shadow: 0 10px 22px rgba(250, 129, 59, 0.3);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-decoration: none;
+  transition: transform 0.16s, box-shadow 0.16s, background 0.16s;
+}
+
+.registro-boton:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--orange-deep), #c2410c);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(250, 129, 59, 0.36);
+}
+
+.registro-boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.registro-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.registro-enlace {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border: 1px solid #d9dee7;
+  border-radius: var(--radio-sm);
+  color: var(--orange-deep);
+  background: var(--white);
+  font-size: 12.5px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: border-color 0.16s;
+}
+
+.registro-enlace:hover {
+  border-color: var(--orange);
+}
+
+/* Aviso de éxito del registro */
+.registro-exito {
+  text-align: center;
+}
+
+.registro-exito-icono {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  color: var(--orange-deep);
+  background: var(--orange-soft);
+}
+
+.registro-exito p {
+  margin: 8px 0 22px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   11b. SELECCIÓN DE ROL  (registro.css)
+========================================================================= */
+
 .seleccion-rol-pagina {
   display: grid;
   place-items: center;
@@ -1774,9 +2051,9 @@ a {
     var(--bg);
 }
 
-.registro-tarjeta,
 .seleccion-rol-tarjeta {
-  width: min(900px, 100%);
+  width: min(760px, 100%);
+  padding: 30px 30px 24px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--white);
@@ -1784,24 +2061,11 @@ a {
   overflow: hidden;
 }
 
-.seleccion-rol-tarjeta {
-  width: min(760px, 100%);
-  padding: 30px 30px 24px;
-}
-
-.registro-encabezado,
-.seleccion-rol-encabezado {
-  padding: 26px 30px 20px;
-  border-bottom: 1px solid var(--line-soft);
-  background: linear-gradient(180deg, #fbfcfe, #ffffff);
-}
-
 .seleccion-rol-encabezado {
   padding: 0 0 20px;
   border-bottom: 1px solid var(--line-soft);
 }
 
-.registro-encabezado h1,
 .seleccion-rol-encabezado h1 {
   margin-top: 14px;
   color: var(--ink);
@@ -1813,7 +2077,6 @@ a {
   text-transform: uppercase;
 }
 
-.registro-encabezado p,
 .seleccion-rol-encabezado p {
   max-width: 62ch;
   margin-top: 8px;
@@ -1822,53 +2085,6 @@ a {
   line-height: 1.6;
 }
 
-.registro-dos-columnas {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.registro-formulario {
-  display: grid;
-  gap: 14px;
-  padding: 24px 30px 20px;
-}
-
-.registro-pie {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 16px 30px 22px;
-  border-top: 1px solid var(--line-soft);
-  background: #fbfcfe;
-}
-
-.registro-pie p {
-  margin: 0;
-}
-
-.registro-pie .dt-boton-secundario {
-  text-decoration: none;
-}
-
-.registro-pie > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink-mute);
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-.registro-pie a {
-  color: var(--orange-deep);
-  font-weight: 800;
-  text-decoration: none;
-}
-
-/* Panel lateral oscuro del registro */
 /* --- Selección de rol --- */
 
 .seleccion-rol-opciones {
@@ -1977,38 +2193,6 @@ a {
 .seleccion-rol-pie button:hover {
   color: var(--orange-deep);
   border-color: var(--orange);
-}
-
-/* Aviso de éxito del registro */
-.registro-exito {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  padding: 30px 24px;
-  text-align: center;
-}
-
-.registro-exito-icono {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 4px;
-  border-radius: 50%;
-  color: var(--ok);
-  background: var(--ok-bg);
-}
-
-.registro-exito h2 {
-  color: var(--ink);
-  font-size: 19px;
-  font-weight: 800;
-}
-
-.registro-exito p {
-  max-width: 46ch;
-  color: var(--ink-soft);
-  font-size: 13px;
 }
 
 /* =========================================================================
@@ -2377,10 +2561,6 @@ a {
     padding: 28px 20px 40px;
   }
 
-  .registro-dos-columnas {
-    grid-template-columns: 1fr;
-  }
-
   .portada-heroe {
     grid-template-columns: 1fr;
     padding: 40px 22px 50px;
@@ -2397,6 +2577,20 @@ a {
   }
 }
 
+@media (max-width: 480px) {
+  .registro-fila {
+    grid-template-columns: 1fr;
+  }
+
+  .registro-tarjeta {
+    padding: 26px 20px 24px;
+  }
+
+  .seleccion-rol-tarjeta {
+    padding: 24px 18px 20px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -2404,4 +2598,145 @@ a {
     animation-duration: 0.001s !important;
     transition-duration: 0.001s !important;
   }
+
+}
+
+/* Selector y vista previa de imágenes en el formulario de productos */
+.dt-imagen-producto-campo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dt-selector-imagen {
+  max-width: 100%;
+  padding: 8px !important;
+  border: 1px dashed #cbd5e1 !important;
+  background: #f8fafc !important;
+  cursor: pointer;
+}
+
+.dt-imagen-producto-campo > small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dt-imagen-producto-previa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.dt-imagen-producto-previa img {
+  width: 74px;
+  height: 74px;
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #ffffff;
+}
+
+.dt-imagen-producto-previa > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dt-imagen-producto-previa strong {
+  overflow: hidden;
+  max-width: 100%;
+  color: #334155;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-producto-miniatura {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+/* Inventario: registro inicial e historial estilo pestañas */
+.dt-acciones-inventario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+.dt-inventario-pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dt-inventario-pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 9px 9px 0 0;
+  color: #64748b;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: color 0.16s, background 0.16s, border-color 0.16s;
+}
+
+.dt-inventario-pestana:hover {
+  color: #16213e;
+  background: #f8fafc;
+}
+
+.dt-inventario-pestana.activa {
+  border-color: #e2e8f0;
+  color: #16213e;
+  background: #ffffff;
+  box-shadow: 0 2px 0 #fa813b;
+}
+
+.dt-inventario-sin-productos {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #f1d9b5;
+  border-radius: 10px;
+  color: #7c4a13;
+  background: #fffaf1;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 620px) {
+  .dt-acciones-inventario {
+    width: 100%;
+  }
+
+  .dt-acciones-inventario > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+.dt-campo-ancho > small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
 }

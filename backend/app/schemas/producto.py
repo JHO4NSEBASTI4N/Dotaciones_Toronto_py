@@ -44,5 +44,19 @@ class ProductoRespuesta(ProductoBase):
         se leeria como habilitado. Aqui se interpreta el byte correctamente.
         """
         if isinstance(valor, (bytes, bytearray)):
-            return valor != b"\x00"
+            # PyMySQL normalmente entrega BIT(1) como b"\x00" / b"\x01".
+            # Algunos controladores o datos migrados lo entregan como b"0" / b"1".
+            try:
+                texto = bytes(valor).decode("ascii").strip()
+                if texto in {"0", "1"}:
+                    return texto == "1"
+            except UnicodeDecodeError:
+                pass
+            return any(valor)
+        if isinstance(valor, str):
+            texto = valor.strip().lower()
+            if texto in {"0", "false", "f", "no", "n", ""}:
+                return False
+            if texto in {"1", "true", "t", "yes", "s"}:
+                return True
         return bool(valor)

@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.api import api_router
 from app.core.config import configuracion
@@ -27,6 +29,11 @@ app = FastAPI(
     description="API REST para el control de inventario de dotaciones en Toronto",
     lifespan=ciclo_de_vida,
 )
+
+# Archivos de imagen de productos (la base de datos conserva solo la ruta).
+DIRECTORIO_UPLOADS = Path(__file__).resolve().parents[1] / "uploads"
+DIRECTORIO_UPLOADS.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=DIRECTORIO_UPLOADS), name="uploads")
 
 # --- CORS -------------------------------------------------------------------
 # El frontend (React) corre en otro puerto (5173) que el backend (8000).

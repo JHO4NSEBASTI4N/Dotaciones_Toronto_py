@@ -117,9 +117,15 @@ def detalle(id_inventario: int, sesion: SesionBD):
     status_code=status.HTTP_201_CREATED,
     dependencies=[GestionaInventario],
 )
-def crear(datos: InventarioCrear, sesion: SesionBD):
-    """Crea la fila de inventario de un producto. Requiere Admin o Bodeguero."""
-    return servicio.crear_inventario(sesion, datos)
+def crear(
+    datos: InventarioCrear,
+    sesion: SesionBD,
+    usuario: UsuarioActual,
+):
+    """Crea el inventario inicial y su movimiento de entrada."""
+    return servicio.crear_inventario(
+        sesion, datos, usuario_responsable=usuario.nombre
+    )
 
 
 @router.patch(

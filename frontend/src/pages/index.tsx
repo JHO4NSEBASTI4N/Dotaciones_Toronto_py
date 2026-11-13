@@ -1,20 +1,18 @@
 // src/pages/index.tsx
 //
 // index.html del proyecto Java: la portada pública.
-// Muestra qué hace el sistema y lleva a iniciar sesión o a registrarse.
+// Muestra qué hace el sistema, cómo funciona, contacto y pie de página.
 
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   ArrowRight,
   Boxes,
   Check,
-  ClipboardList,
   CreditCard,
   Package,
-  ShieldCheck,
   ShoppingCart,
   Store,
-  Truck,
 } from "../components/iconos";
 import { useSesion } from "../context/sesion-contexto";
 
@@ -47,8 +45,28 @@ const PASOS = [
   { numero: "3", titulo: "Recibe", detalle: "Bodega despacha y tú confirmas." },
 ];
 
+const FORMULARIO_CONTACTO_INICIAL = {
+  nombre: "",
+  correo: "",
+  mensaje: "",
+};
+
 export default function Portada() {
   const { usuario, cargando } = useSesion();
+  const [contacto, setContacto] = useState(FORMULARIO_CONTACTO_INICIAL);
+  const [enviado, setEnviado] = useState(false);
+
+  function cambiarContacto(evento: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    const { name, value } = evento.target;
+    setContacto((anterior) => ({ ...anterior, [name]: value }));
+  }
+
+  function enviarContacto(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    // Cuando exista el endpoint de contacto en el backend, la llamada va aquí.
+    setContacto(FORMULARIO_CONTACTO_INICIAL);
+    setEnviado(true);
+  }
 
   if (cargando) {
     return (
@@ -127,7 +145,7 @@ export default function Portada() {
         </ul>
       </section>
 
-      <section className="portada-beneficios">
+      <section id="quehacemos" className="portada-beneficios">
         {BENEFICIOS.map((beneficio) => (
           <article key={beneficio.titulo} className="portada-beneficio">
             <span className="dt-acceso-icono">
@@ -139,7 +157,7 @@ export default function Portada() {
         ))}
       </section>
 
-      <section className="portada-pasos">
+      <section id="como-funciona" className="portada-pasos">
         {PASOS.map((paso) => (
           <article key={paso.numero} className="portada-paso">
             <span className="portada-paso-numero">{paso.numero}</span>
@@ -149,16 +167,151 @@ export default function Portada() {
         ))}
       </section>
 
-      <footer className="portada-pie">
-        <span>
-          <ShieldCheck size={13} /> Proyecto académico · SENA · ADSO
-        </span>
-        <span>
-          <ClipboardList size={13} /> Dotaciones Toronto · Colombia
-        </span>
-        <span>
-          <Truck size={13} /> Envíos a todo el país
-        </span>
+      <section id="contacto" className="portada-contacto">
+        <div className="portada-contacto-grid">
+          <div className="portada-contacto-info">
+            <span className="etiqueta etiqueta-oscura">CONTACTO</span>
+            <h2>Contáctanos</h2>
+            <p className="portada-contacto-lead">
+              ¿Tienes una duda o un reclamo? Escríbenos y te respondemos el mismo día hábil.
+            </p>
+
+            <div className="portada-contacto-item">
+              <i className="bi bi-telephone" aria-hidden="true" />
+              <span>+57 321 209 9989</span>
+            </div>
+            <div className="portada-contacto-item">
+              <i className="bi bi-envelope" aria-hidden="true" />
+              <span>dotaciones.elobrero@gmail.com</span>
+            </div>
+            <div className="portada-contacto-item">
+              <i className="bi bi-geo-alt" aria-hidden="true" />
+              <span>Carrera 63 Sur #21-12, Bogotá D.C., Colombia</span>
+            </div>
+            <div className="portada-contacto-item">
+              <i className="bi bi-clock" aria-hidden="true" />
+              <div>
+                <div>Lunes a viernes: 8am – 6pm</div>
+                <div>Sábado: 9am – 2pm</div>
+                <div>Domingo: cerrado</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="portada-tablero">
+            <span className="portada-tablero-clip" aria-hidden="true" />
+
+            {enviado ? (
+              <div className="portada-tablero-ok">
+                <Check size={28} />
+                <h3>¡Mensaje enviado!</h3>
+                <p>Gracias por escribirnos. Te responderemos el mismo día hábil.</p>
+                <button
+                  type="button"
+                  className="dt-boton-secundario"
+                  onClick={() => setEnviado(false)}
+                >
+                  Enviar otro mensaje
+                </button>
+              </div>
+            ) : (
+              <form className="portada-tablero-form" onSubmit={enviarContacto}>
+                <label>
+                  Nombre
+                  <input
+                    type="text"
+                    name="nombre"
+                    placeholder="¿Cómo te llamas?"
+                    value={contacto.nombre}
+                    onChange={cambiarContacto}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Correo electrónico
+                  <input
+                    type="email"
+                    name="correo"
+                    placeholder="tucorreo@ejemplo.com"
+                    value={contacto.correo}
+                    onChange={cambiarContacto}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Mensaje
+                  <textarea
+                    name="mensaje"
+                    placeholder="Cuéntanos qué necesitas"
+                    value={contacto.mensaje}
+                    onChange={cambiarContacto}
+                    required
+                  />
+                </label>
+
+                <button type="submit" className="dt-accion-principal portada-tablero-enviar">
+                  Enviar mensaje <ArrowRight size={14} />
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <footer className="portada-footer">
+        <div className="portada-footer-grid">
+          <div>
+            <div className="marca">
+              <span className="marca-icono-solido">
+                <Package size={20} />
+              </span>
+              Dotaciones <span className="marca-verde">Toronto</span>
+            </div>
+            <p>
+              Distribución de dotaciones y equipos de protección personal para la industria,
+              en Bogotá desde hace 13 años.
+            </p>
+          </div>
+
+          <div>
+            <h5>Navegación</h5>
+            <ul>
+              <li>
+                <a href="#quehacemos">Qué hacemos</a>
+              </li>
+              <li>
+                <a href="#como-funciona">Cómo funciona</a>
+              </li>
+              <li>
+                <a href="#contacto">Contacto</a>
+              </li>
+              <li>
+                <Link to="/login">Iniciar sesión</Link>
+              </li>
+              <li>
+                <Link to="/registro">Registrarse</Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h5>Horario de atención</h5>
+            <ul className="portada-footer-estatico">
+              <li>Lunes a viernes: 8am – 6pm</li>
+              <li>Sábado: 9am – 2pm</li>
+              <li>Domingo: cerrado</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="portada-footer-linea">
+          <div className="portada-footer-base">
+            <span>© 2026 Dotaciones Toronto. Todos los derechos reservados.</span>
+            <span>Bogotá D.C., Colombia</span>
+          </div>
+        </div>
       </footer>
     </div>
   );
