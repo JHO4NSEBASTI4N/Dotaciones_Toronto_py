@@ -2249,12 +2249,48 @@ a {
 ========================================================================= */
 
 .error-pagina {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   gap: 10px;
-  min-height: 70vh;
-  padding: 34px 22px;
+  min-height: 100vh;
+  padding: 34px 22px 48px;
   text-align: center;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-attachment: fixed;
+  position: relative;
+}
+
+/* Capa ligera sobre la imagen de fondo para mantener el texto legible.
+   Ajusta el valor de --error-overlay (0 a 1) si la imagen es clara o oscura.
+   Por defecto 0.25: deja la imagen visible sin perder el texto. */
+.error-pagina::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--error-overlay, rgba(255, 255, 255, 0.25));
+}
+
+.error-pagina > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fondo de imagen por código de error (usar la imagen propia de cada página) */
+.error-pagina--403 {
+  background-image: url("./assets/images/error-403.png");
+}
+
+.error-pagina--404 {
+  background-image: url("./assets/images/error-404.png");
+}
+
+.error-pagina--500 {
+  background-image: url("./assets/images/error-500.png");
 }
 
 .error-icono {
@@ -2294,30 +2330,34 @@ a {
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  margin-top: 6px;
+  margin-top: 18px;
 }
 
+/* El botón flota sobre la imagen con un fondo claro y sombra,
+   para que siempre se lea bien sin tapar la imagen de fondo. */
 .error-acciones a,
 .error-acciones button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radio-sm);
+  padding: 13px 26px;
+  border: 0;
+  border-radius: 999px;
   color: var(--ink);
-  background: var(--white);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 24px rgba(22, 33, 58, 0.18);
+  backdrop-filter: blur(4px);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  transition: border-color 0.16s, color 0.16s, transform 0.16s;
+  transition: border-color 0.16s, color 0.16s, transform 0.16s, box-shadow 0.16s;
 }
 
 .error-acciones a:hover,
 .error-acciones button:hover {
   color: var(--orange-deep);
-  border-color: var(--orange);
   transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(22, 33, 58, 0.26);
 }
 
 /* =========================================================================

@@ -1,25 +1,17 @@
 // src/pages/error/404.tsx
 //
 // templates/error/404.html del proyecto Java: la dirección no existe.
+// Se muestra solo la imagen de fondo y el botón de volver al panel.
 
 import { Link } from "react-router-dom";
-import { ArrowLeft, Search } from "../../components/iconos";
+import { ArrowLeft } from "../../components/iconos";
 
 export default function Error404() {
   return (
-    <div className="error-pagina">
-      <span className="error-codigo">404</span>
-      <span className="error-icono">
-        <Search size={28} />
-      </span>
-      <h1>Esta página no existe</h1>
-      <p>
-        La dirección a la que intentaste entrar no está en el sistema. Revisa el
-        enlace o vuelve al inicio.
-      </p>
+    <div className="error-pagina error-pagina--404">
       <div className="error-acciones">
         <Link to="/login" className="dt-accion-principal">
-          <ArrowLeft size={15} /> Ir al inicio de sesión
+          <ArrowLeft size={15} /> Volver al inicio
         </Link>
       </div>
     </div>
