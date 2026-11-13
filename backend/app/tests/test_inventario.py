@@ -69,10 +69,18 @@ def inventario(cliente, cabeceras_admin, producto):
 
 # --- creacion ----------------------------------------------------------------
 
-def test_crear_inventario(cliente, inventario):
+def test_crear_inventario_registra_stock_y_movimiento_inicial(cliente, inventario):
     assert inventario["cantidad_actual"] == 10
     assert inventario["stock_minimo"] == 5
     assert inventario["inhabilitado"] is False
+
+    historial = cliente.get("/api/v1/inventario/movimientos").json()
+    assert historial["total"] == 1
+    movimiento = historial["items"][0]
+    assert movimiento["tipo_movimiento"] == "ENTRADA"
+    assert movimiento["cantidad"] == 10
+    assert movimiento["motivo"] == "Registro inicial de inventario"
+    assert movimiento["usuario_responsable"] == "admin"
 
 
 def test_crear_para_producto_inexistente_da_404(cliente, cabeceras_admin):
@@ -242,9 +250,9 @@ def test_movimientos_guarda_el_historial(cliente, cabeceras_admin, inventario):
     cliente.post(f"{base}/ajuste", json={"cantidad_actual": 20}, headers=cabeceras_admin)
 
     historial = cliente.get("/api/v1/inventario/movimientos").json()
-    assert historial["total"] == 3
+    assert historial["total"] == 4  # incluye la entrada inicial de la creación
     # el mas reciente primero
-    assert [m["tipo_movimiento"] for m in historial["items"]] == [
+    assert [m["tipo_movimiento"] for m in historial["items"][:3]] == [
         "AJUSTE", "SALIDA", "ENTRADA"
     ]
 

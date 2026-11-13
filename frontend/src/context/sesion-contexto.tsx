@@ -14,10 +14,10 @@ import {
   type ReactNode,
 } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { auth } from "../services/api";
-import { autenticacion } from "../services/autenticacion";
+import { autenticacion, RUTA_POR_ROL } from "../services/autenticacion";
 import type { RolDisponible, UsuarioDetalle } from "../types";
 
 export const ROL_ADMIN = 1;
@@ -68,6 +68,7 @@ export interface UsuarioSesion {
 interface ValorSesion {
   usuario: UsuarioSesion | null;
   cargando: boolean;
+  cambioRolEnCurso: boolean;
   error: string;
   esAdministrador: boolean;
   rolActivo: number;
@@ -82,10 +83,26 @@ const ContextoSesion = createContext<ValorSesion | null>(null);
 
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const navegar = useNavigate();
+  const ubicacion = useLocation();
 
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [rutaRolPendiente, setRutaRolPendiente] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  // La guarda ve primero el estado de transición y muestra carga. Solo
+  // después navegamos a la ruta destino; al llegar, liberamos la guarda.
+  // Así nunca se compara la ruta vieja con el rol recién actualizado.
+  useEffect(() => {
+    if (!rutaRolPendiente) return;
+
+    if (ubicacion.pathname !== rutaRolPendiente) {
+      navegar(rutaRolPendiente, { replace: true });
+      return;
+    }
+
+    setRutaRolPendiente(null);
+  }, [rutaRolPendiente, ubicacion.pathname, navegar]);
 
   /** Pide /auth/yo + /auth/mis-roles y arma el objeto de sesión. */
   const cargar = useCallback(async () => {
@@ -142,21 +159,26 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     await cargar();
   }, [cargar]);
 
-  /** Botón "cambiar rol": el backend emite un token nuevo con el otro rol. */
+  /** Cambia el token y actualiza la sesión antes de ir al panel del nuevo rol. */
   const cambiarRol = useCallback(
     async (idRol: number) => {
-      await autenticacion.cambiarRol(idRol);
-      await cargar();
+      const respuesta = await autenticacion.cambiarRol(idRol);
+      const idRolActivo = respuesta.id_rol ?? idRol;
+      const nombreRol =
+        respuesta.nombre_rol ?? NOMBRE_ROL[idRolActivo] ?? "Sin rol";
 
-      const destino: Record<number, string> = {
-        1: "/admin/panel",
-        2: "/cliente/panel",
-        3: "/vendedor/panel",
-        4: "/bodeguero/panel",
-      };
-      navegar(destino[idRol] ?? "/login", { replace: true });
+      // Bloquear las guardas mientras cambian juntos el rol y la ruta. Sin
+      // esta marca, una renderización intermedia puede comparar el rol nuevo
+      // con la ruta anterior y enviar por error a /error/403.
+      const destino = RUTA_POR_ROL[idRolActivo] ?? "/login";
+      setRutaRolPendiente(destino);
+      setUsuario((actual) =>
+        actual
+          ? { ...actual, id_rol: idRolActivo, nombre_rol: nombreRol }
+          : actual
+      );
     },
-    [cargar, navegar]
+    []
   );
 
   const salir = useCallback(() => {
@@ -171,6 +193,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     return {
       usuario,
       cargando,
+      cambioRolEnCurso: rutaRolPendiente !== null,
       error,
       rolActivo,
       esAdministrador: rolActivo === ROL_ADMIN,
@@ -181,7 +204,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       cambiarRol,
       salir,
     };
-  }, [usuario, cargando, error, cargar, establecerSesion, cambiarRol, salir]);
+  }, [usuario, cargando, rutaRolPendiente, error, cargar, establecerSesion, cambiarRol, salir]);
 
   return (
     <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>

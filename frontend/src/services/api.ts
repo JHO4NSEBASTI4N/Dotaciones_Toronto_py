@@ -256,11 +256,11 @@ export const inventario = {
     datos: { cantidad_actual?: number; stock_minimo?: number }
   ) => api.patch<Inventario>(`/inventario/${id}`, datos),
   entrada: (id: number, cantidad: number, motivo?: string) =>
-    api.post<Inventario>(`/inventario/${id}/entrada`, { cantidad, motivo }),
+    api.post<MovimientoInventario>(`/inventario/${id}/entrada`, { cantidad, motivo }),
   salida: (id: number, cantidad: number, motivo?: string) =>
-    api.post<Inventario>(`/inventario/${id}/salida`, { cantidad, motivo }),
+    api.post<MovimientoInventario>(`/inventario/${id}/salida`, { cantidad, motivo }),
   ajuste: (id: number, cantidad_actual: number, motivo?: string) =>
-    api.post<Inventario>(`/inventario/${id}/ajuste`, {
+    api.post<MovimientoInventario>(`/inventario/${id}/ajuste`, {
       cantidad_actual,
       motivo,
     }),

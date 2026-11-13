@@ -59,11 +59,17 @@ def obtener_fila(sesion: Session, id_inventario: int) -> Inventario:
     return _obtener_fila_o_fallar(InventarioRepositorio(sesion), id_inventario)
 
 
-def crear_inventario(sesion: Session, datos: InventarioCrear) -> Inventario:
+def crear_inventario(
+    sesion: Session,
+    datos: InventarioCrear,
+    usuario_responsable: str | None = None,
+) -> Inventario:
+    """Crea el registro y deja la entrada inicial en el historial, en una transacción."""
     repo = InventarioRepositorio(sesion)
     productos = ProductoRepositorio(sesion)
 
-    if productos.buscar_por_id(datos.id_producto_fk) is None:
+    producto = productos.buscar_por_id(datos.id_producto_fk)
+    if producto is None:
         raise NoEncontrado(f"No existe el producto {datos.id_producto_fk}")
     if repo.listar_por_producto(datos.id_producto_fk):
         raise Conflicto(
@@ -71,6 +77,17 @@ def crear_inventario(sesion: Session, datos: InventarioCrear) -> Inventario:
         )
 
     fila = repo.crear(datos)
+    descripcion = " - ".join(
+        parte for parte in (producto.nombre, producto.talla, producto.color) if parte
+    )
+    repo.registrar_movimiento(
+        id_inventario=fila.id_inventario,
+        nombre_producto=descripcion,
+        tipo="ENTRADA",
+        cantidad=fila.cantidad_actual or 0,
+        motivo="Registro inicial de inventario",
+        usuario_responsable=usuario_responsable,
+    )
     sesion.commit()
     sesion.refresh(fila)
     return fila

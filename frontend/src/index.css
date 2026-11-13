@@ -308,13 +308,13 @@ a {
 
 /* --- Bloqueo por rol --- */
 
-.dt-nav-restringido {
+.dt-nav-roles-disponibles {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
-.dt-nav-restringido p {
+.dt-nav-roles-disponibles p {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -326,9 +326,10 @@ a {
   text-transform: uppercase;
 }
 
-.dt-nav-bloqueado {
+.dt-nav-rol-disponible {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   width: 100%;
   margin-bottom: 6px;
@@ -343,15 +344,23 @@ a {
   transition: background 0.16s, color 0.16s, border-color 0.16s;
 }
 
-.dt-nav-bloqueado:hover:not(:disabled) {
+.dt-nav-rol-disponible:hover:not(:disabled) {
   color: var(--gold);
   border-color: var(--gold);
   background: rgba(226, 185, 111, 0.12);
 }
 
-.dt-nav-bloqueado:disabled {
+.dt-nav-rol-disponible:disabled {
   opacity: 0.55;
   cursor: progress;
+}
+
+.dt-error-cambio-rol {
+  display: block;
+  margin: 6px 3px 0;
+  color: #fecaca;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 /* --- Pie de la barra --- */
@@ -2430,4 +2439,78 @@ a {
   height: 100%;
   border-radius: inherit;
   object-fit: cover;
+}
+
+/* Inventario: registro inicial e historial estilo pestañas */
+.dt-acciones-inventario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+.dt-inventario-pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dt-inventario-pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 9px 9px 0 0;
+  color: #64748b;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: color 0.16s, background 0.16s, border-color 0.16s;
+}
+
+.dt-inventario-pestana:hover {
+  color: #16213e;
+  background: #f8fafc;
+}
+
+.dt-inventario-pestana.activa {
+  border-color: #e2e8f0;
+  color: #16213e;
+  background: #ffffff;
+  box-shadow: 0 2px 0 #fa813b;
+}
+
+.dt-inventario-sin-productos {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #f1d9b5;
+  border-radius: 10px;
+  color: #7c4a13;
+  background: #fffaf1;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 620px) {
+  .dt-acciones-inventario {
+    width: 100%;
+  }
+
+  .dt-acciones-inventario > button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+.dt-campo-ancho > small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
 }
