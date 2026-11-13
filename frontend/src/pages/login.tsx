@@ -1,208 +1,245 @@
-// src/pages/Login.tsx
+// src/pages/login.tsx
+//
+// Pantalla de entrada. Dos columnas: presentación a la izquierda, formulario a
+// la derecha (se apila en celular). Si el usuario tiene varios roles, después
+// de autenticarse elige con cuál trabajar.
 
-import { useState } from "react";
-import type { FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { autenticacion } from "../services/autenticacion";
-import logo from "../assets/images/logo negro.png";
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, BadgeCheck, Boxes, Check, Eye, EyeOff, Lock, Mail, Package, ShieldCheck } from "../components/iconos";
 
-type TipoAlerta = "error" | "inhabilitado" | "logout" | "registro" | null;
-type EstadoCampo = "" | "is-valid" | "is-invalid";
+import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticacion";
+import { ErrorApi } from "../services/api";
+import { useSesion } from "../context/sesion-contexto";
+import type { RolDisponible } from "../types";
 
-function Login() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  // Equivale a ${param.error}, ${param.inhabilitado}, ${param.logout} y ${param.registro}
-  const [alerta, setAlerta] = useState<TipoAlerta>(() => {
-    if (searchParams.has("error")) return "error";
-    if (searchParams.has("inhabilitado")) return "inhabilitado";
-    if (searchParams.has("logout")) return "logout";
-    if (searchParams.has("registro")) return "registro";
-    return null;
-  });
+export default function Login() {
+  const navegar = useNavigate();
+  const { establecerSesion, recargar } = useSesion();
 
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
-  const [estadoCorreo, setEstadoCorreo] = useState<EstadoCampo>("");
-  const [estadoPassword, setEstadoPassword] = useState<EstadoCampo>("");
   const [verPassword, setVerPassword] = useState(false);
-  const [cargando, setCargando] = useState(false);
+  const [entrando, setEntrando] = useState(false);
+  const [error, setError] = useState("");
+  const [roles, setRoles] = useState<RolDisponible[] | null>(null);
 
-  const validarCampo = (campo: HTMLInputElement): boolean => {
-    const valido = campo.checkValidity();
-    const estado: EstadoCampo = valido ? "is-valid" : "is-invalid";
-    if (campo.name === "username") setEstadoCorreo(estado);
-    if (campo.name === "password") setEstadoPassword(estado);
-    return valido;
-  };
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    let valido = true;
-    e.currentTarget.querySelectorAll("input").forEach((campo) => {
-      if (!validarCampo(campo as HTMLInputElement)) valido = false;
-    });
-    if (!valido) return;
-
-    setAlerta(null);
-    setCargando(true);
+  /** Entra con el correo y contraseña escritos. */
+  const entrar = async (evento: FormEvent) => {
+    evento.preventDefault();
+    setError("");
+    setEntrando(true);
 
     try {
-      await autenticacion.login({ correo, password });
-      navigate("/dashboard");
-    } catch (err) {
-      const mensaje = err instanceof Error ? err.message.toLowerCase() : "";
-      if (mensaje.includes("inhabilitad")) {
-        setAlerta("inhabilitado");
-      } else {
-        setAlerta("error");
+      await autenticacion.login(correo.trim(), password);
+
+      // Si tiene más de un rol, primero pregunta con cuál entrar.
+      const disponibles = await autenticacion.misRoles();
+      const activos = disponibles.filter((rol) => rol.id_rol > 0);
+
+      if (activos.length > 1) {
+        setRoles(activos);
+        setEntrando(false);
+        return;
       }
-    } finally {
-      setCargando(false);
+
+      await establecerSesion();
+      navegar(autenticacion.rutaDeInicio(), { replace: true });
+    } catch (fallo) {
+      const mensaje =
+        fallo instanceof ErrorApi
+          ? fallo.estado === 401
+            ? "Correo o contraseña incorrectos."
+            : fallo.estado === 403
+              ? "Tu usuario no tiene un rol asignado. Pide al administrador que te asigne uno."
+              : fallo.message
+          : "No se pudo contactar el servidor. Revisa que el backend esté encendido.";
+      setError(mensaje);
+      setEntrando(false);
+    }
+  };
+
+  /** Ya autenticado: elige el rol con el que quiere trabajar. */
+  const entrarConRol = async (idRol: number) => {
+    setEntrando(true);
+    setError("");
+
+    try {
+      await autenticacion.cambiarRol(idRol);
+      await recargar();
+      navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
+    } catch {
+      setError("No se pudo cambiar de rol. Intenta de nuevo.");
+      setEntrando(false);
     }
   };
 
   return (
-    <>
-      {/* LOADER */}
-      {cargando && (
-        <div id="loader-overlay">
-          <div className="loader-box">
-            <div className="loader-logo-wrapper">
-              <div className="loader-ring"></div>
-              <img src={logo} alt="Logo" />
-            </div>
-            <div className="loader-text">Cargando...</div>
-          </div>
+    <div className="login-pagina">
+      {/* ---------------- Presentación ---------------- */}
+      <section className="login-presentacion">
+        <div className="marca">
+          <span className="marca-icono">
+            <Package size={23} />
+          </span>
+          Dotaciones <span className="marca-verde">Toronto</span>
         </div>
-      )}
 
-      {/* NAVBAR */}
-      <nav className="navbar-dt">
-        <div className="container">
-          <Link to="/" className="navbar-brand">
-            <img src={logo} alt="Logo" />
-            <span>Dotaciones Toronto</span>
-          </Link>
-          <div className="navbar-actions">
-            <Link to="/" className="btn-ghost">Inicio</Link>
-            <Link to="/login" className="btn-ghost">Iniciar sesión</Link>
-            <Link to="/registro" className="btn-primary-dt">Registrarse</Link>
-          </div>
+        <div className="presentacion-contenido">
+          <span className="etiqueta">SISTEMA DE GESTIÓN</span>
+
+          <h1>
+            Dotaciones
+            <br />
+            empresariales, en orden.
+          </h1>
+
+          <p>
+            Catálogo, pedidos, inventario por bodega, ventas y facturación
+            electrónica en un solo lugar. Cada rol ve únicamente lo que necesita.
+          </p>
+
+          <ul className="presentacion-lista">
+            <li>
+              <Check size={16} /> Control de stock con alertas de mínimos
+            </li>
+            <li>
+              <Check size={16} /> Pedidos y devoluciones trazables
+            </li>
+            <li>
+              <Check size={16} /> Facturación DIAN simulada y lista para conectar
+            </li>
+          </ul>
         </div>
-      </nav>
 
-      <div className="page-content">
-        <div className="login-card">
-          <div className="text-center mb-3">
-            <div style={{ width: 100, height: 100, margin: "0 auto", overflow: "hidden" }}>
-              <img
-                src={logo}
-                alt="Logo"
-                style={{ width: 100, height: 100, objectFit: "contain", display: "block" }}
-              />
-            </div>
-            <div className="login-title mt-2">Dotaciones Toronto</div>
-            <div className="login-subtitle">Inicia sesión para continuar</div>
-          </div>
+        <div className="presentacion-pie">
+          <ShieldCheck size={14} />
+          Proyecto académico · SENA · ADSO
+        </div>
+      </section>
 
-          {alerta === "error" && (
-            <div className="alert alert-danger p-2 fs-6">
-              <i className="bi bi-exclamation-circle me-1"></i> Correo o contraseña incorrectos.
-            </div>
-          )}
-          {alerta === "inhabilitado" && (
-            <div className="alert alert-warning p-2 fs-6">
-              <i className="bi bi-ban me-1"></i> Usuario inhabilitado. Contacte al administrador.
-            </div>
-          )}
-          {alerta === "logout" && (
-            <div className="alert alert-info p-2 fs-6">
-              <i className="bi bi-check-circle me-1"></i> Sesión cerrada correctamente.
-            </div>
-          )}
-          {alerta === "registro" && (
-            <div className="alert alert-success p-2 fs-6">
-              <i className="bi bi-check-circle me-1"></i> Registro exitoso. Ya puedes iniciar sesión.
-            </div>
-          )}
+      {/* ---------------- Formulario ---------------- */}
+      <section className="login-formulario-lado">
+        <div className="login-caja">
+          {roles ? (
+            <>
+              <h2>¿Con qué rol entras?</h2>
+              <p>
+                Tu cuenta tiene varios roles asignados. Elige uno para esta
+                sesión; puedes cambiarlo después desde el menú.
+              </p>
 
-          <form noValidate id="formLogin" onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label fw-semibold" htmlFor="username">
-                Correo electrónico
-              </label>
-              <input
-                type="email"
-                name="username"
-                id="username"
-                className={`form-control ${estadoCorreo}`}
-                placeholder="correo@ejemplo.com"
-                required
-                autoFocus
-                value={correo}
-                onChange={(e) => {
-                  setCorreo(e.target.value);
-                  validarCampo(e.target);
-                }}
-              />
-              <div className="invalid-feedback">Ingrese un correo electrónico válido.</div>
-            </div>
+              <div className="login-formulario">
+                {roles.map((rol) => {
+                  const Icono =
+                    rol.id_rol === 1
+                      ? ShieldCheck
+                      : rol.id_rol === 4
+                        ? Boxes
+                        : BadgeCheck;
 
-            <div className="mb-4">
-              <label className="form-label fw-semibold" htmlFor="password">
-                Contraseña
-              </label>
-              <div className="input-group">
-                <input
-                  type={verPassword ? "text" : "password"}
-                  name="password"
-                  id="password"
-                  className={`form-control ${estadoPassword}`}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    validarCampo(e.target);
-                  }}
-                />
+                  return (
+                    <button
+                      key={rol.id_rol}
+                      type="button"
+                      className="boton-principal"
+                      style={{ justifyContent: "flex-start" }}
+                      disabled={entrando}
+                      onClick={() => void entrarConRol(rol.id_rol)}
+                    >
+                      <Icono size={16} />
+                      Entrar como {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
+                      <ArrowRight size={15} style={{ marginLeft: "auto" }} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {error && <p className="mensaje-error" style={{ marginTop: 14 }}>{error}</p>}
+
+              <p className="login-pie">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
-                  id="togglePassword"
-                  onClick={() => setVerPassword((v) => !v)}
+                  className="dt-boton-secundario"
+                  onClick={() => {
+                    autenticacion.logout();
+                    setRoles(null);
+                  }}
                 >
-                  <i className={`bi ${verPassword ? "bi-eye-slash" : "bi-eye"}`} id="eyeIcon"></i>
+                  Volver al inicio de sesión
                 </button>
-              </div>
-              <div className="invalid-feedback">
-                La contraseña debe tener al menos 6 caracteres.
-              </div>
-            </div>
+              </p>
+            </>
+          ) : (
+            <>
+              <h2>Iniciar sesión</h2>
+              <p>Ingresa con el correo que te registró la empresa.</p>
 
-            <button type="submit" className="btn btn-primary btn-login w-100" disabled={cargando}>
-              <i className="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión
-            </button>
-          </form>
+              <form className="login-formulario" onSubmit={entrar}>
+                <label className="campo">
+                  <span>Correo electrónico</span>
+                  <div className="campo-caja">
+                    <Mail size={16} />
+                    <input
+                      type="email"
+                      value={correo}
+                      onChange={(evento) => setCorreo(evento.target.value)}
+                      placeholder="tu.correo@empresa.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </label>
 
-          <div className="text-center mt-3">
-            <Link
-              to="/registro"
-              className="text-decoration-none text-secondary"
-              style={{ fontSize: "0.9rem" }}
-            >
-              ¿No tienes cuenta? Regístrate
-            </Link>
-          </div>
-          <div className="text-center mt-3 footer-text">© Dotaciones Toronto 2026</div>
+                <label className="campo">
+                  <span>Contraseña</span>
+                  <div className="campo-caja">
+                    <Lock size={16} />
+                    <input
+                      type={verPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(evento) => setPassword(evento.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="campo-ojo"
+                      onClick={() => setVerPassword((previo) => !previo)}
+                      aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    >
+                      {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+
+                {error && (
+                  <p className="mensaje-error" role="alert">
+                    {error}
+                  </p>
+                )}
+
+                <button type="submit" className="boton-principal" disabled={entrando}>
+                  {entrando ? (
+                    <>
+                      <span className="dt-spinner" /> Validando…
+                    </>
+                  ) : (
+                    <>
+                      Entrar al sistema <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <p className="login-pie">
+                ¿No tienes cuenta? Pide a un administrador que te registre.
+              </p>
+            </>
+          )}
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }
-
-export default Login;
