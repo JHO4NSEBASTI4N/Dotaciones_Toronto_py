@@ -1,4 +1,3 @@
-
 /* ########## index.css ########## */
 @import url("https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
 
@@ -270,12 +269,6 @@ a {
   display: grid;
   gap: 2px;
   overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.dt-nav::-webkit-scrollbar {
-  display: none;
 }
 
 .dt-nav-enlace {
@@ -315,13 +308,13 @@ a {
 
 /* --- Bloqueo por rol --- */
 
-.dt-nav-roles-disponibles {
+.dt-nav-restringido {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
-.dt-nav-roles-disponibles p {
+.dt-nav-restringido p {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -333,10 +326,9 @@ a {
   text-transform: uppercase;
 }
 
-.dt-nav-rol-disponible {
+.dt-nav-bloqueado {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   width: 100%;
   margin-bottom: 6px;
@@ -351,23 +343,15 @@ a {
   transition: background 0.16s, color 0.16s, border-color 0.16s;
 }
 
-.dt-nav-rol-disponible:hover:not(:disabled) {
+.dt-nav-bloqueado:hover:not(:disabled) {
   color: var(--gold);
   border-color: var(--gold);
   background: rgba(226, 185, 111, 0.12);
 }
 
-.dt-nav-rol-disponible:disabled {
+.dt-nav-bloqueado:disabled {
   opacity: 0.55;
   cursor: progress;
-}
-
-.dt-error-cambio-rol {
-  display: block;
-  margin: 6px 3px 0;
-  color: #fecaca;
-  font-size: 11px;
-  line-height: 1.45;
 }
 
 /* --- Pie de la barra --- */
@@ -1776,7 +1760,7 @@ a {
 
 /* =========================================================================
    11. REGISTRO  (mismo estilo compacto que el login)
-   Clases usadas en src/pages/registro.tsx
+   Clases usadas en src/pages/Registro.tsx
 ========================================================================= */
 
 .registro-pagina {
@@ -2439,48 +2423,12 @@ a {
 ========================================================================= */
 
 .error-pagina {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
+  display: grid;
+  place-items: center;
   gap: 10px;
-  min-height: 100vh;
-  padding: 34px 22px 48px;
+  min-height: 70vh;
+  padding: 34px 22px;
   text-align: center;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  background-attachment: fixed;
-  position: relative;
-}
-
-/* Capa ligera sobre la imagen de fondo para mantener el texto legible.
-   Ajusta el valor de --error-overlay (0 a 1) si la imagen es clara o oscura.
-   Por defecto 0.25: deja la imagen visible sin perder el texto. */
-.error-pagina::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: var(--error-overlay, rgba(255, 255, 255, 0.25));
-}
-
-.error-pagina > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Fondo de imagen por código de error (usar la imagen propia de cada página) */
-.error-pagina--403 {
-  background-image: url("./assets/images/error-403.png");
-}
-
-.error-pagina--404 {
-  background-image: url("./assets/images/error-404.png");
-}
-
-.error-pagina--500 {
-  background-image: url("./assets/images/error-500.png");
 }
 
 .error-icono {
@@ -2520,34 +2468,30 @@ a {
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 6px;
 }
 
-/* El botón flota sobre la imagen con un fondo claro y sombra,
-   para que siempre se lea bien sin tapar la imagen de fondo. */
 .error-acciones a,
 .error-acciones button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 13px 26px;
-  border: 0;
-  border-radius: 999px;
+  padding: 11px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radio-sm);
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 8px 24px rgba(22, 33, 58, 0.18);
-  backdrop-filter: blur(4px);
+  background: var(--white);
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
-  transition: border-color 0.16s, color 0.16s, transform 0.16s, box-shadow 0.16s;
+  transition: border-color 0.16s, color 0.16s, transform 0.16s;
 }
 
 .error-acciones a:hover,
 .error-acciones button:hover {
   color: var(--orange-deep);
+  border-color: var(--orange);
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(22, 33, 58, 0.26);
 }
 
 /* =========================================================================
@@ -2604,10 +2548,64 @@ a {
     animation-duration: 0.001s !important;
     transition-duration: 0.001s !important;
   }
-
 }
 
-/* Selector y vista previa de imágenes en el formulario de productos */
+/* =========================================================================
+   15. FONDOS CON IMAGEN (assets/images)
+   Rutas relativas a ESTE archivo: src/index.css -> ./assets/images/...
+========================================================================= */
+
+/* --- Login: imagen de fondo --- */
+.login-pagina {
+  background-image:
+    linear-gradient(120deg, rgba(22, 33, 58, 0.72), rgba(22, 33, 58, 0.35)),
+    url("./assets/images/fondo login.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* La presentación naranja pasa a ser translúcida para que se vea la foto */
+.login-presentacion {
+  background:
+    radial-gradient(1200px 620px at 12% 8%, rgba(255, 193, 69, 0.26), transparent 60%),
+    linear-gradient(150deg, rgba(250, 129, 59, 0.92) 0%, rgba(255, 81, 47, 0.9) 48%, rgba(194, 65, 12, 0.94) 100%);
+}
+
+/* --- Registro: imagen de fondo --- */
+.registro-pagina {
+  background-image:
+    linear-gradient(120deg, rgba(22, 33, 58, 0.66), rgba(22, 33, 58, 0.28)),
+    url("./assets/images/fondo registro.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* --- Panel de administración: fondo de la zona de contenido --- */
+.dt-layout-admin {
+  background-image:
+    linear-gradient(180deg, rgba(244, 246, 251, 0.9), rgba(244, 246, 251, 0.96)),
+    url("./assets/images/fondo_admin.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.dt-layout-admin .dt-contenido {
+  background: transparent;
+}
+
+/* Aviso de éxito del registro: misma imagen, sin velo naranja */
+.registro-exito {
+  background: var(--white);
+}
+
+/* =========================================================================
+   16. SELECTOR Y VISTA PREVIA DE IMÁGENES (formulario de productos)
+========================================================================= */
+
 .dt-imagen-producto-campo {
   display: flex;
   flex-direction: column;
@@ -2673,327 +2671,627 @@ a {
   object-fit: cover;
 }
 
-/* Inventario: registro inicial e historial estilo pestañas */
-.dt-acciones-inventario {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 9px;
-}
-
-.dt-inventario-pestanas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 4px 0 14px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.dt-inventario-pestana {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 13px;
-  border: 1px solid transparent;
-  border-radius: 9px 9px 0 0;
-  color: #64748b;
-  background: transparent;
-  font-size: 12.5px;
-  font-weight: 700;
-  transition: color 0.16s, background 0.16s, border-color 0.16s;
-}
-
-.dt-inventario-pestana:hover {
-  color: #16213e;
-  background: #f8fafc;
-}
-
-.dt-inventario-pestana.activa {
-  border-color: #e2e8f0;
-  color: #16213e;
-  background: #ffffff;
-  box-shadow: 0 2px 0 #fa813b;
-}
-
-.dt-inventario-sin-productos {
-  margin: 0;
-  padding: 14px;
-  border: 1px solid #f1d9b5;
-  border-radius: 10px;
-  color: #7c4a13;
-  background: #fffaf1;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-@media (max-width: 620px) {
-  .dt-acciones-inventario {
-    width: 100%;
+/* En móvil: menos velo y fondo fijo desactivado (evita tirones) */
+@media (max-width: 900px) {
+  .login-pagina,
+  .registro-pagina {
+    background-attachment: scroll;
   }
 
-  .dt-acciones-inventario > button {
-    flex: 1 1 auto;
-    justify-content: center;
+  .dt-layout-admin {
+    background-attachment: scroll;
   }
 }
 
-.dt-campo-ancho > small {
-  display: block;
-  margin-top: 6px;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.45;
-}
+/* =========================================================================
+   17. PORTADA PÚBLICA  (Index.tsx)
+   Todo lo de la portada se define AQUÍ, sin estilos inline en el TSX.
+   Imagen: src/assets/images/fondo index.jpg
+========================================================================= */
 
-/* --- Catálogo cliente: tarjetas de producto al estilo Toronto --- */
-.dt-productos-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
-  gap: 18px;
-  padding: 4px 2px 12px;
-}
-
-.dt-producto-card {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid #edf0f5;
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 8px 22px rgba(22, 33, 58, 0.06);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-}
-
-.dt-producto-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(250, 129, 59, 0.34);
-  box-shadow: 0 17px 32px rgba(250, 129, 59, 0.15);
-}
-
-.dt-producto-card-imagen {
-  position: relative;
-  display: grid;
-  aspect-ratio: 4 / 3;
-  max-height: 205px;
-  place-items: center;
-  overflow: hidden;
-  background: linear-gradient(145deg, #f8fafc, #eef2f7);
-}
-
-.dt-producto-card-imagen > img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.35s ease;
-}
-
-.dt-producto-card:hover .dt-producto-card-imagen > img {
-  transform: scale(1.05);
-}
-
-.dt-producto-sin-imagen {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  place-items: center;
-  color: #aab5c5;
-}
-
-.dt-producto-categoria,
-.dt-producto-descuento {
-  position: absolute;
-  top: 12px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.dt-producto-categoria {
-  left: 12px;
-  max-width: 65%;
-  overflow: hidden;
-  color: #334155;
-  background: rgba(255, 255, 255, 0.92);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-.dt-producto-descuento {
-  right: 12px;
+/* ---- Contenedor general con la foto de fondo ---- */
+.portada {
+  min-height: 100vh;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--orange), #ff512f);
-  box-shadow: 0 5px 12px rgba(250, 129, 59, 0.25);
+  background-image:
+    linear-gradient(rgba(10, 16, 28, 0.62), rgba(10, 16, 28, 0.62)),
+    url("./assets/images/fondo index.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
-.dt-producto-card-cuerpo {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  padding: 16px;
-}
-
-.dt-producto-titulo h3 {
-  margin: 0;
-  overflow: hidden;
-  color: #1e293b;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dt-producto-titulo > span {
-  display: block;
-  margin-top: 3px;
-  color: #94a3b8;
-  font-size: 10.5px;
-  font-weight: 600;
-}
-
-.dt-producto-atributos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 12px;
-}
-
-.dt-producto-atributos > span {
-  padding: 6px 8px;
-  border: 1px solid #edf0f5;
-  border-radius: 7px;
-  color: #64748b;
-  background: #f8fafc;
-  font-size: 10.5px;
-}
-
-.dt-producto-atributos strong {
-  margin-left: 3px;
-  color: #334155;
-  font-weight: 700;
-}
-
-.dt-producto-precio {
+/* ---- Barra superior: compacta y centrada ---- */
+.portada-barra {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-height: 66px;
-  margin-top: 13px;
-  padding: 10px 0;
-  border-top: 1px solid #f1f3f7;
-  color: var(--orange);
+  gap: 14px;
+  height: 62px;
+  padding: 0 26px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 16, 28, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.dt-producto-precio > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 7px;
+.portada-barra .marca {
+  font-size: 19px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
-.dt-producto-precio-etiqueta {
-  flex-basis: 100%;
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 600;
+.portada-barra .marca .marca-verde {
+  color: var(--amber);
 }
 
-.dt-producto-precio strong {
-  color: #1e293b;
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.dt-producto-precio s {
-  color: #94a3b8;
-  font-size: 11px;
-}
-
-.dt-producto-precio > svg {
-  color: var(--orange);
-}
-
-.dt-producto-compra {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 9px;
-}
-
-.dt-producto-cantidad {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.dt-producto-cantidad > span {
-  min-width: 22px;
-  color: #334155;
-  font-size: 13px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.dt-producto-cantidad .dt-boton-icono {
-  width: 30px;
-  height: 30px;
+.portada-barra .marca-icono-solido {
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
 }
 
-.dt-producto-agregar {
+.portada-barra-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botones superiores: pequeños, misma altura y centrados */
+.portada-barra-acciones .dt-boton-secundario,
+.portada-barra-acciones .dt-accion-principal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.portada-barra-acciones .dt-boton-secundario {
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.portada-barra-acciones .dt-boton-secundario:hover {
+  color: var(--ink);
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.portada-barra-acciones .dt-accion-principal {
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  border-color: transparent;
+  color: #ffffff;
+}
+
+/* ---- Héroe: contenido centrado y más contenido ---- */
+.portada-heroe {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 54px 26px 40px;
+  text-align: center;
+}
+
+.portada-heroe h1 {
+  max-width: 22ch;
+  margin: 16px auto 0;
+  color: #ffffff;
+  font-family: "Big Shoulders Display", "Inter", sans-serif;
+  font-size: clamp(30px, 3.6vw, 50px);
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.portada-heroe p {
+  max-width: 56ch;
+  margin: 14px auto 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  line-height: 1.65;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+.portada-heroe .etiqueta {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(10, 16, 28, 0.55);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+}
+
+.portada-heroe-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.portada-heroe-acciones .dt-accion-principal,
+.portada-heroe-acciones .dt-boton-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.portada-heroe-acciones .dt-accion-principal {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  border: 1px solid transparent;
+  box-shadow: 0 10px 22px rgba(250, 129, 59, 0.32);
+}
+
+.portada-heroe-acciones .dt-boton-secundario {
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.portada-heroe-acciones .dt-boton-secundario:hover {
+  color: var(--ink);
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+/* Checks centrados */
+.portada-lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 22px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portada-lista li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.portada-lista li svg {
+  flex: none;
+  color: var(--amber);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* ---- Secciones: rejilla centrada y tarjetas blancas ---- */
+.portada-beneficios,
+.portada-pasos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 26px 20px;
+}
+
+.portada-pasos {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.portada-beneficio,
+.portada-paso {
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 14px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+  padding: 18px;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.portada-beneficio:hover,
+.portada-paso:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.portada-beneficio strong,
+.portada-paso strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.portada-beneficio > span:not(.dt-acceso-icono),
+.portada-paso > span:not(.portada-paso-numero) {
+  display: block;
+  margin-top: 5px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.portada-paso-numero {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), #ff512f);
+  font-family: "Big Shoulders Display", "Inter", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* ---- Contacto: bloque con color propio, destacado sobre la foto ---- */
+.portada-contacto {
+  max-width: 1120px;
+  margin: 12px auto 0;
+  padding: 0 26px 96px;
+}
+
+.portada-contacto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213a 45%, #0f3460 100%);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Columna izquierda: información de contacto */
+.portada-contacto-info {
+  position: relative;
+  padding: 36px 32px;
+  color: #ffffff;
+  background-image:
+    radial-gradient(560px 300px at 8% 0%, rgba(250, 129, 59, 0.28), transparent 62%),
+    radial-gradient(420px 300px at 100% 100%, rgba(255, 193, 69, 0.16), transparent 60%);
+}
+
+.portada-contacto-info .etiqueta {
+  color: #16213a;
+  background: var(--amber);
+  border-color: var(--amber);
+  font-size: 10px;
+}
+
+.portada-contacto-info h2 {
+  margin-top: 12px;
+  color: #ffffff;
+  font-family: "Big Shoulders Display", "Inter", sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.portada-contacto-lead {
+  margin: 10px 0 18px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.portada-contacto-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.portada-contacto-item i {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #16213a;
+  background: var(--amber);
+  font-size: 13px;
+}
+
+/* Columna derecha: el formulario (tablero blanco) */
+.portada-tablero {
+  position: relative;
+  padding: 36px 32px;
+  background: #ffffff;
+  border-radius: 0;
+}
+
+.portada-tablero-clip {
+  display: none;
+}
+
+.portada-tablero-form {
+  display: grid;
+  gap: 12px;
+}
+
+.portada-tablero-form label {
+  display: grid;
+  gap: 5px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.portada-tablero-form input,
+.portada-tablero-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #ffffff;
+  font-size: 13px;
+}
+
+.portada-tablero-form input:focus,
+.portada-tablero-form textarea:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.18);
+}
+
+.portada-tablero-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.portada-tablero-enviar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 36px;
-  padding: 0 13px;
+  height: 42px;
+  margin-top: 2px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 9px;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--orange), #ff512f);
-  box-shadow: 0 6px 14px rgba(250, 129, 59, 0.22);
-  font-size: 11.5px;
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  font-size: 13px;
   font-weight: 800;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 10px 22px rgba(250, 129, 59, 0.32);
 }
 
-.dt-producto-agregar:hover:not(:disabled) {
+.portada-tablero-ok {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 26px 0;
+  color: var(--ok);
+  text-align: center;
+}
+
+.portada-tablero-ok h3 {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.portada-tablero-ok p {
+  max-width: 34ch;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+/* ---- Pie de página ---- */
+.portada-footer {
+  margin-top: 10px;
+  padding: 30px 26px 26px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 16, 28, 0.7);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.portada-footer-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 26px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.portada-footer-grid .marca {
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.portada-footer-grid .marca .marca-verde {
+  color: var(--amber);
+}
+
+.portada-footer-grid p {
+  max-width: 42ch;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.portada-footer-grid h5 {
+  margin: 0 0 10px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.portada-footer-grid ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portada-footer-grid a,
+.portada-footer-estatico li {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+
+.portada-footer-grid a:hover {
+  color: var(--amber);
+  text-decoration: underline;
+}
+
+.portada-footer-linea {
+  max-width: 1120px;
+  margin: 24px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.portada-footer-base {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11.5px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .portada {
+    background-attachment: scroll;
+    background-position: center top;
+  }
+
+  .portada-barra {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+
+  .portada-heroe {
+    padding: 36px 18px 30px;
+  }
+
+  .portada-beneficios,
+  .portada-pasos,
+  .portada-contacto {
+    padding: 0 16px 16px;
+  }
+
+  .portada-contacto-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portada-tablero {
+    border-radius: 0;
+  }
+
+  .portada-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+}
+
+/* =========================================================================
+   18. LOGIN — botón "Volver" (opcional)
+   NOTA: el login.tsx ya trae este botón con estilos INLINE, así que esta
+   sección solo añade el efecto hover. NO se define .login-pagina aquí para
+   no alterar el grid de dos columnas.
+========================================================================= */
+
+.login-volver {
+  border-radius: 999px; /* forma de píldora: bordes totalmente redondeados */
+  transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s, color 0.16s;
+}
+
+.login-volver:hover {
+  color: var(--orange-deep) !important;
+  border-color: var(--orange) !important;
+  box-shadow: 0 10px 24px rgba(250, 129, 59, 0.3) !important;
   transform: translateY(-1px);
-  box-shadow: 0 9px 18px rgba(250, 129, 59, 0.3);
 }
 
-.dt-producto-agregar:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.login-volver .login-volver-flecha {
+  transition: transform 0.16s;
 }
 
-@media (max-width: 620px) {
-  .dt-productos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
-    gap: 12px;
-  }
+.login-volver:hover .login-volver-flecha {
+  transform: translateX(-3px);
+}
 
-  .dt-producto-card-cuerpo {
-    padding: 13px;
-  }
+/* =========================================================================
+   19. CONTACTO — neutralizar cualquier caja blanca detrás del panel
+   La sección y el panel solo deben mostrar el degradado oscuro.
+========================================================================= */
 
-  .dt-producto-compra {
-    align-items: stretch;
-    flex-direction: column;
-  }
+.portada-contacto {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-bottom: 96px !important;
+}
 
-  .dt-producto-cantidad {
-    justify-content: center;
+.portada-contacto-grid {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.portada-contacto-info {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.portada-tablero {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.portada-tablero-form {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .portada-contacto-grid {
+    grid-template-columns: 1fr !important;
   }
 }
