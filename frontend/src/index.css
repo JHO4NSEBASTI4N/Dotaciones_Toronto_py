@@ -2549,7 +2549,7 @@ a {
     animation-duration: 0.001s !important;
     transition-duration: 0.001s !important;
   }
-<<<<<<< HEAD
+
 }
 
 /* Selector y vista previa de imágenes en el formulario de productos */
@@ -2617,6 +2617,3 @@ a {
   border-radius: inherit;
   object-fit: cover;
 }
-=======
-}
->>>>>>> 7a69c86 (Cambios de portada, registro con validaciones)
