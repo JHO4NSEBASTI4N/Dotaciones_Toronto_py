@@ -182,3 +182,543 @@
     border-right-color: var(--border);
   }
 }
+
+/* =========================================================
+   PORTADA (src/pages/index.tsx)
+   Color de acento: naranja. Para cambiarlo, edita solo las
+   variables de la línea ".portada {" de abajo.
+   ========================================================= */
+
+/* La plantilla de Vite limita el ancho de #root y pone el body en flex.
+   Esto solo aplica cuando la portada está en pantalla. */
+body:has(.portada) {
+  display: block;
+  place-items: normal;
+  min-width: 0;
+  margin: 0;
+}
+
+body:has(.portada) #root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.portada {
+  --acento: #f97316;
+  --acento-oscuro: #ea580c;
+  --acento-suave: #ffedd5;
+  --acento-texto: #c2410c;
+  --navy: #0f172a;
+  --texto-suave: #64748b;
+  --borde: #e2e8f0;
+
+  min-height: 100vh;
+  width: 100%;
+  background: #f8fafc;
+  color: var(--navy);
+  font-family: "Inter", system-ui, sans-serif;
+  text-align: center;
+}
+
+.portada *,
+.portada *::before,
+.portada *::after {
+  box-sizing: border-box;
+}
+
+.portada a {
+  text-decoration: none;
+}
+
+/* ----- Barra superior ----- */
+.portada-barra {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px max(24px, calc((100% - 1140px) / 2));
+  background: #ffffff;
+  border-bottom: 1px solid var(--borde);
+  text-align: left;
+}
+
+.portada-barra-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ----- Marca ----- */
+.portada .marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Big Shoulders Display", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+
+.portada .marca-verde {
+  color: var(--acento);
+}
+
+.portada .marca-icono-solido {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--acento);
+  color: #ffffff;
+}
+
+/* ----- Botones ----- */
+.portada .dt-accion-principal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: 1px solid var(--acento);
+  border-radius: 8px;
+  background: var(--acento);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.portada .dt-accion-principal:hover {
+  background: var(--acento-oscuro);
+  border-color: var(--acento-oscuro);
+  color: #ffffff;
+}
+
+.portada .dt-boton-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--navy);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.portada .dt-boton-secundario:hover {
+  border-color: var(--acento);
+  color: var(--acento-texto);
+}
+
+/* ----- Etiquetas ----- */
+.portada .etiqueta {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.portada .etiqueta-oscura {
+  background: var(--navy);
+  color: var(--acento);
+}
+
+/* ----- Héroe ----- */
+.portada-heroe {
+  padding: 96px 24px 72px;
+  text-align: center;
+}
+
+.portada-heroe h1 {
+  max-width: 820px;
+  margin: 24px auto 18px;
+  font-family: "Big Shoulders Display", sans-serif;
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--navy);
+}
+
+.portada-heroe > p {
+  max-width: 640px;
+  margin: 0 auto;
+  color: #475569;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.portada-heroe-acciones {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 32px 0;
+}
+
+.portada-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  color: #334155;
+  font-size: 0.92rem;
+}
+
+.portada-lista li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.portada-lista svg {
+  color: var(--acento);
+}
+
+/* ----- Beneficios ----- */
+.portada-beneficios {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 0 max(24px, calc((100% - 1140px) / 2)) 72px;
+}
+
+.portada-beneficio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  text-align: left;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.portada-beneficio strong {
+  color: var(--navy);
+  font-size: 1.02rem;
+}
+
+.portada-beneficio > span:last-child {
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.portada-beneficio .dt-acceso-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  background: var(--acento-suave);
+  color: var(--acento-texto);
+}
+
+/* ----- Pasos ----- */
+.portada-pasos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 0 max(24px, calc((100% - 1140px) / 2)) 80px;
+}
+
+.portada-paso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 24px;
+  background: #ffffff;
+  border-top: 3px solid var(--acento);
+  border-radius: 0 0 14px 14px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.portada-paso strong {
+  color: var(--navy);
+  font-size: 1.12rem;
+}
+
+.portada-paso > span:last-child {
+  color: var(--texto-suave);
+  font-size: 0.92rem;
+}
+
+.portada-paso-numero {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+/* ----- Contacto ----- */
+.portada-contacto {
+  padding: 80px max(24px, calc((100% - 1140px) / 2));
+  background: #ffffff;
+  border-top: 1px solid var(--borde);
+  text-align: left;
+}
+
+.portada-contacto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.portada-contacto-info h2 {
+  margin: 14px 0 8px;
+  font-family: "Big Shoulders Display", sans-serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.portada-contacto-lead {
+  margin-bottom: 24px;
+  color: var(--texto-suave);
+  line-height: 1.6;
+}
+
+.portada-contacto-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--navy);
+}
+
+.portada-contacto-item i {
+  margin-top: 2px;
+  color: var(--acento);
+  font-size: 1.1rem;
+}
+
+/* ----- Formulario de contacto ----- */
+.portada-tablero {
+  position: relative;
+  padding: 40px 28px 28px;
+  background: #f8fafc;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.portada-tablero-clip {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 90px;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 6px;
+  background: var(--navy);
+}
+
+.portada-tablero-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: var(--navy);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.portada-tablero-form input,
+.portada-tablero-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-weight: 400;
+}
+
+.portada-tablero-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.portada-tablero-form input:focus,
+.portada-tablero-form textarea:focus {
+  outline: none;
+  border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+}
+
+.portada .portada-tablero-enviar {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.portada-tablero-ok {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--navy);
+}
+
+.portada-tablero-ok svg {
+  color: var(--acento);
+}
+
+.portada-tablero-ok h3 {
+  margin: 12px 0 8px;
+  font-weight: 700;
+}
+
+.portada-tablero-ok p {
+  margin-bottom: 20px;
+  color: var(--texto-suave);
+}
+
+/* ----- Footer ----- */
+.portada-footer {
+  padding-top: 56px;
+  background: var(--navy);
+  color: #cbd5e1;
+  text-align: left;
+}
+
+.portada-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+  padding: 0 max(24px, calc((100% - 1140px) / 2)) 40px;
+}
+
+.portada-footer .marca {
+  color: #ffffff;
+}
+
+.portada-footer p {
+  margin-top: 14px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.portada-footer h5 {
+  margin: 0 0 14px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.portada-footer ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portada-footer a {
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.portada-footer a:hover {
+  color: var(--acento);
+}
+
+.portada-footer-estatico li {
+  color: #94a3b8;
+}
+
+.portada-footer-linea {
+  border-top: 1px solid #1e293b;
+}
+
+.portada-footer-base {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px max(24px, calc((100% - 1140px) / 2));
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 1024px) {
+  .portada-beneficios {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .portada-barra {
+    justify-content: center;
+    padding: 14px 20px;
+    text-align: center;
+  }
+
+  .portada-heroe {
+    padding: 56px 20px 48px;
+  }
+
+  .portada-beneficios,
+  .portada-pasos {
+    grid-template-columns: 1fr;
+    padding: 0 20px 48px;
+  }
+
+  .portada-contacto {
+    padding: 56px 20px;
+  }
+
+  .portada-contacto-grid,
+  .portada-footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portada-footer-grid {
+    padding: 0 20px 32px;
+  }
+
+  .portada-footer-base {
+    justify-content: center;
+    padding: 18px 20px;
+    text-align: center;
+  }
+}

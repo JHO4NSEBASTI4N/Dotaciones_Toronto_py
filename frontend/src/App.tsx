@@ -4,6 +4,8 @@
 // proyecto Java: /admin, /vendedor, /bodeguero, /cliente, y fuera de ellos
 // /index (portada), /login, /registro, /seleccionar-rol y /error/*.
 
+import "./App.css";
+
 import { useMemo, useState } from "react";
 import {
   BrowserRouter,
