@@ -7,6 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Ban, CreditCard, Eye, FileText, RefreshCw, Receipt, TrendingUp, X } from "../../components/iconos";
 
 import { numero, pesos, traerTodo, ventas } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { resumirVentasPorMes } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -26,7 +29,7 @@ import GraficaIngresos from "../../components/grafica-ingresos";
 import type { IngresoPorMes, Venta } from "../../types";
 
 export default function VentasVendedor() {
-  const { usuario } = useSesion();
+  const { usuario, esAdministrador } = useSesion();
 
   const [lista, setLista] = useState<Venta[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -98,6 +101,39 @@ export default function VentasVendedor() {
     });
   }, [lista, busqueda, filtroEstado]);
 
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "ventas",
+    titulo: "Reporte de ventas",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Ventas filtradas", valor: String(filtrados.length) },
+      { etiqueta: "Completadas", valor: String(filtrados.filter((venta) => venta.estado === "Completada").length) },
+      { etiqueta: "Anuladas", valor: String(filtrados.filter((venta) => venta.estado === "Anulada").length) },
+      { etiqueta: "Ingresos completados", valor: pesos(filtrados.filter((venta) => venta.estado === "Completada").reduce((suma, venta) => suma + numero(venta.total_pagado), 0)) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "Venta" },
+      { clave: "pedido", titulo: "Pedido" },
+      { clave: "fecha", titulo: "Fecha" },
+      { clave: "factura", titulo: "Factura" },
+      { clave: "unidades", titulo: "Unidades" },
+      { clave: "total_cop", titulo: "Total pagado COP" },
+      { clave: "descuento_cop", titulo: "Descuento COP" },
+      { clave: "estado", titulo: "Estado" },
+    ],
+    filas: filtrados.map((venta) => ({
+      id: venta.id_venta,
+      pedido: venta.id_pedido_fk,
+      fecha: venta.fecha_venta,
+      factura: venta.factura?.id_factura ?? null,
+      unidades: venta.total_unidades,
+      total_cop: numero(venta.total_pagado),
+      descuento_cop: numero(venta.descuento_total),
+      estado: venta.estado,
+    })),
+    grafica: resumirVentasPorMes(filtrados),
+  });
+
   const anular = async (venta: Venta) => {
     const confirmado = window.confirm(
       `¿Anular la venta #${venta.id_venta}? La venta no se borra: queda marcada como Anulada.`
@@ -126,15 +162,20 @@ export default function VentasVendedor() {
         descripcion="Cada pedido entregado genera su venta y su factura. Aquí se consultan y se anulan."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "vendedor" } : undefined}
         accion={
-          <button
-            type="button"
-            className="dt-accion-principal"
-            onClick={() => void cargarDatos()}
-            disabled={cargando}
-          >
-            <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
-            Actualizar
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            {esAdministrador && (
+              <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            )}
+            <button
+              type="button"
+              className="dt-accion-principal"
+              onClick={() => void cargarDatos()}
+              disabled={cargando}
+            >
+              <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
+              Actualizar
+            </button>
+          </div>
         }
       />
 

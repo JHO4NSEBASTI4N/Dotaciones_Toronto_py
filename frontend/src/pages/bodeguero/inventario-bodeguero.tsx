@@ -7,6 +7,9 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { ArrowDownToLine, ArrowUpFromLine, Boxes, Clock, Package, Plus, RefreshCw, SlidersHorizontal, TriangleAlert, X } from "../../components/iconos";
 
 import { inventario, productos as apiProductos, traerTodo } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -112,6 +115,47 @@ export default function InventarioVista() {
     });
   }, [stock, busqueda, filtro]);
 
+  const crearReporte = (): ReporteAdmin => {
+    const agotados = filtrados.filter((fila) => fila.stock_total === 0).length;
+    const bajos = filtrados.filter((fila) => fila.stock_total > 0 && fila.bajo_minimo).length;
+    const normales = filtrados.filter((fila) => !fila.bajo_minimo && fila.stock_total > 0).length;
+    return {
+      modulo: "inventario",
+      titulo: "Reporte de inventario y existencias",
+      generado_por: usuario?.nombre ?? "Administrador",
+      indicadores: [
+        { etiqueta: "Productos filtrados", valor: String(filtrados.length) },
+        { etiqueta: "Agotados", valor: String(agotados) },
+        { etiqueta: "Bajo mínimo", valor: String(bajos) },
+        { etiqueta: "Stock normal", valor: String(normales) },
+      ],
+      columnas: [
+        { clave: "id", titulo: "Producto" },
+        { clave: "nombre", titulo: "Nombre" },
+        { clave: "categoria", titulo: "Categoría" },
+        { clave: "talla", titulo: "Talla" },
+        { clave: "color", titulo: "Color" },
+        { clave: "stock", titulo: "Stock actual" },
+        { clave: "minimo", titulo: "Stock mínimo" },
+        { clave: "estado", titulo: "Estado" },
+      ],
+      filas: filtrados.map((fila) => ({
+        id: fila.id_producto,
+        nombre: fila.nombre,
+        categoria: fila.categoria,
+        talla: fila.talla,
+        color: fila.color,
+        stock: fila.stock_total,
+        minimo: fila.stock_minimo,
+        estado: fila.stock_total === 0 ? "Agotado" : fila.bajo_minimo ? "Bajo mínimo" : "Normal",
+      })),
+      grafica: contarPorCategoria(
+        filtrados.map((fila) => fila.stock_total === 0 ? "Agotado" : fila.bajo_minimo ? "Bajo mínimo" : "Normal"),
+        "Productos por nivel de inventario"
+      ),
+    };
+  };
+
   const productosDisponibles = useMemo(() => {
     const idsRegistrados = new Set(
       filas
@@ -208,6 +252,9 @@ export default function InventarioVista() {
         rol={usuario ? { nombre: usuario.nombre_rol, clase: esAdministrador ? "admin" : "bodeguero" } : undefined}
         accion={
           <div className="dt-acciones-inventario">
+            {esAdministrador && vista === "stock" && (
+              <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            )}
             <button
               type="button"
               className="dt-accion-principal"

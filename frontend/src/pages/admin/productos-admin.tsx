@@ -6,6 +6,9 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Package, PackageMinus, PackagePlus, Pencil, Plus, RefreshCw, Shirt, Tag, X } from "../../components/iconos";
 
 import { pesos, productos, traerTodo, urlImagenProducto } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -113,6 +116,39 @@ export default function ProductosAdmin() {
       return coincideTexto && coincideCategoria && coincideEstado;
     });
   }, [lista, busqueda, filtroCategoria, soloInactivos]);
+
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "productos",
+    titulo: "Reporte de productos",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Productos filtrados", valor: String(filtrados.length) },
+      { etiqueta: "Disponibles", valor: String(filtrados.filter((producto) => !producto.inhabilitado).length) },
+      { etiqueta: "Inhabilitados", valor: String(filtrados.filter((producto) => producto.inhabilitado).length) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "ID" },
+      { clave: "nombre", titulo: "Producto" },
+      { clave: "categoria", titulo: "Categoría" },
+      { clave: "talla", titulo: "Talla" },
+      { clave: "color", titulo: "Color" },
+      { clave: "precio_cop", titulo: "Precio COP" },
+      { clave: "estado", titulo: "Estado" },
+    ],
+    filas: filtrados.map((producto) => ({
+      id: producto.id_producto,
+      nombre: producto.nombre,
+      categoria: producto.categoria,
+      talla: producto.talla,
+      color: producto.color,
+      precio_cop: Number(producto.precio),
+      estado: producto.inhabilitado ? "Inhabilitado" : "Disponible",
+    })),
+    grafica: contarPorCategoria(
+      filtrados.map((producto) => producto.categoria),
+      "Productos por categoría"
+    ),
+  });
 
   const abrirNuevo = () => {
     setEditando(null);
@@ -243,10 +279,13 @@ export default function ProductosAdmin() {
         descripcion="Dotaciones que vende la empresa, con su precio en pesos y su talla."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "admin" } : undefined}
         accion={
-          <button type="button" className="dt-accion-principal" onClick={abrirNuevo}>
-            <Plus size={15} />
-            Nuevo producto
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            <button type="button" className="dt-accion-principal" onClick={abrirNuevo}>
+              <Plus size={15} />
+              Nuevo producto
+            </button>
+          </div>
         }
       />
 

@@ -7,6 +7,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Ban, ClipboardList, Eye, PackageCheck, RefreshCw, Truck, X } from "../../components/iconos";
 
 import { pedidos, pesos, traerTodo } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -27,7 +30,7 @@ import type { Pedido } from "../../types";
 const ESTADOS = ["Pendiente", "Enviado", "Entregado", "Cancelado"];
 
 export default function PedidosVendedor() {
-  const { usuario } = useSesion();
+  const { usuario, esAdministrador } = useSesion();
 
   const [lista, setLista] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -82,6 +85,39 @@ export default function PedidosVendedor() {
     });
   }, [lista, busqueda, filtroEstado]);
 
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "pedidos",
+    titulo: "Reporte de pedidos",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Pedidos filtrados", valor: String(filtrados.length) },
+      { etiqueta: "Pendientes", valor: String(filtrados.filter((pedido) => pedido.estado === "Pendiente").length) },
+      { etiqueta: "Enviados", valor: String(filtrados.filter((pedido) => pedido.estado === "Enviado").length) },
+      { etiqueta: "Entregados", valor: String(filtrados.filter((pedido) => pedido.estado === "Entregado").length) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "Pedido" },
+      { clave: "cliente", titulo: "ID cliente" },
+      { clave: "fecha", titulo: "Fecha" },
+      { clave: "items", titulo: "Ítems" },
+      { clave: "unidades", titulo: "Unidades" },
+      { clave: "total_cop", titulo: "Total COP" },
+      { clave: "descuento_cop", titulo: "Descuento COP" },
+      { clave: "estado", titulo: "Estado" },
+    ],
+    filas: filtrados.map((pedido) => ({
+      id: pedido.id_pedido,
+      cliente: pedido.id_usuario_fk,
+      fecha: pedido.fecha_pedido,
+      items: pedido.items.length,
+      unidades: pedido.total_unidades,
+      total_cop: Number(pedido.total),
+      descuento_cop: Number(pedido.descuento_total),
+      estado: pedido.estado,
+    })),
+    grafica: contarPorCategoria(filtrados.map((pedido) => pedido.estado ?? "Sin estado"), "Pedidos por estado"),
+  });
+
   const cambiarEstado = async (pedido: Pedido, nuevoEstado: string) => {
     const confirmado = window.confirm(
       nuevoEstado === "Entregado"
@@ -132,15 +168,20 @@ export default function PedidosVendedor() {
         descripcion="Cada pedido avanza Pendiente → Enviado → Entregado. Al entregarlo se crea la venta."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "vendedor" } : undefined}
         accion={
-          <button
-            type="button"
-            className="dt-accion-principal"
-            onClick={() => void cargarDatos()}
-            disabled={cargando}
-          >
-            <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
-            Actualizar
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            {esAdministrador && (
+              <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            )}
+            <button
+              type="button"
+              className="dt-accion-principal"
+              onClick={() => void cargarDatos()}
+              disabled={cargando}
+            >
+              <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
+              Actualizar
+            </button>
+          </div>
         }
       />
 

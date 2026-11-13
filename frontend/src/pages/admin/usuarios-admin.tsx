@@ -6,7 +6,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { KeyRound, Mail, Pencil, Plus, RefreshCw, ShieldCheck, UserCheck, UserMinus, UserRound, Users, X } from "../../components/iconos";
 
-import { auth, roles as apiRoles, usuarios } from "../../services/api";
+import { auth, roles as apiRoles, traerTodo, usuarios } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -67,11 +70,11 @@ export default function UsuariosVista() {
     setError("");
 
     try {
-      const [pagina, catalogo] = await Promise.all([
-        usuarios.listar({ saltar: 0, limite: 100 }),
+      const [personas, catalogo] = await Promise.all([
+        traerTodo((saltar, limite) => usuarios.listar({ saltar, limite })),
         apiRoles.listar(),
       ]);
-      setLista(pagina.items);
+      setLista(personas.items);
       setRoles(catalogo);
     } catch (fallo) {
       setError(fallo instanceof Error ? fallo.message : "No se pudieron cargar los usuarios.");
@@ -114,6 +117,42 @@ export default function UsuariosVista() {
 
   const nombreRol = (idRol: number | null) =>
     roles.find((rol) => rol.id_rol === idRol)?.nombre_rol ?? "Sin rol";
+
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "usuarios",
+    titulo: "Reporte de usuarios y roles",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Cuentas filtradas", valor: String(filtrados.length) },
+      { etiqueta: "Habilitadas", valor: String(filtrados.filter((u) => u.estado === "Habilitado").length) },
+      { etiqueta: "Inhabilitadas", valor: String(filtrados.filter((u) => u.estado !== "Habilitado").length) },
+      { etiqueta: "Multirrol", valor: String(filtrados.filter((u) => (u.roles_activos?.length ?? 0) > 1).length) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "ID" },
+      { clave: "nombre", titulo: "Nombre" },
+      { clave: "correo", titulo: "Correo" },
+      { clave: "documento", titulo: "Documento" },
+      { clave: "telefono", titulo: "Teléfono" },
+      { clave: "rol_principal", titulo: "Rol principal" },
+      { clave: "roles_activos", titulo: "Roles activos" },
+      { clave: "estado", titulo: "Estado" },
+    ],
+    filas: filtrados.map((persona) => ({
+      id: persona.id_usuario,
+      nombre: persona.nombre,
+      correo: persona.correo,
+      documento: persona.documento,
+      telefono: persona.telefono,
+      rol_principal: nombreRol(persona.id_rol_fk),
+      roles_activos: (persona.roles_activos ?? []).map(nombreRol).join(", ") || "Sin rol",
+      estado: persona.estado,
+    })),
+    grafica: contarPorCategoria(
+      filtrados.map((persona) => persona.estado ?? "Sin estado"),
+      "Usuarios por estado"
+    ),
+  });
 
   /* ---------- acciones ---------- */
 
@@ -265,10 +304,13 @@ export default function UsuariosVista() {
         descripcion="Cada persona con su cuenta, su rol y su estado. Las cuentas no se eliminan: se inhabilitan."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "admin" } : undefined}
         accion={
-          <button type="button" className="dt-accion-principal" onClick={abrirRegistro}>
-            <Plus size={15} />
-            Nueva cuenta
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            <button type="button" className="dt-accion-principal" onClick={abrirRegistro}>
+              <Plus size={15} />
+              Nueva cuenta
+            </button>
+          </div>
         }
       />
 
