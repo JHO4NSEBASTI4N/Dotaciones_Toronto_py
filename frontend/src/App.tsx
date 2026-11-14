@@ -357,13 +357,19 @@ function EstructuraPanel() {
                 <button
                   key={rol.id_rol}
                   type="button"
-                  className="dt-nav-rol-disponible"
+                  className={`dt-nav-rol-disponible dt-nav-rol-disponible-${
+                    CLASE_ROL[rol.id_rol] ?? "cliente"
+                  }`}
                   onClick={() => void entrarConRol(rol.id_rol)}
                   disabled={cambiando}
                   title={`Cambiar al rol ${NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}`}
                 >
+                  <span className="dt-nav-rol-disponible-punto" />
                   {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
-                  <ArrowRight size={13} />
+                  <ArrowRight
+                    size={13}
+                    className="dt-nav-rol-disponible-arrow"
+                  />
                 </button>
               ))}
               {errorCambioRol && (

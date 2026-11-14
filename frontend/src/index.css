@@ -360,6 +360,160 @@ a {
   cursor: progress;
 }
 
+/* --- Roles disponibles (botontes de "cambiar de rol") --- */
+
+.dt-nav-roles-disponibles {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.dt-nav-roles-disponibles p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: #7c8aa5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.dt-nav-rol-disponible {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.16s, border-color 0.16s, transform 0.16s;
+}
+
+.dt-nav-rol-disponible:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateX(3px);
+}
+
+.dt-nav-rol-disponible:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* Punto de color por rol para distinguirlos a la primera */
+.dt-nav-rol-disponible .dt-nav-rol-disponible-punto {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.18);
+}
+
+.dt-nav-rol-disponible-admin .dt-nav-rol-disponible-punto {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(226, 185, 111, 0.2);
+}
+
+.dt-nav-rol-disponible-vendedor .dt-nav-rol-disponible-punto {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(226, 185, 111, 0.2);
+}
+
+.dt-nav-rol-disponible-bodeguero .dt-nav-rol-disponible-punto {
+  background: #fca5a5;
+  box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.2);
+}
+
+.dt-nav-rol-disponible-cliente .dt-nav-rol-disponible-punto {
+  background: var(--orange);
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.2);
+}
+
+.dt-nav-rol-disponible .dt-nav-rol-disponible-arrow {
+  margin-left: auto;
+  color: #94a3b8;
+  transition: color 0.16s, transform 0.16s;
+}
+
+.dt-nav-rol-disponible:hover:not(:disabled) .dt-nav-rol-disponible-arrow {
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+.dt-error-cambio-rol {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.16);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* --- Botones de "cambiar de rol" en la pantalla de perfil --- */
+
+.dt-boton-rol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--white);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: left;
+  transition: border-color 0.16s, transform 0.16s, box-shadow 0.16s,
+    background 0.16s;
+}
+
+.dt-boton-rol:hover:not(:disabled) {
+  border-color: var(--orange);
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.dt-boton-rol:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dt-boton-rol .dt-boton-rol-punto {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+
+.dt-boton-rol-admin .dt-boton-rol-punto {
+  background: var(--gold);
+}
+
+.dt-boton-rol-vendedor .dt-boton-rol-punto {
+  background: var(--gold);
+}
+
+.dt-boton-rol-bodeguero .dt-boton-rol-punto {
+  background: #b91c1c;
+}
+
+.dt-boton-rol-cliente .dt-boton-rol-punto {
+  background: var(--orange);
+}
+
 /* --- Pie de la barra --- */
 
 .dt-sidebar-pie {

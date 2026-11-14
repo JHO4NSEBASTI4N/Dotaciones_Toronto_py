@@ -15,7 +15,7 @@ import {
   UserRound,
 } from "../components/iconos";
 import { auth, usuarios } from "../services/api";
-import { NOMBRE_ROL, useSesion } from "../context/sesion-contexto";
+import { NOMBRE_ROL, CLASE_ROL, useSesion } from "../context/sesion-contexto";
 import {
   Aviso,
   BarraListado,
@@ -275,10 +275,13 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
                     <button
                       key={rol.id_rol}
                       type="button"
-                      className="dt-boton-secundario"
+                      className={`dt-boton-rol dt-boton-rol-${
+                        CLASE_ROL[rol.id_rol] ?? "cliente"
+                      }`}
                       disabled={rol.id_rol === usuario.id_rol}
                       onClick={() => void cambiarRol(rol.id_rol)}
                     >
+                      <span className="dt-boton-rol-punto" />
                       <ShieldCheck size={14} />
                       {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
                       {rol.id_rol === usuario.id_rol && " · actual"}
