@@ -23,6 +23,9 @@ import {
   traerTodo,
   urlImagenProducto,
 } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -136,6 +139,66 @@ export default function InventarioVista() {
       return coincideTexto && coincideFiltro;
     });
   }, [stock, busqueda, filtro]);
+
+  const crearReporte = (): ReporteAdmin => {
+    const itemsAExportar =
+      seleccionados.length > 0
+        ? filtrados.filter((fila) => seleccionados.includes(fila.id_producto))
+        : filtrados;
+    const agotados = itemsAExportar.filter((fila) => fila.stock_total === 0).length;
+    const bajos = itemsAExportar.filter(
+      (fila) => fila.stock_total > 0 && fila.bajo_minimo
+    ).length;
+    const normales = itemsAExportar.filter(
+      (fila) => !fila.bajo_minimo && fila.stock_total > 0
+    ).length;
+
+    return {
+      modulo: "inventario",
+      titulo: "Reporte de inventario y existencias",
+      generado_por: usuario?.nombre ?? "Administrador",
+      indicadores: [
+        { etiqueta: "Productos incluidos", valor: String(itemsAExportar.length) },
+        { etiqueta: "Agotados", valor: String(agotados) },
+        { etiqueta: "Bajo mínimo", valor: String(bajos) },
+        { etiqueta: "Stock normal", valor: String(normales) },
+      ],
+      columnas: [
+        { clave: "id", titulo: "Producto" },
+        { clave: "nombre", titulo: "Nombre" },
+        { clave: "categoria", titulo: "Categoría" },
+        { clave: "talla", titulo: "Talla" },
+        { clave: "color", titulo: "Color" },
+        { clave: "stock", titulo: "Stock actual" },
+        { clave: "minimo", titulo: "Stock mínimo" },
+        { clave: "estado", titulo: "Estado" },
+      ],
+      filas: itemsAExportar.map((fila) => ({
+        id: fila.id_producto,
+        nombre: fila.nombre,
+        categoria: fila.categoria,
+        talla: fila.talla,
+        color: fila.color,
+        stock: fila.stock_total,
+        minimo: fila.stock_minimo,
+        estado: fila.stock_total === 0
+          ? "Agotado"
+          : fila.bajo_minimo
+            ? "Bajo mínimo"
+            : "Normal",
+      })),
+      grafica: contarPorCategoria(
+        itemsAExportar.map((fila) =>
+          fila.stock_total === 0
+            ? "Agotado"
+            : fila.bajo_minimo
+              ? "Bajo mínimo"
+              : "Normal"
+        ),
+        "Productos por nivel de inventario"
+      ),
+    };
+  };
 
   // Manejo de selección múltiple
   const seleccionarTodoFiltrado = () => {
@@ -420,26 +483,37 @@ export default function InventarioVista() {
             className="dt-acciones-inventario"
             style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
           >
-            <button
-              type="button"
-              className="dt-boton-secundario"
-              onClick={exportarPDF}
-              disabled={cargando || filtrados.length === 0}
-              title="Generar reporte visual en PDF"
-            >
-              <ArrowDownToLine size={15} />
-              Reporte PDF {seleccionados.length > 0 ? `(${seleccionados.length})` : ""}
-            </button>
-            <button
-              type="button"
-              className="dt-boton-secundario"
-              onClick={exportarCSV}
-              disabled={cargando || filtrados.length === 0}
-              title="Exportar datos planos a CSV"
-            >
-              <ArrowDownToLine size={15} />
-              CSV {seleccionados.length > 0 ? `(${seleccionados.length})` : ""}
-            </button>
+            {esAdministrador && vista === "stock" && (
+              <BotonesReportesAdmin
+                crearReporte={crearReporte}
+                alError={setError}
+                deshabilitado={cargando || filtrados.length === 0}
+              />
+            )}
+            {!esAdministrador && vista === "stock" && (
+              <button
+                type="button"
+                className="dt-boton-secundario"
+                onClick={exportarPDF}
+                disabled={cargando || filtrados.length === 0}
+                title="Generar reporte visual en PDF"
+              >
+                <ArrowDownToLine size={15} />
+                Reporte PDF {seleccionados.length > 0 ? `(${seleccionados.length})` : ""}
+              </button>
+            )}
+            {vista === "stock" && (
+              <button
+                type="button"
+                className="dt-boton-secundario"
+                onClick={exportarCSV}
+                disabled={cargando || filtrados.length === 0}
+                title="Exportar datos planos a CSV"
+              >
+                <ArrowDownToLine size={15} />
+                CSV {seleccionados.length > 0 ? `(${seleccionados.length})` : ""}
+              </button>
+            )}
             <button
               type="button"
               className="dt-accion-principal"

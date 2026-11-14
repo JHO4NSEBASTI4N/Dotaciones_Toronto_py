@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     inventario,
     pedido,
     producto,
+    reportes,
     rol,
     usuario,
     venta,
@@ -35,3 +36,4 @@ api_router.include_router(
     prefix="/facturas-electronicas",
     tags=["Facturacion electronica (DIAN)"],
 )
+api_router.include_router(reportes.router, prefix="/reportes", tags=["Reportes"])

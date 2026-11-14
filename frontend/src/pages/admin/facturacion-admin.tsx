@@ -17,6 +17,9 @@ import {
   X,
 } from "../../components/iconos";
 import { facturas, pesos, traerTodo } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -99,6 +102,46 @@ export default function FacturacionAdmin() {
     });
   }, [lista, busqueda, filtroEstado]);
 
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "facturacion",
+    titulo: "Reporte de facturación electrónica",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Facturas filtradas", valor: String(filtradas.length) },
+      { etiqueta: "Firmadas", valor: String(filtradas.filter((f) => f.firmado).length) },
+      { etiqueta: "Aceptadas DIAN", valor: String(filtradas.filter((f) => f.estado_dian === "ACEPTADA").length) },
+      { etiqueta: "Total facturado", valor: pesos(filtradas.reduce((suma, f) => suma + Number(f.total_factura ?? 0), 0)) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "ID" },
+      { clave: "numero", titulo: "Número" },
+      { clave: "fecha", titulo: "Emisión" },
+      { clave: "cliente", titulo: "Cliente" },
+      { clave: "nit", titulo: "NIT" },
+      { clave: "venta", titulo: "Venta" },
+      { clave: "total_cop", titulo: "Total COP" },
+      { clave: "estado_dian", titulo: "Estado DIAN" },
+      { clave: "firma", titulo: "Firma" },
+      { clave: "simulada", titulo: "Simulada" },
+    ],
+    filas: filtradas.map((factura) => ({
+      id: factura.id_factura,
+      numero: factura.numero_factura,
+      fecha: factura.fecha_emision,
+      cliente: factura.razon_social_adquirente,
+      nit: factura.nit_adquirente,
+      venta: factura.id_venta_fk,
+      total_cop: factura.total_factura ?? 0,
+      estado_dian: factura.estado_dian ?? "Sin respuesta",
+      firma: factura.firmado ? "Firmada" : "Sin firmar",
+      simulada: factura.simulado ? "Sí" : "No",
+    })),
+    grafica: contarPorCategoria(
+      filtradas.map((f) => f.estado_dian || (f.firmado ? "Firmada sin respuesta" : "Sin firmar")),
+      "Facturas por estado DIAN y firma"
+    ),
+  });
+
   const ejecutar = async (
     factura: FacturaElectronica,
     accion: "firmar" | "enviar" | "consultar" | "anular"
@@ -167,7 +210,8 @@ export default function FacturacionAdmin() {
         descripcion="Facturas generadas desde las ventas: firma, envío a la DIAN y anulación. Emisión simulada, flujo real."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "admin" } : undefined}
         accion={
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="dt-acciones-admin-encabezado">
+            <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
             <Link to="/admin/facturacion/config" className="dt-boton-secundario">
               <ShieldCheck size={14} /> Resoluciones
             </Link>

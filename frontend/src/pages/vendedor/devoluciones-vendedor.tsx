@@ -7,6 +7,9 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { ArrowLeftRight, Check, MessageSquare, Plus, RefreshCw, RotateCcw, X } from "../../components/iconos";
 
 import { devoluciones, pesos, traerTodo, ventas } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -25,7 +28,7 @@ import {
 import type { Devolucion, Venta } from "../../types";
 
 export default function DevolucionesVendedor() {
-  const { usuario } = useSesion();
+  const { usuario, esAdministrador } = useSesion();
 
   const [lista, setLista] = useState<Devolucion[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -88,6 +91,39 @@ export default function DevolucionesVendedor() {
       return coincideTexto && coincideEstado;
     });
   }, [lista, busqueda, filtroEstado]);
+
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "devoluciones",
+    titulo: "Reporte de devoluciones",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Devoluciones filtradas", valor: String(filtrados.length) },
+      { etiqueta: "Pendientes", valor: String(filtrados.filter((d) => d.estado === "Pendiente").length) },
+      { etiqueta: "Aprobadas", valor: String(filtrados.filter((d) => d.estado === "Aprobada").length) },
+      { etiqueta: "Rechazadas", valor: String(filtrados.filter((d) => d.estado === "Rechazada").length) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "Devolución" },
+      { clave: "producto", titulo: "Producto" },
+      { clave: "venta", titulo: "Venta" },
+      { clave: "fecha", titulo: "Fecha" },
+      { clave: "cantidad", titulo: "Cantidad" },
+      { clave: "valor_cop", titulo: "Valor devuelto COP" },
+      { clave: "motivo", titulo: "Motivo" },
+      { clave: "estado", titulo: "Estado" },
+    ],
+    filas: filtrados.map((d) => ({
+      id: d.id_devolucion,
+      producto: d.nombre_producto,
+      venta: d.id_venta,
+      fecha: d.fecha_devolucion,
+      cantidad: d.cantidad,
+      valor_cop: d.valor_devuelto === null ? null : Number(d.valor_devuelto),
+      motivo: d.motivo,
+      estado: d.estado,
+    })),
+    grafica: contarPorCategoria(filtrados.map((d) => d.estado), "Devoluciones por estado"),
+  });
 
   const ventaElegida = useMemo(
     () => ventasLista.find((venta) => String(venta.id_venta) === idVenta) ?? null,
@@ -170,10 +206,15 @@ export default function DevolucionesVendedor() {
         descripcion="Cambios y devoluciones de productos vendidos. Aprobar no altera el stock: solo deja constancia."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "vendedor" } : undefined}
         accion={
-          <button type="button" className="dt-accion-principal" onClick={() => void abrirRegistro()}>
-            <Plus size={15} />
-            Registrar devolución
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            {esAdministrador && (
+              <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            )}
+            <button type="button" className="dt-accion-principal" onClick={() => void abrirRegistro()}>
+              <Plus size={15} />
+              Registrar devolución
+            </button>
+          </div>
         }
       />
 
