@@ -47,7 +47,7 @@ export const MODULOS_POR_ROL: Record<number, string[]> = {
     "devoluciones", "inventario", "alertas", "facturacion", "perfil",
   ],
   2: ["dashboard", "catalogo", "carrito", "mis-pedidos", "devoluciones", "perfil"],
-  3: ["dashboard", "pedidos", "ventas", "devoluciones", "perfil"],
+  3: ["dashboard", "pedidos", "ventas", "reportes", "devoluciones", "perfil"],
   4: ["dashboard", "inventario", "alertas", "perfil"],
 };
 

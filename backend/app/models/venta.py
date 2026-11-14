@@ -26,6 +26,10 @@ class Venta(Base):
     estado: Mapped[str] = mapped_column(
         String(50), server_default=text("'Completada'"), default="Completada", nullable=False
     )
+    # Metodo de pago de la venta (Efectivo, Tarjeta, Transferencia, Nequi...).
+    # Se usa en el reporte del vendedor. Nullable: las ventas antiguas no
+    # tienen metodo registrado y aparecen como "Sin especificar".
+    metodo_pago: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     usuario: Mapped[Optional["Usuario"]] = relationship("Usuario", back_populates="ventas")
     pedido: Mapped[Optional["Pedido"]] = relationship("Pedido", back_populates="ventas")

@@ -147,8 +147,6 @@ export default function UsuariosVista() {
     try {
       if (editando) {
         await usuarios.actualizar(editando.id_usuario, {
-          nombre: formulario.nombre,
-          documento: formulario.documento || null,
           telefono: formulario.telefono || null,
           direccion: formulario.direccion || null,
         });
@@ -466,18 +464,20 @@ export default function UsuariosVista() {
 
                 <div className="dt-formulario-grid">
                   <label>
-                    Nombre completo <span>*</span>
+                    Nombre completo {editando ? "(no se puede cambiar)" : <span>*</span>}
                     <input
                       value={formulario.nombre}
+                      disabled={!!editando}
                       onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
-                      required
+                      required={!editando}
                     />
                   </label>
 
                   <label>
-                    Documento
+                    {editando ? "Documento (no se puede cambiar)" : "Documento"}
                     <input
                       value={formulario.documento}
+                      disabled={!!editando}
                       onChange={(e) => setFormulario({ ...formulario, documento: e.target.value })}
                     />
                   </label>

@@ -1,12 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 EstadoPedido = Literal['Pendiente', 'Enviado', 'Entregado', 'Cancelado']
 TRANSICIONES: dict[str, set[str]] = {'Pendiente': {'Enviado', 'Cancelado'}, 'Enviado': {'Entregado', 'Cancelado'}, 'Entregado': set(), 'Cancelado': set()}
 
 class PedidoEstadoActualizar(BaseModel):
     estado: EstadoPedido
+    # Metodos de pago registrados al entregar el pedido (genera la venta).
+    # Opcional: si no viene, la venta queda sin metodo (reportes lo muestran
+    # como "Sin especificar").
+    metodo_pago: Optional[str] = Field(default=None, max_length=50)
 
 class ItemPedidoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)

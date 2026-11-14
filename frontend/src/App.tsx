@@ -70,6 +70,7 @@ import PerfilAdmin from "./pages/admin/perfil-admin";
 // Vendedor
 import PanelVendedor from "./pages/vendedor/panel-vendedor";
 import PedidosVendedor from "./pages/vendedor/pedidos-vendedor";
+import ReportesVendedor from "./pages/vendedor/reportes-vendedor";
 import VentasVendedor from "./pages/vendedor/ventas-vendedor";
 import DevolucionesVendedor from "./pages/vendedor/devoluciones-vendedor";
 import PerfilVendedor from "./pages/vendedor/perfil-vendedor";
@@ -124,6 +125,7 @@ const MENU: Record<number, EnlaceMenu[]> = {
     { modulo: "dashboard", texto: "Mi jornada", ruta: "/vendedor/panel", Icono: LayoutDashboard },
     { modulo: "pedidos", texto: "Pedidos", ruta: "/vendedor/pedidos", Icono: ClipboardList },
     { modulo: "ventas", texto: "Ventas", ruta: "/vendedor/ventas", Icono: CreditCard },
+    { modulo: "reportes", texto: "Reportes", ruta: "/vendedor/reportes", Icono: FileText },
     { modulo: "devoluciones", texto: "Devoluciones", ruta: "/vendedor/devoluciones", Icono: ArrowLeftRight },
     { modulo: "perfil", texto: "Mi perfil", ruta: "/vendedor/perfil", Icono: UserRound },
   ],
@@ -492,6 +494,7 @@ export default function App() {
               </Route>
               <Route element={<RutaConModulo modulo="ventas" />}>
                 <Route path="/vendedor/ventas" element={<VentasVendedor />} />
+                <Route path="/vendedor/reportes" element={<ReportesVendedor />} />
               </Route>
               <Route element={<RutaConModulo modulo="devoluciones" />}>
                 <Route path="/vendedor/devoluciones" element={<DevolucionesVendedor />} />

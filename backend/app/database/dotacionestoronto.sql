@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 11-11-2026 a las 23:17:29
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Tiempo de generación: 14-11-2026 a las 22:35:14
+-- Versión del servidor: 10.11.16-MariaDB
+-- Versión de PHP: 8.5.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -47,6 +47,15 @@ CREATE TABLE `carrito` (
   `fecha_creacion` date DEFAULT NULL,
   `inhabilitado` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `carrito`
+--
+
+INSERT INTO `carrito` (`id_carrito`, `id_usuario_fk`, `fecha_creacion`, `inhabilitado`) VALUES
+(1, 14, '2026-11-13', 0),
+(2, 19, '2026-11-13', 0),
+(3, 13, '2026-11-13', 0);
 
 -- --------------------------------------------------------
 
@@ -504,11 +513,12 @@ CREATE TABLE `usuario` (
 INSERT INTO `usuario` (`id_usuario`, `nombre`, `documento`, `correo`, `telefono`, `password`, `direccion`, `estado`, `id_rol_fk`) VALUES
 (12, 'jefferson', '7666465', 'jefferson@gmail.com', '646465', '$2a$10$i3Uvwzc3hYJ25T2MxRCfS.rNEVPYBS5atDcM8xUjMaX2sj2SWqvO6', 'calle', 'Habilitado', 1),
 (13, 'jhoan', '46545454', 'jhoan@gmail.com', '65674654', '$2a$10$aLlx5NSUDEal6WbTtJsA5Opidu7PWXb3XG1Y/x4zIdnBieGIX6cou', 'calle', 'Habilitado', 1),
-(14, 'david', '655454654', 'david@gmail.com', '67654646554', '$2a$10$LE4IXHoQjA4fz3q2BT5l.OzpNOWlGv2/a.HzzonCG1W5dMdI97Oca', 'calle', 'Habilitado', 3),
+(14, 'david', '655454654', 'david@gmail.com', '676546465', '$2a$10$LE4IXHoQjA4fz3q2BT5l.OzpNOWlGv2/a.HzzonCG1W5dMdI97Oca', 'calle', 'Habilitado', 3),
 (15, 'cristian', '64664646', 'cristian@gmail.com', '6536564', '$2a$10$GPWxtHkSGLcHWJO1BOBIi.qQ3u.EXJKmS7eLm/vEyXS3sd5N3VD4S', 'calle', 'Habilitado', 4),
 (16, 'Administrador', '0000000000', 'admin@dotacionestoronto.com', '0000000000', '$2a$10$nDWHoF9PA0oflPjxkkjK6.U5YcJQ/IDHhBoEoQABnixCEhS5sthny', 'Oficina principal', 'Habilitado', 1),
 (17, 'bladimir', '10203040', 'bladimir@gmail.com', '001', '$2a$10$9Hvg9FtiJoH8tT8U9rT4Pe4Yj97OMo/I2ixgH8d6PlK3uCQN.XWVi', '1234567890', 'Habilitado', 2),
-(18, 'dylan', '4573453', 'dylan@gmail.com', '32735437435', '$2a$10$UTzzHpiJk5pwPld2TYsKaOevB4Vqqo4LUgTSF.kKfgCldGgBbL/8y', 'calle', 'Habilitado', 2);
+(18, 'dylan', '4573453', 'dylan@gmail.com', '32735437435', '$2a$10$UTzzHpiJk5pwPld2TYsKaOevB4Vqqo4LUgTSF.kKfgCldGgBbL/8y', 'calle', 'Habilitado', 2),
+(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Inhabilitado', 2);
 
 -- --------------------------------------------------------
 
@@ -552,16 +562,17 @@ CREATE TABLE `venta` (
   `id_pedido_fk` bigint(20) DEFAULT NULL,
   `fecha_venta` datetime(6) DEFAULT NULL,
   `total_pagado` double DEFAULT NULL,
-  `estado` varchar(50) NOT NULL DEFAULT 'Completada'
+  `estado` varchar(50) NOT NULL DEFAULT 'Completada',
+  `metodo_pago` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `venta`
 --
 
-INSERT INTO `venta` (`id_venta`, `id_usuario_fk`, `id_pedido_fk`, `fecha_venta`, `total_pagado`, `estado`) VALUES
-(1, 13, 7, '2026-09-16 01:49:59.000000', 120000, 'Completada'),
-(2, 13, 9, '2026-10-23 18:44:25.000000', 110000, 'Completada');
+INSERT INTO `venta` (`id_venta`, `id_usuario_fk`, `id_pedido_fk`, `fecha_venta`, `total_pagado`, `estado`, `metodo_pago`) VALUES
+(1, 13, 7, '2026-09-16 01:49:59.000000', 120000, 'Completada', NULL),
+(2, 13, 9, '2026-10-23 18:44:25.000000', 110000, 'Completada', NULL);
 
 --
 -- Índices para tablas volcadas
@@ -728,7 +739,7 @@ ALTER TABLE `alerta_stock`
 -- AUTO_INCREMENT de la tabla `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_carrito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `descuento`
@@ -824,7 +835,7 @@ ALTER TABLE `rol`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id_usuario` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id_usuario` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario_rol`

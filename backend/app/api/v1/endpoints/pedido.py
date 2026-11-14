@@ -33,7 +33,13 @@ def crear(sesion: SesionBD, usuario: UsuarioActual):
 
 @router.patch('/{id_pedido}/estado', response_model=PedidoRespuesta, dependencies=[PuedeGestionar])
 def cambiar_estado(id_pedido: int, datos: PedidoEstadoActualizar, sesion: SesionBD, usuario: UsuarioActual):
-    return servicio.cambiar_estado(sesion, id_pedido, datos.estado, usuario_responsable=usuario.nombre)
+    return servicio.cambiar_estado(
+        sesion,
+        id_pedido,
+        datos.estado,
+        usuario_responsable=usuario.nombre,
+        metodo_pago=datos.metodo_pago,
+    )
 
 @router.post('/{id_pedido}/cancelar', response_model=PedidoRespuesta)
 def cancelar(id_pedido: int, sesion: SesionBD, usuario: UsuarioActual):

@@ -140,7 +140,7 @@ a {
 
 /* Colores por rol (vendedor.css, bodeguero.css, cliente.css) */
 .dt-layout-vendedor .dt-sidebar {
-  background: linear-gradient(180deg, #1b1e2f, #11131c);
+  background: linear-gradient(180deg, #03241a, #065f46 55%, #021510);
   font-family: "Plus Jakarta Sans", "Inter", sans-serif;
 }
 
@@ -149,8 +149,7 @@ a {
 }
 
 .dt-layout-cliente .dt-sidebar {
-  background: #0f172a;
-  border-right: 1px solid rgba(250, 129, 59, 0.18);
+  background: linear-gradient(180deg, #4a1d08, #9a3412 55%, #2a0e04);
 }
 
 /* --- Marca --- */
@@ -185,7 +184,8 @@ a {
 }
 
 .dt-layout-cliente .dt-marca,
-.dt-layout-bodeguero .dt-marca {
+.dt-layout-bodeguero .dt-marca,
+.dt-layout-vendedor .dt-marca {
   color: #ffffff;
 }
 
@@ -194,6 +194,12 @@ a {
   color: #ffffff;
   background: linear-gradient(135deg, var(--orange), #ff512f);
   box-shadow: 0 6px 14px rgba(250, 129, 59, 0.32);
+}
+
+.dt-layout-vendedor .dt-marca-icono {
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.32);
 }
 
 .dt-cerrar-menu {
@@ -230,6 +236,14 @@ a {
   background: var(--gold);
   font-size: 14px;
   font-weight: 800;
+}
+
+.dt-layout-vendedor .dt-identidad-avatar {
+  background: #10b981;
+}
+
+.dt-layout-cliente .dt-identidad-avatar {
+  background: var(--orange);
 }
 
 .dt-identidad-rol div {
@@ -310,6 +324,11 @@ a {
 .dt-layout-bodeguero .dt-nav-activo {
   border-left-color: #fca5a5;
   background: rgba(255, 255, 255, 0.09);
+}
+
+.dt-layout-vendedor .dt-nav-activo {
+  border-left-color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.18);
 }
 
 /* --- Bloqueo por rol --- */

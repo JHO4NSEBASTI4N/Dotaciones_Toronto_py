@@ -91,8 +91,10 @@ def actualizar(
     sesion: SesionBD,
     usuario: UsuarioActual,
 ):
-    """Edita nombre, documento, telefono y direccion.
+    """Edita telefono y direccion.
 
+    Tanto el nombre como el documento NO se cambian por aqui: quedan iguales
+    que ya estan en el perfil.
     El estado y los roles NO se cambian por aqui: tienen sus propios endpoints.
     El correo tampoco (es con lo que se inicia sesion).
     """

@@ -75,8 +75,6 @@ export default function EditarUsuarioAdmin() {
 
     try {
       await usuarios.actualizar(cuenta.id_usuario, {
-        nombre: formulario.nombre,
-        documento: formulario.documento || null,
         telefono: formulario.telefono || null,
         direccion: formulario.direccion || null,
       });
@@ -140,20 +138,13 @@ export default function EditarUsuarioAdmin() {
             <div className="dt-formulario-contenido">
               <div className="dt-formulario-grid">
                 <label>
-                  Nombre completo <span>*</span>
-                  <input
-                    value={formulario.nombre}
-                    onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
-                    required
-                  />
+                  Nombre completo (no se puede cambiar)
+                  <input value={formulario.nombre} disabled />
                 </label>
 
                 <label>
-                  Documento
-                  <input
-                    value={formulario.documento}
-                    onChange={(e) => setFormulario({ ...formulario, documento: e.target.value })}
-                  />
+                  Documento (no se puede cambiar)
+                  <input value={formulario.documento} disabled />
                 </label>
 
                 <label>

@@ -47,6 +47,7 @@ class VentaRespuesta(BaseModel):
     id_pedido_fk: Optional[int] = None
     fecha_venta: Optional[datetime] = None
     estado: str = "Completada"
+    metodo_pago: Optional[str] = None
     items: list[DetalleVentaRespuesta]
     factura: Optional[FacturaRespuesta] = None
     total_unidades: int

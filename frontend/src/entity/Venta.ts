@@ -56,3 +56,44 @@ export interface IngresoPorMes {
   /** Cantidad de ventas completadas en el mes. */
   ventas: number;
 }
+
+/** Datos de la empresa que salen impresos en los reportes. */
+export interface Empresa {
+  razon_social: string;
+  nombre_comercial: string;
+  nit: string;
+  dv: string;
+  direccion: string;
+  ciudad: string;
+  telefono: string;
+  correo: string;
+}
+
+/** Reporte del vendedor (endpoint /ventas/reportes/vendedor). */
+export interface ReporteVendedor {
+  empresa: Empresa;
+  filtros: {
+    fecha_desde: string | null;
+    fecha_hasta: string | null;
+    estado: string | null;
+  };
+  resumen: {
+    ventas: number;
+    total_unidades: number;
+    total_ingresos: number;
+  };
+  metodos_pago: {
+    metodo: string;
+    ingreso: number;
+    ventas: number;
+  }[];
+  transacciones: {
+    id_venta: number;
+    fecha_venta: string | null;
+    estado: string;
+    total_pagado: number;
+    total_unidades: number;
+    metodo_pago: string | null;
+    cliente: string;
+  }[];
+}

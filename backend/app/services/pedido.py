@@ -276,6 +276,7 @@ def cambiar_estado(
     id_pedido: int,
     nuevo_estado: str,
     usuario_responsable: str | None = None,
+    metodo_pago: str | None = None,
 ) -> dict:
 
     repo = PedidoRepositorio(sesion)
@@ -312,7 +313,7 @@ def cambiar_estado(
                 usuario_responsable=usuario_responsable,
             )
 
-        crear_desde_pedido(sesion, pedido)
+        crear_desde_pedido(sesion, pedido, metodo_pago)
         repo.ocultar(pedido)
 
     repo.actualizar_estado(pedido, nuevo_estado)
