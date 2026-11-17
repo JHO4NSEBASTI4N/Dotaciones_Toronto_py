@@ -14,7 +14,17 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "logo.png"
+# Ubicaciones candidatas del logo, en orden de prioridad. Se usa la primera
+# que exista: primero el logo real de la empresa (logo negro.png, que ya
+# vive en frontend/src/assets/images/), luego el logo del backend y el de
+# frontend/public como respaldo.
+_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_LOGO_CANDIDATES = [
+    _ROOT / "frontend" / "src" / "assets" / "images" / "logo negro.png",
+    _ROOT / "backend" / "app" / "assets" / "logo.png",
+    _ROOT / "frontend" / "public" / "logo.png",
+]
+LOGO_PATH = next((p for p in _LOGO_CANDIDATES if p.exists()), _LOGO_CANDIDATES[0])
 
 # --- Paleta de la marca ------------------------------------------------------
 NARANJA = "FA813B"
@@ -90,13 +100,45 @@ def _datos_empresa(ws, empresa: dict, fila: int) -> int:
     from openpyxl.drawing.image import Image as XlImage
     from openpyxl.styles import Alignment, Font
 
-    # Logo (si hay archivo y Pillow disponible)
+    # Logo (si hay archivo y Pillow disponible).
+    #
+    # IMPORTANTE: el logo real (logo negro.png) es un PNG grande en modo
+    # RGBA (fondo transparente). Excel NO siempre renderiza bien ese formato
+    # cuando openpyxl lo inserta tal cual, y forzarle un tamaño fijo distorsiona
+    # la imagen. Por eso: se carga con Pillow, se pasa a RGB con fondo blanco
+    # y se redimensiona a un tamaño razonable antes de insertarla. De esta
+    # forma el logo sí aparece en Excel.
     if LOGO_PATH.exists():
         try:
-            imagen = XlImage(str(LOGO_PATH))
-            imagen.width = 58
-            imagen.height = 55
-            ws.add_image(imagen, "A1")
+            from PIL import Image as PilImage
+
+            with PilImage.open(LOGO_PATH) as pil_image:
+                # Fondo transparente -> blanco, modo RGB (lo que Excel entiende).
+                if pil_image.mode in ("RGBA", "LA"):
+                    fondo = PilImage.new(
+                        "RGB", pil_image.size, (255, 255, 255)
+                    )
+                    fondo.paste(pil_image, mask=pil_image.split()[-1])
+                    pil_image = fondo
+                elif pil_image.mode != "RGB":
+                    pil_image = pil_image.convert("RGB")
+
+                # Redimensionar al ancho deseado, manteniendo la proporcion.
+                ancho_objetivo = 90
+                if pil_image.width != ancho_objetivo:
+                    altura = max(1, round(pil_image.height * ancho_objetivo / pil_image.width))
+                    pil_image = pil_image.resize((ancho_objetivo, altura))
+
+                from io import BytesIO
+
+                buffer = BytesIO()
+                pil_image.save(buffer, format="PNG")
+                buffer.seek(0)
+
+                imagen = XlImage(buffer)
+                imagen.width = ancho_objetivo
+                imagen.height = pil_image.height
+                ws.add_image(imagen, "A1")
         except Exception:
             # Sin Pillow o archivo: se sigue sin logo, el reporte no falla.
             pass
