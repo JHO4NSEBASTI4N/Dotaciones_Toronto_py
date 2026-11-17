@@ -1,10 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-// Una sola hoja de estilos: si hubiera varias (styles/admin.css, styles/login.css...)
-// y alguna no se copia al proyecto, Vite falla con "Failed to resolve import".
-// Todo el CSS vive aquí, así que no hay forma de que falte un archivo.
-import './index.css'
+// Estilos compartidos y públicos primero; cada hoja de rol va después para
+// que sus reglas específicas tengan prioridad sobre las comunes.
+import "./assets/style/index.css";
+import "./assets/style/admin/index.css";
+import "./assets/style/cliente/index.css";
+import "./assets/style/bodeguero/index.css";
+import "./assets/style/vendedor/index.css";
 
 import App from './App.tsx'
 

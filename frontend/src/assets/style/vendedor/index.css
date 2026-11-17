@@ -1,0 +1,88 @@
+/* Estilos específicos del rol: vendedor. */
+/* Las reglas comunes viven en ../index.css. */
+
+/* =========================================================================
+   15. GRAFICA DE INGRESOS (SVG puro)
+========================================================================= */
+
+.dt-grafica {
+  padding: 20px 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+  background: var(--white);
+  box-shadow: var(--card-shadow);
+}
+
+.dt-grafica-encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dt-grafica-encabezado strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.dt-grafica-encabezado span {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.dt-grafica-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.dt-grafica-svg rect {
+  transition: fill 0.16s;
+}
+
+.dt-grafica-svg rect:hover {
+  fill: var(--orange-deep);
+}
+
+.dt-grafica {
+  display: flex;
+  flex-direction: column;
+}
+
+.dt-grafica-vacia {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 220px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.dt-layout-vendedor .dt-sidebar {
+  background:
+    radial-gradient(420px 260px at 0% 0%, rgba(226, 185, 111, 0.22), transparent 62%),
+    linear-gradient(170deg, #2a1e57 0%, #1b1740 50%, #0c0a20 100%);
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+}
+
+.dt-layout-vendedor .dt-marca {
+  color: #ffffff;
+}
+
+.dt-layout-vendedor .dt-marca-icono {
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.32);
+}
+
+.dt-layout-vendedor .dt-identidad-avatar {
+  background: #10b981;
+}
+
+.dt-layout-vendedor .dt-nav-activo {
+  border-left-color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.18);
+}

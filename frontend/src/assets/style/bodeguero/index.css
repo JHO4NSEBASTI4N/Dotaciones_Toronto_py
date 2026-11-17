@@ -1,0 +1,23 @@
+/* Estilos específicos del rol: bodeguero. */
+/* Las reglas comunes viven en ../index.css. */
+
+.dt-layout-bodeguero .dt-sidebar {
+  background:
+    radial-gradient(420px 260px at 0% 0%, rgba(248, 113, 113, 0.24), transparent 62%),
+    linear-gradient(170deg, #5b1220 0%, #3a0c17 50%, #1a0509 100%);
+}
+
+.dt-layout-bodeguero .dt-marca {
+  color: #ffffff;
+}
+
+.dt-layout-bodeguero .dt-marca-icono {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), #ff512f);
+  box-shadow: 0 6px 14px rgba(250, 129, 59, 0.32);
+}
+
+.dt-layout-bodeguero .dt-nav-activo {
+  border-left-color: #fca5a5;
+  background: rgba(255, 255, 255, 0.09);
+}
