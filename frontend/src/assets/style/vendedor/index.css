@@ -62,9 +62,7 @@
 }
 
 .dt-layout-vendedor .dt-sidebar {
-  background:
-    radial-gradient(420px 260px at 0% 0%, rgba(226, 185, 111, 0.22), transparent 62%),
-    linear-gradient(170deg, #2a1e57 0%, #1b1740 50%, #0c0a20 100%);
+  background: linear-gradient(180deg, #03241a, #065f46 55%, #021510);
   font-family: "Plus Jakarta Sans", "Inter", sans-serif;
 }
 

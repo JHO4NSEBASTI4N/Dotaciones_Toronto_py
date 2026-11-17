@@ -1,6 +1,11 @@
 /* Estilos específicos del rol: admin. */
 /* Las reglas comunes viven en ../index.css. */
 
+/* Sidebar de administración: azul original del proyecto. */
+.dt-layout-admin .dt-sidebar {
+  background: var(--sidebar-bg);
+}
+
 /* Fondo del módulo de administración. */
 .dt-layout-admin {
   background-image:
