@@ -372,8 +372,19 @@ export default function ReportesVendedor() {
           Icono={ClipboardList}
         >
           <div className="dt-formulario-contenido" style={{ padding: "10px 14px 4px" }}>
-            <div className="dt-formulario-grid">
-              <label>
+            <div
+              className="dt-formulario-grid"
+              style={{
+                // Layout de FILA (horizontal): los campos de filtro van
+                // uno al lado del otro, no en columna.
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "flex-end",
+                gap: "14px 16px",
+              }}
+            >
+              <label style={{ flex: "1 1 180px", minWidth: 160 }}>
                 Fecha desde
                 <input
                   type="date"
@@ -384,7 +395,7 @@ export default function ReportesVendedor() {
                 />
               </label>
 
-              <label>
+              <label style={{ flex: "1 1 180px", minWidth: 160 }}>
                 Fecha hasta
                 <input
                   type="date"
@@ -395,7 +406,7 @@ export default function ReportesVendedor() {
                 />
               </label>
 
-              <label>
+              <label style={{ flex: "1 1 180px", minWidth: 160 }}>
                 Estado
                 <select
                   value={filtros.estado}
@@ -407,7 +418,14 @@ export default function ReportesVendedor() {
                 </select>
               </label>
 
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: 10,
+                  marginLeft: "auto",
+                }}
+              >
                 <button
                   type="button"
                   className="dt-accion-principal"
@@ -472,7 +490,19 @@ export default function ReportesVendedor() {
             />
           </FilaIndicadores>
 
-          <div className="dt-grid-dashboard" style={{ marginTop: 18 }}>
+          <div
+            className="dt-grid-dashboard"
+            style={{
+              marginTop: 18,
+              // Layout en FILA: los paneles van uno al lado del otro
+              // (horizontal), no en columna como antes.
+              display: "flex",
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 18,
+              alignItems: "stretch",
+            }}
+          >
             {/* Metodos de pago */}
             <section className="dt-panel">
               <div className="dt-panel-encabezado">
