@@ -47,6 +47,7 @@ class VentaRespuesta(BaseModel):
     id_pedido_fk: Optional[int] = None
     fecha_venta: Optional[datetime] = None
     estado: str = "Completada"
+    metodo_pago: Optional[str] = None
     items: list[DetalleVentaRespuesta]
     factura: Optional[FacturaRespuesta] = None
     total_unidades: int
@@ -58,3 +59,15 @@ class VentaRespuesta(BaseModel):
     @classmethod
     def estado_por_defecto(cls, valor: object) -> str:
         return valor or "Completada"
+
+
+class IngresoPorMes(BaseModel):
+    """Datos para la grafica de ingresos por mes del modulo de ventas.
+
+    `periodo` es el formato "YYYY-MM". `ingreso` es la suma de
+    `total_pagado` de las ventas Completadas en ese mes.
+    """
+
+    periodo: str
+    ingreso: Decimal
+    ventas: int

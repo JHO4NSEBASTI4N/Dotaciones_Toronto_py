@@ -32,6 +32,7 @@ import type {
   Rol,
   RolCrear,
   RolesDeUsuario,
+  ReporteVendedor,
   StockPorProducto,
   TokenSalida,
   Usuario,
@@ -39,6 +40,7 @@ import type {
   UsuarioCrear,
   UsuarioDetalle,
   Venta,
+  IngresoPorMes,
 } from "../types";
 
 export const BASE_URL =
@@ -319,8 +321,11 @@ export const pedidos = {
   obtener: (id: number) => api.get<Pedido>(`/pedidos/${id}`),
   crear: (datos: { id_usuario?: number } = {}) =>
     api.post<Pedido>("/pedidos", datos),
-  cambiarEstado: (id: number, estado: string) =>
-    api.patch<Pedido>(`/pedidos/${id}/estado`, { estado }),
+  cambiarEstado: (id: number, estado: string, metodoPago?: string) =>
+    api.patch<Pedido>(`/pedidos/${id}/estado`, {
+      estado,
+      ...(metodoPago ? { metodo_pago: metodoPago } : {}),
+    }),
   cancelar: (id: number) => api.post<Pedido>(`/pedidos/${id}/cancelar`),
 };
 
@@ -335,6 +340,13 @@ export const ventas = {
   obtener: (id: number) => api.get<Venta>(`/ventas/${id}`),
   anular: (id: number) => api.post<Venta>(`/ventas/${id}/anular`),
   facturaInterna: (id: number) => api.get<unknown>(`/ventas/${id}/factura`),
+  ingresosPorMes: () =>
+    api.get<IngresoPorMes[]>(`/ventas/estadisticas/ingresos-por-mes`),
+  reporteVendedor: (filtros: {
+    fecha_desde?: string;
+    fecha_hasta?: string;
+    estado?: string;
+  } = {}) => api.get<ReporteVendedor>(`/ventas/reportes/vendedor${aQuery(filtros)}`),
 };
 
 // ---------------------------------------------------------------------------

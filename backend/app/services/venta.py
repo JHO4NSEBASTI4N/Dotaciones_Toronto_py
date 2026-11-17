@@ -13,6 +13,7 @@ Reglas de negocio implementadas aqui:
     tambien su factura. Las lineas se conservan.
 """
 
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy.orm import Session
@@ -51,11 +52,16 @@ def _obtener_o_fallar(repo: VentaRepositorio, id_venta: int) -> Venta:
 
 # --- creacion automatica desde el pedido ---------------------------------------
 
-def crear_desde_pedido(sesion: Session, pedido: Pedido) -> Venta:
+def crear_desde_pedido(
+    sesion: Session, pedido: Pedido, metodo_pago: str | None = None
+) -> Venta:
     """Genera la venta (y su factura) a partir de un pedido entregado.
 
     IDEMPOTENTE: si el pedido ya tiene venta, devuelve esa y no crea nada.
     No hace commit: lo cierra quien llama (la entrega del pedido es atomica).
+
+    `metodo_pago` es opcional: se registra en la venta para el reporte del
+    vendedor (Efectivo, Tarjeta, Transferencia...).
     """
     repo = VentaRepositorio(sesion)
 
@@ -80,6 +86,7 @@ def crear_desde_pedido(sesion: Session, pedido: Pedido) -> Venta:
         id_pedido=pedido.id_pedido,
         total_pagado=total,
         estado=ESTADO_COMPLETADA,
+        metodo_pago=metodo_pago,
     )
 
     # La venta COPIA los precios congelados del pedido: no se recalcula nada.
@@ -172,6 +179,8 @@ def listar_ventas(
     id_usuario: int | None = None,
     estado: str | None = None,
     id_pedido: int | None = None,
+    fecha_desde: datetime | None = None,
+    fecha_hasta: datetime | None = None,
 ) -> tuple[list[dict], int]:
     repo = VentaRepositorio(sesion)
     ventas = repo.listar(
@@ -180,9 +189,37 @@ def listar_ventas(
         id_usuario=id_usuario,
         estado=estado,
         id_pedido=id_pedido,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
     )
-    total = repo.contar(id_usuario=id_usuario, estado=estado, id_pedido=id_pedido)
+    total = repo.contar(
+        id_usuario=id_usuario,
+        estado=estado,
+        id_pedido=id_pedido,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+    )
     return [_armar_respuesta(sesion, v) for v in ventas], total
+
+
+def reporte_vendedor(
+    sesion: Session,
+    fecha_desde: datetime | None = None,
+    fecha_hasta: datetime | None = None,
+    estado: str | None = None,
+    id_usuario: int | None = None,
+) -> dict:
+    """Reporte del vendedor: resumen, metodos de pago e historial.
+
+    Los filtros de fecha se pasan como `datetime` (el endpoint los convierte
+    de `date`). `id_usuario` permite restringir a un cliente si se desea.
+    """
+    return VentaRepositorio(sesion).reporte_vendedor(
+        id_usuario=id_usuario,
+        estado=estado,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+    )
 
 
 def obtener_venta(sesion: Session, id_venta: int) -> dict:
@@ -233,3 +270,20 @@ def anular_venta(sesion: Session, id_venta: int) -> dict:
 def es_del_usuario(sesion: Session, id_venta: int, id_usuario: int) -> bool:
     venta = VentaRepositorio(sesion).buscar_por_id(id_venta)
     return venta is not None and venta.id_usuario_fk == id_usuario
+
+
+def ingresos_por_mes(sesion: Session) -> list[dict]:
+    """Ingresos por mes (ventas Completadas) para la grafica del modulo de ventas.
+
+    Devuelve una lista ordenada por periodo ascendente con las claves
+    periodo (YYYY-MM), ingreso (Decimal redondeado a centavos) y ventas.
+    """
+    filas = VentaRepositorio(sesion).ingresos_por_mes()
+    return [
+        {
+            "periodo": str(periodo),
+            "ingreso": _centavos(ingreso),
+            "ventas": int(ventas),
+        }
+        for periodo, ingreso, ventas in filas
+    ]

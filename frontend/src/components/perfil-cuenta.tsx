@@ -15,7 +15,7 @@ import {
   UserRound,
 } from "../components/iconos";
 import { auth, usuarios } from "../services/api";
-import { NOMBRE_ROL, useSesion } from "../context/sesion-contexto";
+import { NOMBRE_ROL, CLASE_ROL, useSesion } from "../context/sesion-contexto";
 import {
   Aviso,
   BarraListado,
@@ -63,8 +63,6 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
 
     try {
       await usuarios.actualizar(usuario.id_usuario, {
-        nombre: formulario.nombre,
-        documento: formulario.documento || null,
         telefono: formulario.telefono || null,
         direccion: formulario.direccion || null,
       });
@@ -158,20 +156,13 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
             <div className="dt-formulario-contenido">
               <div className="dt-formulario-grid">
                 <label className="dt-campo-ancho">
-                  Nombre completo <span>*</span>
-                  <input
-                    value={formulario.nombre}
-                    onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
-                    required
-                  />
+                  Nombre completo (no se puede cambiar)
+                  <input value={formulario.nombre} disabled />
                 </label>
 
                 <label>
-                  Documento
-                  <input
-                    value={formulario.documento}
-                    onChange={(e) => setFormulario({ ...formulario, documento: e.target.value })}
-                  />
+                  Documento (no se puede cambiar)
+                  <input value={formulario.documento} disabled />
                 </label>
 
                 <label>
@@ -275,10 +266,13 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
                     <button
                       key={rol.id_rol}
                       type="button"
-                      className="dt-boton-secundario"
+                      className={`dt-boton-rol dt-boton-rol-${
+                        CLASE_ROL[rol.id_rol] ?? "cliente"
+                      }`}
                       disabled={rol.id_rol === usuario.id_rol}
                       onClick={() => void cambiarRol(rol.id_rol)}
                     >
+                      <span className="dt-boton-rol-punto" />
                       <ShieldCheck size={14} />
                       {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
                       {rol.id_rol === usuario.id_rol && " · actual"}

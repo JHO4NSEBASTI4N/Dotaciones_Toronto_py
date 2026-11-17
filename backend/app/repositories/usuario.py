@@ -115,8 +115,15 @@ class UsuarioRepositorio:
         return usuario
 
     def actualizar(self, usuario: Usuario, datos: UsuarioActualizar) -> Usuario:
-        """Cambia solo los campos que llegan (los que no, quedan igual)."""
-        for campo, valor in datos.model_dump(exclude_unset=True).items():
+        """Cambia solo los campos que llegan (los que no, quedan igual).
+
+        Tanto el `nombre` como el `documento` NO se tocan nunca: aunque
+        lleven o no, quedan igual. Son datos de identificacion de la cuenta
+        y no se modifican por aqui.
+        """
+        for campo, valor in datos.model_dump(
+            exclude_unset=True, exclude={"documento", "nombre"}
+        ).items():
             setattr(usuario, campo, valor)
         self.sesion.flush()
         return usuario

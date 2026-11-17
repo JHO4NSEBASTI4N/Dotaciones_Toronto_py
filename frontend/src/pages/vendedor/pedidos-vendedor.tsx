@@ -4,9 +4,21 @@
 // Al pasar a "Entregado" el backend genera la venta y descuenta inventario.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Ban, ClipboardList, Eye, PackageCheck, RefreshCw, Truck, X } from "../../components/iconos";
+import {
+  Ban,
+  ClipboardList,
+  CreditCard,
+  Eye,
+  PackageCheck,
+  RefreshCw,
+  Truck,
+  X,
+} from "../../components/iconos";
 
 import { pedidos, pesos, traerTodo } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { contarPorCategoria } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -26,8 +38,12 @@ import type { Pedido } from "../../types";
 
 const ESTADOS = ["Pendiente", "Enviado", "Entregado", "Cancelado"];
 
+// Metodos de pago que puede registrar el vendedor al entregar un pedido
+// (se guarda en la venta y sale en el reporte).
+const METODOS_PAGO = ["Efectivo", "Tarjeta", "Transferencia", "Nequi", "DaviPlata", "Otro"];
+
 export default function PedidosVendedor() {
-  const { usuario } = useSesion();
+  const { usuario, esAdministrador } = useSesion();
 
   const [lista, setLista] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -38,6 +54,10 @@ export default function PedidosVendedor() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [detalle, setDetalle] = useState<Pedido | null>(null);
+
+  // Modal de entrega: se elige el metodo de pago al generar la venta.
+  const [entregaPedido, setEntregaPedido] = useState<Pedido | null>(null);
+  const [metodoPago, setMetodoPago] = useState(METODOS_PAGO[0]);
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -82,6 +102,39 @@ export default function PedidosVendedor() {
     });
   }, [lista, busqueda, filtroEstado]);
 
+  const crearReporte = (): ReporteAdmin => ({
+    modulo: "pedidos",
+    titulo: "Reporte de pedidos",
+    generado_por: usuario?.nombre ?? "Administrador",
+    indicadores: [
+      { etiqueta: "Pedidos filtrados", valor: String(filtrados.length) },
+      { etiqueta: "Pendientes", valor: String(filtrados.filter((pedido) => pedido.estado === "Pendiente").length) },
+      { etiqueta: "Enviados", valor: String(filtrados.filter((pedido) => pedido.estado === "Enviado").length) },
+      { etiqueta: "Entregados", valor: String(filtrados.filter((pedido) => pedido.estado === "Entregado").length) },
+    ],
+    columnas: [
+      { clave: "id", titulo: "Pedido" },
+      { clave: "cliente", titulo: "ID cliente" },
+      { clave: "fecha", titulo: "Fecha" },
+      { clave: "items", titulo: "Ítems" },
+      { clave: "unidades", titulo: "Unidades" },
+      { clave: "total_cop", titulo: "Total COP" },
+      { clave: "descuento_cop", titulo: "Descuento COP" },
+      { clave: "estado", titulo: "Estado" },
+    ],
+    filas: filtrados.map((pedido) => ({
+      id: pedido.id_pedido,
+      cliente: pedido.id_usuario_fk,
+      fecha: pedido.fecha_pedido,
+      items: pedido.items.length,
+      unidades: pedido.total_unidades,
+      total_cop: Number(pedido.total),
+      descuento_cop: Number(pedido.descuento_total),
+      estado: pedido.estado,
+    })),
+    grafica: contarPorCategoria(filtrados.map((pedido) => pedido.estado ?? "Sin estado"), "Pedidos por estado"),
+  });
+
   const cambiarEstado = async (pedido: Pedido, nuevoEstado: string) => {
     const confirmado = window.confirm(
       nuevoEstado === "Entregado"
@@ -97,8 +150,33 @@ export default function PedidosVendedor() {
       await pedidos.cambiarEstado(pedido.id_pedido, nuevoEstado);
       setMensaje(`Pedido #${pedido.id_pedido} quedó en ${nuevoEstado}.`);
       await cargarDatos();
+      } catch (fallo) {
+        setError(fallo instanceof Error ? fallo.message : "No se pudo cambiar el estado.");
+      } finally {
+        setGuardando(false);
+      }
+    };
+
+  const abrirEntrega = (pedido: Pedido) => {
+    setMetodoPago(METODOS_PAGO[0]);
+    setEntregaPedido(pedido);
+  };
+
+  const confirmarEntrega = async () => {
+    if (!entregaPedido) return;
+
+    const pedido = entregaPedido;
+    setGuardando(true);
+    setError("");
+
+    try {
+      // Al entregar se genera la venta con el metodo de pago elegido.
+      await pedidos.cambiarEstado(pedido.id_pedido, "Entregado", metodoPago);
+      setMensaje(`Pedido #${pedido.id_pedido} quedó Entregado (${metodoPago}).`);
+      setEntregaPedido(null);
+      await cargarDatos();
     } catch (fallo) {
-      setError(fallo instanceof Error ? fallo.message : "No se pudo cambiar el estado.");
+      setError(fallo instanceof Error ? fallo.message : "No se pudo entregar el pedido.");
     } finally {
       setGuardando(false);
     }
@@ -132,15 +210,20 @@ export default function PedidosVendedor() {
         descripcion="Cada pedido avanza Pendiente → Enviado → Entregado. Al entregarlo se crea la venta."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "vendedor" } : undefined}
         accion={
-          <button
-            type="button"
-            className="dt-accion-principal"
-            onClick={() => void cargarDatos()}
-            disabled={cargando}
-          >
-            <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
-            Actualizar
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            {esAdministrador && (
+              <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+            )}
+            <button
+              type="button"
+              className="dt-accion-principal"
+              onClick={() => void cargarDatos()}
+              disabled={cargando}
+            >
+              <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
+              Actualizar
+            </button>
+          </div>
         }
       />
 
@@ -264,7 +347,7 @@ export default function PedidosVendedor() {
                             className="dt-boton-icono"
                             title="Marcar como Entregado"
                             disabled={guardando}
-                            onClick={() => void cambiarEstado(pedido, "Entregado")}
+                            onClick={() => abrirEntrega(pedido)}
                           >
                             <PackageCheck size={14} />
                           </button>
@@ -364,6 +447,80 @@ export default function PedidosVendedor() {
                 onClick={() => setDetalle(null)}
               >
                 Cerrar
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {entregaPedido && (
+        <div
+          className="dt-modal-fondo"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) setEntregaPedido(null);
+          }}
+        >
+          <section className="dt-modal" role="dialog" aria-modal="true">
+            <header className="dt-modal-encabezado">
+              <span className="dt-modal-icono">
+                <CreditCard size={21} />
+              </span>
+
+              <div className="dt-modal-titulo-grupo">
+                <span className="dt-migas">Entrega</span>
+                <h2>Entregar pedido #{entregaPedido.id_pedido}</h2>
+                <p>Se genera la venta registrando el método de pago elegido.</p>
+              </div>
+
+              <button
+                type="button"
+                className="dt-boton-cerrar-modal"
+                onClick={() => setEntregaPedido(null)}
+                aria-label="Cerrar"
+              >
+                <X size={16} />
+              </button>
+            </header>
+
+            <div className="dt-formulario-contenido">
+              <label className="dt-campo-ancho">
+                Método de pago
+                <select
+                  value={metodoPago}
+                  onChange={(e) => setMetodoPago(e.target.value)}
+                  disabled={guardando}
+                >
+                  {METODOS_PAGO.map((metodo) => (
+                    <option key={metodo} value={metodo}>
+                      {metodo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: 12 }}>
+                Total del pedido: <strong style={{ color: "#0f172a" }}>{pesos(entregaPedido.total)}</strong>
+                · {entregaPedido.total_unidades} unidades
+              </p>
+            </div>
+
+            <footer className="dt-modal-acciones">
+              <button
+                type="button"
+                className="dt-boton-secundario"
+                onClick={() => setEntregaPedido(null)}
+                disabled={guardando}
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                className="dt-accion-principal"
+                onClick={() => void confirmarEntrega()}
+                disabled={guardando}
+              >
+                <PackageCheck size={15} />
+                Confirmar entrega
               </button>
             </footer>
           </section>

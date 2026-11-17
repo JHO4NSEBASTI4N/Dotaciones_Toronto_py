@@ -7,7 +7,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Boxes, ClipboardList, CreditCard, ExternalLink, Package, RefreshCw, ShieldCheck, TrendingUp, Users } from "../../components/iconos";
 
-import { pedidos, pesos } from "../../services/api";
+import { inventario, numero, pedidos, pesos, traerTodo, usuarios, ventas } from "../../services/api";
+import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { resumirVentasPorMes } from "../../services/analitica-reportes";
+import type { ReporteAdmin } from "../../services/reportes";
 import { dashboard, type ResumenDashboard } from "../../services/dashboard";
 import { useSesion } from "../../context/sesion-contexto";
 import {
@@ -76,6 +79,42 @@ export default function PanelAdministrador() {
     [resumen]
   );
 
+  const crearReporte = async (): Promise<ReporteAdmin> => {
+    const [ventasTotal, pedidosTotal, stockTotal, clientesTotal] = await Promise.all([
+      traerTodo((saltar, limite) => ventas.listar({ saltar, limite })),
+      traerTodo((saltar, limite) => pedidos.listar({ saltar, limite })),
+      traerTodo((saltar, limite) => inventario.stock(saltar, limite)),
+      traerTodo((saltar, limite) => usuarios.listar({ id_rol: 2, saltar, limite })),
+    ]);
+    const completadas = ventasTotal.items.filter((venta) => venta.estado === "Completada");
+    const ingresos = completadas.reduce((suma, venta) => suma + numero(venta.total_pagado), 0);
+    const bajoMinimo = stockTotal.items.filter((fila) => fila.bajo_minimo && !fila.inhabilitado);
+    const ingresosPorMes = resumirVentasPorMes(ventasTotal.items);
+    const filas: ReporteAdmin["filas"] = ingresosPorMes.categorias.map((periodo, indice) => ({
+      periodo,
+      ingresos_cop: ingresosPorMes.series[0]?.valores[indice] ?? 0,
+    }));
+
+    return {
+      modulo: "panel",
+      titulo: "Reporte ejecutivo general",
+      generado_por: usuario?.nombre ?? "Administrador",
+      indicadores: [
+        { etiqueta: "Ingresos cobrados", valor: pesos(ingresos) },
+        { etiqueta: "Ventas completadas", valor: String(completadas.length) },
+        { etiqueta: "Pedidos pendientes", valor: String(pedidosTotal.items.filter((pedido) => pedido.estado === "Pendiente").length) },
+        { etiqueta: "Productos bajo mínimo", valor: String(bajoMinimo.length) },
+        { etiqueta: "Clientes", valor: String(clientesTotal.total) },
+      ],
+      columnas: [
+        { clave: "periodo", titulo: "Mes" },
+        { clave: "ingresos_cop", titulo: "Ingresos por ventas completadas (COP)" },
+      ],
+      filas,
+      grafica: ingresosPorMes,
+    };
+  };
+
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
@@ -84,15 +123,18 @@ export default function PanelAdministrador() {
         descripcion="Estado del negocio: ventas, pedidos, clientes y existencias críticas."
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "admin" } : undefined}
         accion={
-          <button
-            type="button"
-            className="dt-accion-principal"
-            onClick={() => void cargarDatos()}
-            disabled={cargando}
-          >
-            <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
-            Actualizar
-          </button>
+          <div className="dt-acciones-admin-encabezado">
+            <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} />
+            <button
+              type="button"
+              className="dt-accion-principal"
+              onClick={() => void cargarDatos()}
+              disabled={cargando}
+            >
+              <RefreshCw size={15} className={cargando ? "dt-girando" : ""} />
+              Actualizar
+            </button>
+          </div>
         }
       />
 

@@ -140,7 +140,7 @@ a {
 
 /* Colores por rol (vendedor.css, bodeguero.css, cliente.css) */
 .dt-layout-vendedor .dt-sidebar {
-  background: linear-gradient(180deg, #1b1e2f, #11131c);
+  background: linear-gradient(180deg, #03241a, #065f46 55%, #021510);
   font-family: "Plus Jakarta Sans", "Inter", sans-serif;
 }
 
@@ -149,8 +149,7 @@ a {
 }
 
 .dt-layout-cliente .dt-sidebar {
-  background: #0f172a;
-  border-right: 1px solid rgba(250, 129, 59, 0.18);
+  background: linear-gradient(180deg, #4a1d08, #9a3412 55%, #2a0e04);
 }
 
 /* --- Marca --- */
@@ -185,7 +184,8 @@ a {
 }
 
 .dt-layout-cliente .dt-marca,
-.dt-layout-bodeguero .dt-marca {
+.dt-layout-bodeguero .dt-marca,
+.dt-layout-vendedor .dt-marca {
   color: #ffffff;
 }
 
@@ -194,6 +194,12 @@ a {
   color: #ffffff;
   background: linear-gradient(135deg, var(--orange), #ff512f);
   box-shadow: 0 6px 14px rgba(250, 129, 59, 0.32);
+}
+
+.dt-layout-vendedor .dt-marca-icono {
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.32);
 }
 
 .dt-cerrar-menu {
@@ -230,6 +236,14 @@ a {
   background: var(--gold);
   font-size: 14px;
   font-weight: 800;
+}
+
+.dt-layout-vendedor .dt-identidad-avatar {
+  background: #10b981;
+}
+
+.dt-layout-cliente .dt-identidad-avatar {
+  background: var(--orange);
 }
 
 .dt-identidad-rol div {
@@ -269,6 +283,12 @@ a {
   display: grid;
   gap: 2px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dt-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .dt-nav-enlace {
@@ -304,6 +324,11 @@ a {
 .dt-layout-bodeguero .dt-nav-activo {
   border-left-color: #fca5a5;
   background: rgba(255, 255, 255, 0.09);
+}
+
+.dt-layout-vendedor .dt-nav-activo {
+  border-left-color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.18);
 }
 
 /* --- Bloqueo por rol --- */
@@ -352,6 +377,160 @@ a {
 .dt-nav-bloqueado:disabled {
   opacity: 0.55;
   cursor: progress;
+}
+
+/* --- Roles disponibles (botontes de "cambiar de rol") --- */
+
+.dt-nav-roles-disponibles {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.dt-nav-roles-disponibles p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: #7c8aa5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.dt-nav-rol-disponible {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.16s, border-color 0.16s, transform 0.16s;
+}
+
+.dt-nav-rol-disponible:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateX(3px);
+}
+
+.dt-nav-rol-disponible:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+/* Punto de color por rol para distinguirlos a la primera */
+.dt-nav-rol-disponible .dt-nav-rol-disponible-punto {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.18);
+}
+
+.dt-nav-rol-disponible-admin .dt-nav-rol-disponible-punto {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(226, 185, 111, 0.2);
+}
+
+.dt-nav-rol-disponible-vendedor .dt-nav-rol-disponible-punto {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(226, 185, 111, 0.2);
+}
+
+.dt-nav-rol-disponible-bodeguero .dt-nav-rol-disponible-punto {
+  background: #fca5a5;
+  box-shadow: 0 0 0 3px rgba(252, 165, 165, 0.2);
+}
+
+.dt-nav-rol-disponible-cliente .dt-nav-rol-disponible-punto {
+  background: var(--orange);
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.2);
+}
+
+.dt-nav-rol-disponible .dt-nav-rol-disponible-arrow {
+  margin-left: auto;
+  color: #94a3b8;
+  transition: color 0.16s, transform 0.16s;
+}
+
+.dt-nav-rol-disponible:hover:not(:disabled) .dt-nav-rol-disponible-arrow {
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+.dt-error-cambio-rol {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.16);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* --- Botones de "cambiar de rol" en la pantalla de perfil --- */
+
+.dt-boton-rol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--white);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: left;
+  transition: border-color 0.16s, transform 0.16s, box-shadow 0.16s,
+    background 0.16s;
+}
+
+.dt-boton-rol:hover:not(:disabled) {
+  border-color: var(--orange);
+  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.dt-boton-rol:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dt-boton-rol .dt-boton-rol-punto {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--orange);
+}
+
+.dt-boton-rol-admin .dt-boton-rol-punto {
+  background: var(--gold);
+}
+
+.dt-boton-rol-vendedor .dt-boton-rol-punto {
+  background: var(--gold);
+}
+
+.dt-boton-rol-bodeguero .dt-boton-rol-punto {
+  background: #b91c1c;
+}
+
+.dt-boton-rol-cliente .dt-boton-rol-punto {
+  background: var(--orange);
 }
 
 /* --- Pie de la barra --- */
@@ -2495,6 +2674,66 @@ a {
 }
 
 /* =========================================================================
+   15. GRAFICA DE INGRESOS (SVG puro)
+========================================================================= */
+
+.dt-grafica {
+  padding: 20px 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radio);
+  background: var(--white);
+  box-shadow: var(--card-shadow);
+}
+
+.dt-grafica-encabezado {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dt-grafica-encabezado strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.dt-grafica-encabezado span {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.dt-grafica-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.dt-grafica-svg rect {
+  transition: fill 0.16s;
+}
+
+.dt-grafica-svg rect:hover {
+  fill: var(--orange-deep);
+}
+
+.dt-grafica {
+  display: flex;
+  flex-direction: column;
+}
+
+.dt-grafica-vacia {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 220px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+/* =========================================================================
    14. AJUSTES FINALES PARA PANTALLAS PEQUEÑAS
 ========================================================================= */
 
@@ -3296,6 +3535,7 @@ a {
   }
 }
 
+<<<<<<< HEAD
 /* =========================================================================
    20. SIDEBAR — limpieza visual
    1) Oculta la barra de scroll del menú.
@@ -3618,19 +3858,225 @@ a {
   border: 0;
   background: transparent;
   color: var(--ink);
+=======
+/* --- Catálogo cliente: tarjetas de producto al estilo Toronto --- */
+.dt-productos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+  gap: 18px;
+  padding: 4px 2px 12px;
+}
+
+.dt-producto-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #edf0f5;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(22, 33, 58, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.dt-producto-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(250, 129, 59, 0.34);
+  box-shadow: 0 17px 32px rgba(250, 129, 59, 0.15);
+}
+
+.dt-producto-card-imagen {
+  position: relative;
+  display: grid;
+  aspect-ratio: 4 / 3;
+  max-height: 205px;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f8fafc, #eef2f7);
+}
+
+.dt-producto-card-imagen > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.dt-producto-card:hover .dt-producto-card-imagen > img {
+  transform: scale(1.05);
+}
+
+.dt-producto-sin-imagen {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #aab5c5;
+}
+
+.dt-producto-categoria,
+.dt-producto-descuento {
+  position: absolute;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dt-producto-categoria {
+  left: 12px;
+  max-width: 65%;
+  overflow: hidden;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.92);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.dt-producto-descuento {
+  right: 12px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), #ff512f);
+  box-shadow: 0 5px 12px rgba(250, 129, 59, 0.25);
+}
+
+.dt-producto-card-cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.dt-producto-titulo h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-producto-titulo > span {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.dt-producto-atributos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.dt-producto-atributos > span {
+  padding: 6px 8px;
+  border: 1px solid #edf0f5;
+  border-radius: 7px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 10.5px;
+}
+
+.dt-producto-atributos strong {
+  margin-left: 3px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.dt-producto-precio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 66px;
+  margin-top: 13px;
+  padding: 10px 0;
+  border-top: 1px solid #f1f3f7;
+  color: var(--orange);
+}
+
+.dt-producto-precio > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 7px;
+}
+
+.dt-producto-precio-etiqueta {
+  flex-basis: 100%;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dt-producto-precio strong {
+  color: #1e293b;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.dt-producto-precio s {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.dt-producto-precio > svg {
+  color: var(--orange);
+}
+
+.dt-producto-compra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 9px;
+}
+
+.dt-producto-cantidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dt-producto-cantidad > span {
+  min-width: 22px;
+  color: #334155;
+>>>>>>> 9dbe79a406bcbc792c5330234dbc87e82cf4bbcc
   font-size: 13px;
   font-weight: 800;
   text-align: center;
 }
 
+<<<<<<< HEAD
 /* ---- Botón "Agregar" ---- */
 :is(.producto, .producto-card, .tarjeta-producto, .card-producto, .item-producto)
   :is(button, .btn, a)[class*="agregar"],
 :is(.btn-agregar, .boton-agregar, .agregar-carrito, .producto-agregar) {
+=======
+.dt-producto-cantidad .dt-boton-icono {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.dt-producto-agregar {
+>>>>>>> 9dbe79a406bcbc792c5330234dbc87e82cf4bbcc
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
+<<<<<<< HEAD
   width: 100%;
   height: 38px;
   margin-top: 4px;
@@ -3944,3 +4390,109 @@ a {
   }
 }
 /* ================= FIN de la seccion 23 ================= */
+=======
+  min-height: 36px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--orange), #ff512f);
+  box-shadow: 0 6px 14px rgba(250, 129, 59, 0.22);
+  font-size: 11.5px;
+  font-weight: 800;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dt-producto-agregar:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 18px rgba(250, 129, 59, 0.3);
+}
+
+.dt-producto-agregar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+  .dt-productos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+    gap: 12px;
+  }
+
+  .dt-producto-card-cuerpo {
+    padding: 13px;
+  }
+
+  .dt-producto-compra {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dt-producto-cantidad {
+    justify-content: center;
+  }
+}
+
+/* --- Descarga de reportes administrativos --- */
+.dt-acciones-admin-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dt-botones-reportes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.dt-boton-reporte {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.15px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+}
+
+.dt-boton-reporte:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(22, 33, 58, 0.16);
+}
+
+.dt-boton-reporte:disabled {
+  opacity: 0.58;
+  cursor: wait;
+}
+
+.dt-boton-reporte-excel {
+  border-color: #14804a;
+  background: linear-gradient(135deg, #16834b, #116b3c);
+}
+
+.dt-boton-reporte-pdf {
+  border-color: #b83232;
+  background: linear-gradient(135deg, #c44545, #a92e36);
+}
+
+@media (max-width: 620px) {
+  .dt-acciones-admin-encabezado {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .dt-boton-reporte {
+    flex: 1 1 72px;
+  }
+}
+>>>>>>> 9dbe79a406bcbc792c5330234dbc87e82cf4bbcc

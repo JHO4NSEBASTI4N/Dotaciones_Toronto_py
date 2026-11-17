@@ -57,7 +57,10 @@ def autenticar(sesion: Session, credenciales: LoginEntrada) -> Usuario:
     if usuario is None or not verificar_password(credenciales.password, usuario.password):
         raise NoAutorizado("Correo o contrasena incorrectos")
     if (usuario.estado or "").lower() != "habilitado":
-        raise Prohibido("El usuario esta inhabilitado")
+        raise Prohibido(
+            "Tu usuario está inhabilitado. Contacta con el administrador "
+            "para solucionarlo."
+        )
 
     return usuario
 
