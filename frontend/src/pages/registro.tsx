@@ -5,6 +5,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
   Eye,
@@ -206,154 +207,166 @@ export default function Registro() {
   if (listo) {
     return (
       <main className="registro-pagina">
-        <section className="registro-tarjeta registro-exito">
-          <span className="registro-exito-icono">
-            <Check size={26} />
-          </span>
-          <h1>Cuenta creada</h1>
-          <p>Ya puedes iniciar sesión con tu correo y contraseña.</p>
-          <Link to="/login" className="registro-boton">
-            Ir a iniciar sesión <ArrowRight size={15} />
+        <div className="registro-contenido">
+          <Link to="/" className="auth-volver-inicio">
+            <ArrowLeft size={16} />
+            Volver a la página principal
           </Link>
-        </section>
+          <section className="registro-tarjeta registro-exito">
+            <span className="registro-exito-icono">
+              <Check size={26} />
+            </span>
+            <h1>Cuenta creada</h1>
+            <p>Ya puedes iniciar sesión con tu correo y contraseña.</p>
+            <Link to="/login" className="registro-boton">
+              Ir a iniciar sesión <ArrowRight size={15} />
+            </Link>
+          </section>
+        </div>
       </main>
     );
   }
 
   return (
     <main className="registro-pagina">
-      <section className="registro-tarjeta">
-        <h1>Crear cuenta</h1>
-        <p className="registro-sub">Regístrate como cliente y empieza a pedir tus dotaciones.</p>
+      <div className="registro-contenido">
+        <Link to="/" className="auth-volver-inicio">
+          <ArrowLeft size={16} />
+          Volver a la página principal
+        </Link>
+        <section className="registro-tarjeta">
+          <h1>Crear cuenta</h1>
+          <p className="registro-sub">Regístrate como cliente y empieza a pedir tus dotaciones.</p>
 
-        <form className="registro-form" onSubmit={guardar} noValidate>
-          <Campo id="nombre" etiqueta="Nombre completo" icono={UserRound} requerido error={errores.nombre}>
-            <input
-              id="nombre"
-              name="nombre"
-              type="text"
-              placeholder="Tu nombre y apellido"
-              value={formulario.nombre}
-              onChange={(e) => cambiar("nombre", e.target.value)}
-              autoComplete="name"
-            />
-          </Campo>
-
-          <Campo id="correo" etiqueta="Correo electrónico" icono={Mail} requerido error={errores.correo}>
-            <input
-              id="correo"
-              name="correo"
-              type="email"
-              placeholder="tucorreo@empresa.com"
-              value={formulario.correo}
-              onChange={(e) => cambiar("correo", e.target.value)}
-              autoComplete="email"
-            />
-          </Campo>
-
-          <div className="registro-fila">
-            <Campo id="documento" etiqueta="Documento" icono={UserRound} error={errores.documento}>
+          <form className="registro-form" onSubmit={guardar} noValidate>
+            <Campo id="nombre" etiqueta="Nombre completo" icono={UserRound} requerido error={errores.nombre}>
               <input
-                id="documento"
-                name="documento"
+                id="nombre"
+                name="nombre"
                 type="text"
-                inputMode="numeric"
-                placeholder="Solo números"
-                value={formulario.documento}
-                onChange={(e) => cambiar("documento", e.target.value)}
+                placeholder="Tu nombre y apellido"
+                value={formulario.nombre}
+                onChange={(e) => cambiar("nombre", e.target.value)}
+                autoComplete="name"
               />
             </Campo>
 
-            <Campo id="telefono" etiqueta="Teléfono" icono={Phone} error={errores.telefono}>
+            <Campo id="correo" etiqueta="Correo electrónico" icono={Mail} requerido error={errores.correo}>
               <input
-                id="telefono"
-                name="telefono"
-                type="tel"
-                inputMode="numeric"
-                placeholder="Solo números"
-                value={formulario.telefono}
-                onChange={(e) => cambiar("telefono", e.target.value)}
-                autoComplete="tel"
+                id="correo"
+                name="correo"
+                type="email"
+                placeholder="tucorreo@empresa.com"
+                value={formulario.correo}
+                onChange={(e) => cambiar("correo", e.target.value)}
+                autoComplete="email"
               />
             </Campo>
+
+            <div className="registro-fila">
+              <Campo id="documento" etiqueta="Documento" icono={UserRound} error={errores.documento}>
+                <input
+                  id="documento"
+                  name="documento"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Solo números"
+                  value={formulario.documento}
+                  onChange={(e) => cambiar("documento", e.target.value)}
+                />
+              </Campo>
+
+              <Campo id="telefono" etiqueta="Teléfono" icono={Phone} error={errores.telefono}>
+                <input
+                  id="telefono"
+                  name="telefono"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Solo números"
+                  value={formulario.telefono}
+                  onChange={(e) => cambiar("telefono", e.target.value)}
+                  autoComplete="tel"
+                />
+              </Campo>
+            </div>
+
+            <Campo id="direccion" etiqueta="Dirección de entrega" icono={MapPin}>
+              <input
+                id="direccion"
+                name="direccion"
+                type="text"
+                placeholder="Calle, carrera, barrio"
+                value={formulario.direccion}
+                onChange={(e) => cambiar("direccion", e.target.value)}
+                autoComplete="street-address"
+              />
+            </Campo>
+
+            <div className="registro-fila">
+              <Campo id="password" etiqueta="Contraseña" icono={Lock} requerido error={errores.password}>
+                <input
+                  id="password"
+                  name="password"
+                  type={verPassword ? "text" : "password"}
+                  className="registro-con-ojo"
+                  placeholder="••••••••"
+                  value={formulario.password}
+                  onChange={(e) => cambiar("password", e.target.value)}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="registro-ojo"
+                  onClick={() => setVerPassword((anterior) => !anterior)}
+                  aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </Campo>
+
+              <Campo id="repetida" etiqueta="Repetir contraseña" icono={Lock} requerido error={errores.repetida}>
+                <input
+                  id="repetida"
+                  name="repetida"
+                  type={verPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={formulario.repetida}
+                  onChange={(e) => cambiar("repetida", e.target.value)}
+                  autoComplete="new-password"
+                />
+              </Campo>
+            </div>
+
+            <ul className="registro-requisitos">
+              {requisitos.map((requisito) => (
+                <li key={requisito.texto} className={requisito.cumple ? "ok" : ""}>
+                  {requisito.cumple ? <Check size={12} /> : <span className="registro-punto" />}
+                  {requisito.texto}
+                </li>
+              ))}
+            </ul>
+
+            {mensajeError && <p className="registro-alerta">{mensajeError}</p>}
+
+            <button type="submit" className="registro-boton" disabled={enviando}>
+              {enviando ? (
+                "Creando cuenta…"
+              ) : (
+                <>
+                  Crear cuenta <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="registro-pie">
+            <span>¿Ya tienes cuenta?</span>
+            <Link to="/login" className="registro-enlace">
+              Inicia sesión
+            </Link>
           </div>
-
-          <Campo id="direccion" etiqueta="Dirección de entrega" icono={MapPin}>
-            <input
-              id="direccion"
-              name="direccion"
-              type="text"
-              placeholder="Calle, carrera, barrio"
-              value={formulario.direccion}
-              onChange={(e) => cambiar("direccion", e.target.value)}
-              autoComplete="street-address"
-            />
-          </Campo>
-
-          <div className="registro-fila">
-            <Campo id="password" etiqueta="Contraseña" icono={Lock} requerido error={errores.password}>
-              <input
-                id="password"
-                name="password"
-                type={verPassword ? "text" : "password"}
-                className="registro-con-ojo"
-                placeholder="••••••••"
-                value={formulario.password}
-                onChange={(e) => cambiar("password", e.target.value)}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                className="registro-ojo"
-                onClick={() => setVerPassword((anterior) => !anterior)}
-                aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              >
-                {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </Campo>
-
-            <Campo id="repetida" etiqueta="Repetir contraseña" icono={Lock} requerido error={errores.repetida}>
-              <input
-                id="repetida"
-                name="repetida"
-                type={verPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={formulario.repetida}
-                onChange={(e) => cambiar("repetida", e.target.value)}
-                autoComplete="new-password"
-              />
-            </Campo>
-          </div>
-
-          <ul className="registro-requisitos">
-            {requisitos.map((requisito) => (
-              <li key={requisito.texto} className={requisito.cumple ? "ok" : ""}>
-                {requisito.cumple ? <Check size={12} /> : <span className="registro-punto" />}
-                {requisito.texto}
-              </li>
-            ))}
-          </ul>
-
-          {mensajeError && <p className="registro-alerta">{mensajeError}</p>}
-
-          <button type="submit" className="registro-boton" disabled={enviando}>
-            {enviando ? (
-              "Creando cuenta…"
-            ) : (
-              <>
-                Crear cuenta <ArrowRight size={15} />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="registro-pie">
-          <span>¿Ya tienes cuenta?</span>
-          <Link to="/login" className="registro-enlace">
-            Inicia sesión
-          </Link>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

@@ -6,7 +6,19 @@
 
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, BadgeCheck, Boxes, Check, Eye, EyeOff, Lock, Mail, Package, ShieldCheck } from "../components/iconos";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Boxes,
+  Check,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Package,
+  ShieldCheck,
+} from "../components/iconos";
 
 import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticacion";
 import { ErrorApi } from "../services/api";
@@ -131,127 +143,133 @@ export default function Login() {
 
       {/* ---------------- Formulario ---------------- */}
       <section className="login-formulario-lado">
-        <div className="login-caja">
-          {roles ? (
-            <>
-              <h2>¿Con qué rol entras?</h2>
-              <p>
-                Tu cuenta tiene varios roles asignados. Elige uno para esta
-                sesión; puedes cambiarlo después desde el menú.
-              </p>
+        <div className="login-formulario-contenido">
+          <Link to="/" className="auth-volver-inicio">
+            <ArrowLeft size={16} />
+            Volver a la página principal
+          </Link>
+          <div className="login-caja">
+            {roles ? (
+              <>
+                <h2>¿Con qué rol entras?</h2>
+                <p>
+                  Tu cuenta tiene varios roles asignados. Elige uno para esta
+                  sesión; puedes cambiarlo después desde el menú.
+                </p>
 
-              <div className="login-formulario">
-                {roles.map((rol) => {
-                  const Icono =
-                    rol.id_rol === 1
-                      ? ShieldCheck
-                      : rol.id_rol === 4
-                        ? Boxes
-                        : BadgeCheck;
+                <div className="login-formulario">
+                  {roles.map((rol) => {
+                    const Icono =
+                      rol.id_rol === 1
+                        ? ShieldCheck
+                        : rol.id_rol === 4
+                          ? Boxes
+                          : BadgeCheck;
 
-                  return (
-                    <button
-                      key={rol.id_rol}
-                      type="button"
-                      className="boton-principal"
-                      style={{ justifyContent: "flex-start" }}
-                      disabled={entrando}
-                      onClick={() => void entrarConRol(rol.id_rol)}
-                    >
-                      <Icono size={16} />
-                      Entrar como {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
-                      <ArrowRight size={15} style={{ marginLeft: "auto" }} />
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <button
+                        key={rol.id_rol}
+                        type="button"
+                        className="boton-principal"
+                        style={{ justifyContent: "flex-start" }}
+                        disabled={entrando}
+                        onClick={() => void entrarConRol(rol.id_rol)}
+                      >
+                        <Icono size={16} />
+                        Entrar como {NOMBRE_ROL[rol.id_rol] ?? rol.nombre_rol}
+                        <ArrowRight size={15} style={{ marginLeft: "auto" }} />
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {error && <p className="mensaje-error" style={{ marginTop: 14 }}>{error}</p>}
+                {error && <p className="mensaje-error" style={{ marginTop: 14 }}>{error}</p>}
 
-              <p className="login-pie">
-                <button
-                  type="button"
-                  className="dt-boton-secundario"
-                  onClick={() => {
-                    autenticacion.logout();
-                    setRoles(null);
-                  }}
-                >
-                  Volver al inicio de sesión
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
-              <h2>Iniciar sesión</h2>
-              <p>Ingresa con el correo que te registró la empresa.</p>
+                <p className="login-pie">
+                  <button
+                    type="button"
+                    className="dt-boton-secundario"
+                    onClick={() => {
+                      autenticacion.logout();
+                      setRoles(null);
+                    }}
+                  >
+                    Volver al inicio de sesión
+                  </button>
+                </p>
+              </>
+            ) : (
+              <>
+                <h2>Iniciar sesión</h2>
+                <p>Ingresa con el correo que te registró la empresa.</p>
 
-              <form className="login-formulario" onSubmit={entrar}>
-                <label className="campo">
-                  <span>Correo electrónico</span>
-                  <div className="campo-caja">
-                    <Mail size={16} />
-                    <input
-                      type="email"
-                      value={correo}
-                      onChange={(evento) => setCorreo(evento.target.value)}
-                      placeholder="tu.correo@empresa.com"
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                </label>
+                <form className="login-formulario" onSubmit={entrar}>
+                  <label className="campo">
+                    <span>Correo electrónico</span>
+                    <div className="campo-caja">
+                      <Mail size={16} />
+                      <input
+                        type="email"
+                        value={correo}
+                        onChange={(evento) => setCorreo(evento.target.value)}
+                        placeholder="tu.correo@empresa.com"
+                        autoComplete="email"
+                        required
+                      />
+                    </div>
+                  </label>
 
-                <label className="campo">
-                  <span>Contraseña</span>
-                  <div className="campo-caja">
-                    <Lock size={16} />
-                    <input
-                      type={verPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(evento) => setPassword(evento.target.value)}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="campo-ojo"
-                      onClick={() => setVerPassword((previo) => !previo)}
-                      aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </label>
+                  <label className="campo">
+                    <span>Contraseña</span>
+                    <div className="campo-caja">
+                      <Lock size={16} />
+                      <input
+                        type={verPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(evento) => setPassword(evento.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="campo-ojo"
+                        onClick={() => setVerPassword((previo) => !previo)}
+                        aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </label>
 
-                {error && (
-                  <p className="mensaje-error" role="alert">
-                    {error}
-                  </p>
-                )}
-
-                <button type="submit" className="boton-principal" disabled={entrando}>
-                  {entrando ? (
-                    <>
-                      <span className="dt-spinner" /> Validando…
-                    </>
-                  ) : (
-                    <>
-                      Entrar al sistema <ArrowRight size={16} />
-                    </>
+                  {error && (
+                    <p className="mensaje-error" role="alert">
+                      {error}
+                    </p>
                   )}
-                </button>
-              </form>
 
-              <p className="login-pie">
-                ¿No tienes cuenta?{" "}
-                <Link to="/registro" className="dt-boton-secundario">
-                  Regístrate aquí
-                </Link>
-              </p>
-            </>
-          )}
+                  <button type="submit" className="boton-principal" disabled={entrando}>
+                    {entrando ? (
+                      <>
+                        <span className="dt-spinner" /> Validando…
+                      </>
+                    ) : (
+                      <>
+                        Entrar al sistema <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <p className="login-pie">
+                  ¿No tienes cuenta?{" "}
+                  <Link to="/registro" className="dt-boton-secundario">
+                    Regístrate aquí
+                  </Link>
+                </p>
+              </>
+            )}
+          </div>
         </div>
       </section>
     </div>

@@ -1642,7 +1642,39 @@ a {
    10. LOGIN  (login.css)
 ========================================================================= */
 
+.auth-volver-inicio {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radio-sm);
+  color: var(--ink-soft);
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 0.16s, color 0.16s, background 0.16s;
+}
+
+.auth-volver-inicio:hover {
+  border-color: var(--orange);
+  color: var(--orange-deep);
+  background: var(--orange-soft);
+}
+
+.auth-volver-inicio:focus-visible {
+  outline: 3px solid rgba(250, 129, 59, 0.28);
+  outline-offset: 2px;
+}
+
 .login-pagina {
+  position: relative;
   display: grid;
   grid-template-columns: 1.05fr 1fr;
   min-height: 100vh;
@@ -1758,6 +1790,10 @@ a {
   background:
     radial-gradient(700px 400px at 85% 10%, rgba(250, 129, 59, 0.08), transparent 65%),
     var(--bg);
+}
+
+.login-formulario-contenido {
+  width: min(430px, 100%);
 }
 
 .login-caja {
@@ -1943,13 +1979,18 @@ a {
 ========================================================================= */
 
 .registro-pagina {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 100vh;
-  padding: 40px 22px;
+  padding: 76px 22px 40px;
   background:
     radial-gradient(700px 400px at 85% 10%, rgba(250, 129, 59, 0.08), transparent 65%),
     var(--bg);
+}
+
+.registro-contenido {
+  width: min(430px, 100%);
 }
 
 .registro-tarjeta {
