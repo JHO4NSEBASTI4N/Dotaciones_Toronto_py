@@ -1,4 +1,4 @@
-"""Descarga de reportes para el rol Administrador."""
+"""Descarga de reportes unificados para Administración y Bodega."""
 
 from datetime import datetime
 from io import BytesIO
@@ -8,7 +8,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
-from app.core.dependencies import ROL_ADMINISTRADOR, requiere_rol
+from app.core.dependencies import ROL_ADMINISTRADOR, ROL_BODEGUERO, requiere_rol
 from app.schemas.reportes import ReporteAdminEntrada
 from app.services.reportes import generar_reporte
 
@@ -17,8 +17,8 @@ router = APIRouter()
 
 @router.post(
     "/admin/{formato}",
-    dependencies=[Depends(requiere_rol(ROL_ADMINISTRADOR))],
-    summary="Descargar un reporte administrativo en Excel o PDF",
+    dependencies=[Depends(requiere_rol(ROL_ADMINISTRADOR, ROL_BODEGUERO))],
+    summary="Descargar un reporte ejecutivo unificado en Excel o PDF",
 )
 def descargar_reporte(
     datos: ReporteAdminEntrada,
@@ -27,7 +27,7 @@ def descargar_reporte(
     contenido, tipo_mime = generar_reporte(datos, formato)
     fecha = datetime.now().strftime("%Y%m%d_%H%M")
     extension = "xlsx" if formato == "excel" else "pdf"
-    nombre = f"reporte_{datos.modulo}_{fecha}.{extension}"
+    nombre = f"reporte_dotaciones_toronto_{datos.modulo}_{fecha}.{extension}"
     return StreamingResponse(
         BytesIO(contenido),
         media_type=tipo_mime,
