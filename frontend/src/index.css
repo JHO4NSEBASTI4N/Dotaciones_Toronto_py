@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 /* Hoja migrada. Los estilos activos viven en ./assets/style/. */
-=======
 
 @import url("https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
 
@@ -4475,4 +4473,3 @@ a {
     flex: 1 1 72px;
   }
 }
->>>>>>> 3ded407 (arreglando algo del admin)

@@ -21,6 +21,7 @@ import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
 import { contarPorCategoria } from "../../services/analitica-reportes";
 import type { ReporteAdmin } from "../../services/reportes";
 import { useSesion } from "../../context/sesion-contexto";
+import logoBlanco from "../../assets/images/logo negro.png";
 import {
   Aviso,
   BarraListado,
@@ -202,6 +203,96 @@ export default function FacturacionAdmin() {
     URL.revokeObjectURL(enlace.href);
   };
 
+  const descargarFacturaImprimible = (factura: Factura) => {
+    const total = Number(factura.total_factura ?? 0);
+    const iva = Number(factura.iva ?? 0);
+    const subtotal = Math.max(0, total - iva);
+    const ventana = window.open("", "_blank", "width=820,height=900");
+    if (!ventana) return;
+
+    ventana.document.write(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Factura ${factura.numero_factura}</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 36px; }
+    .cabecera { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; }
+    .empresa h1 { margin: 0 0 4px; font-size: 20px; }
+    .empresa p, .meta p { margin: 2px 0; font-size: 13px; color: #475569; }
+    .meta { text-align: right; }
+    .meta h2 { margin: 0 0 4px; font-size: 18px; color: #0f172a; }
+    .caja { border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 18px; }
+    .caja h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #64748b; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 10px 8px; text-align: left; }
+    th { background: #f8fafc; color: #475569; font-weight: 600; }
+    .totales { margin-top: 18px; margin-left: auto; width: 280px; font-size: 14px; }
+    .totales div { display: flex; justify-content: space-between; padding: 5px 0; }
+    .totales .total { border-top: 2px solid #0f172a; margin-top: 6px; padding-top: 8px; font-size: 16px; font-weight: 700; }
+    .pie { margin-top: 28px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 12px; word-break: break-all; }
+    @media print { body { margin: 18px; } }
+  </style>
+</head>
+<body>
+  <div class="cabecera">
+    <div class="empresa" style="display:flex;align-items:center;gap:12px;">
+      <img src="${logoBlanco}" alt="Dotaciones Toronto" style="width:48px;height:48px;object-fit:contain;border-radius:8px;flex-shrink:0;" />
+      <div>
+        <h1 style="margin:0 0 2px;font-size:20px;">${factura.razon_social_emisor ?? "DOTACIONES TORONTO S.A.S."}</h1>
+        <p style="margin:2px 0;font-size:12.5px;color:#475569;">NIT: ${factura.nit_emisor ?? "900123456-8"} · Régimen Común</p>
+        <p style="margin:2px 0;font-size:12.5px;color:#475569;">Dotaciones Empresariales e Industriales · Bogotá D.C.</p>
+      </div>
+    </div>
+    <div class="meta">
+      <h2>FACTURA DE VENTA ${factura.numero_factura}</h2>
+      <p>Fecha de emisión: ${fecha(factura.fecha_emision)}</p>
+      <p>Estado DIAN: <strong>${factura.estado_dian ?? "PENDIENTE"}</strong></p>
+    </div>
+  </div>
+
+  <div class="caja">
+    <h3>Datos del Cliente / Adquirente</h3>
+    <div class="grid">
+      <div><strong>Nombre / Razón social:</strong> ${factura.razon_social_adquirente ?? "Cliente"}</div>
+      <div><strong>NIT / Documento:</strong> ${factura.nit_adquirente ?? "—"}</div>
+      <div><strong>Venta asociada:</strong> #${factura.id_venta_fk ?? "—"}</div>
+      <div><strong>Firma digital:</strong> ${factura.firmado ? "Firmada" : "Sin firmar"}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th style="text-align:right">Valor</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Venta de dotaciones empresariales (Venta #${factura.id_venta_fk ?? "—"})</td>
+        <td style="text-align:right">${pesos(subtotal)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totales">
+    <div><span>Subtotal</span><span>${pesos(subtotal)}</span></div>
+    <div><span>IVA</span><span>${pesos(iva)}</span></div>
+    <div class="total"><span>Total a pagar</span><span>${pesos(total)}</span></div>
+  </div>
+
+  <div class="pie">
+    <p><strong>CUFE:</strong> ${factura.cufe ?? "Sin CUFE (pendiente de firma)"}</p>
+    <p><strong>Respuesta DIAN:</strong> ${factura.mensaje_dian ?? "Sin respuesta registrada"}</p>
+  </div>
+  <script>window.onload = () => { window.print(); };</script>
+</body>
+</html>`);
+    ventana.document.close();
+  };
+
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
@@ -346,10 +437,19 @@ export default function FacturacionAdmin() {
                         <button
                           type="button"
                           className="dt-boton-icono"
-                          title="Ver detalle y XML"
+                          title="Ver factura"
                           onClick={() => void abrirDetalle(factura)}
                         >
                           <Eye size={14} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="dt-boton-icono"
+                          title="Descargar / Imprimir factura"
+                          onClick={() => descargarFacturaImprimible(factura)}
+                        >
+                          <FileText size={14} />
                         </button>
 
                         {!factura.firmado && (
@@ -442,46 +542,115 @@ export default function FacturacionAdmin() {
             </header>
 
             <div className="dt-formulario-contenido">
-              <div className="dt-formulario-grid">
-                <label>
-                  Emisor
-                  <input value={detalle.razon_social_emisor ?? "—"} disabled />
-                </label>
-                <label>
-                  NIT emisor
-                  <input value={detalle.nit_emisor ?? "—"} disabled />
-                </label>
-                <label>
-                  Adquirente
-                  <input value={detalle.razon_social_adquirente ?? "—"} disabled />
-                </label>
-                <label>
-                  Total factura
-                  <input value={pesos(detalle.total_factura ?? 0)} disabled />
-                </label>
+              <div
+                style={{
+                  border: "1px solid var(--dt-borde)",
+                  borderRadius: 12,
+                  padding: 18,
+                  background: "#ffffff",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    borderBottom: "2px solid #0f172a",
+                    paddingBottom: 12,
+                    marginBottom: 14,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <img
+                      src={logoBlanco}
+                      alt="Dotaciones Toronto"
+                      style={{
+                        width: 44,
+                        height: 44,
+                        objectFit: "contain",
+                        borderRadius: 8,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div>
+                      <strong style={{ fontSize: 15.5, display: "block" }}>
+                        {detalle.razon_social_emisor ?? "DOTACIONES TORONTO S.A.S."}
+                      </strong>
+                      <span style={{ fontSize: 12, color: "#64748b" }}>
+                        NIT: {detalle.nit_emisor ?? "900123456-8"} · Dotaciones Empresariales
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <strong style={{ fontSize: 16, color: "#0f172a", display: "block" }}>
+                      {detalle.numero_factura}
+                    </strong>
+                    <span style={{ fontSize: 12.5, color: "#64748b" }}>
+                      {fecha(detalle.fecha_emision)} · {detalle.estado_dian ?? "PENDIENTE"}
+                    </span>
+                  </div>
+                </div>
 
-                <label className="dt-campo-ancho">
-                  CUFE
-                  <input value={detalle.cufe ?? "Sin CUFE (falta firmar)"} disabled />
-                </label>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: 10,
+                    fontSize: 13,
+                    marginBottom: 14,
+                  }}
+                >
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>Cliente / Adquirente</span>
+                    <strong>{detalle.razon_social_adquirente ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>NIT / Documento</span>
+                    <strong>{detalle.nit_adquirente ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>Subtotal</span>
+                    <strong>
+                      {pesos(Math.max(0, Number(detalle.total_factura ?? 0) - Number(detalle.iva ?? 0)))}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>IVA</span>
+                    <strong>{pesos(detalle.iva ?? 0)}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>Total factura</span>
+                    <strong style={{ fontSize: 15 }}>{pesos(detalle.total_factura ?? 0)}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>Firma digital</span>
+                    <strong>{detalle.firmado ? "Firmada" : "Sin firmar"}</strong>
+                  </div>
+                </div>
 
-                <label className="dt-campo-ancho">
-                  Mensaje DIAN
-                  <input value={detalle.mensaje_dian ?? "Sin respuesta todavía"} disabled />
-                </label>
+                <div style={{ fontSize: 12, color: "#475569", borderTop: "1px solid #e2e8f0", paddingTop: 10 }}>
+                  <div style={{ wordBreak: "break-all", marginBottom: 4 }}>
+                    <strong>CUFE:</strong> {detalle.cufe ?? "Sin CUFE (falta firmar)"}
+                  </div>
+                  <div>
+                    <strong>Respuesta DIAN:</strong> {detalle.mensaje_dian ?? "Sin respuesta todavía"}
+                  </div>
+                </div>
               </div>
 
               <div className="dt-formulario-seccion-titulo" style={{ marginTop: 18 }}>
                 <span>XML</span>
                 <div>
-                  <strong>Documento generado</strong>
+                  <strong>Documento técnico</strong>
                   <p>{xml ? `${xml.length} caracteres` : "No se pudo leer el XML"}</p>
                 </div>
               </div>
 
               <pre
                 style={{
-                  maxHeight: 220,
+                  maxHeight: 160,
                   overflow: "auto",
                   padding: 12,
                   borderRadius: 10,
@@ -506,11 +675,20 @@ export default function FacturacionAdmin() {
 
               <button
                 type="button"
-                className="dt-accion-principal"
+                className="dt-boton-secundario"
                 onClick={descargarXml}
                 disabled={!xml}
               >
                 Descargar XML
+              </button>
+
+              <button
+                type="button"
+                className="dt-accion-principal"
+                onClick={() => descargarFacturaImprimible(detalle)}
+              >
+                <FileText size={15} />
+                Descargar / Imprimir PDF
               </button>
             </footer>
           </section>
