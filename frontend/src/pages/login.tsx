@@ -22,8 +22,17 @@ import {
 
 import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticacion";
 import { ErrorApi } from "../services/api";
+import { hayCarritoPortadaPendiente } from "../services/carrito-portada";
 import { useSesion } from "../context/sesion-contexto";
 import type { RolDisponible } from "../types";
+
+function rutaTrasLogin(
+  idRol: number,
+  rutaPredeterminada = RUTA_POR_ROL[idRol] ?? "/login"
+): string {
+  if (idRol === 2 && hayCarritoPortadaPendiente()) return "/cliente/carrito";
+  return rutaPredeterminada;
+}
 
 export default function Login() {
   const navegar = useNavigate();
@@ -56,7 +65,8 @@ export default function Login() {
       }
 
       await establecerSesion();
-      navegar(autenticacion.rutaDeInicio(), { replace: true });
+      const idRolActivo = autenticacion.rolActual()?.id_rol ?? 0;
+      navegar(rutaTrasLogin(idRolActivo, autenticacion.rutaDeInicio()), { replace: true });
     } catch (fallo) {
       const mensaje =
         fallo instanceof ErrorApi
@@ -80,13 +90,13 @@ export default function Login() {
     try {
       await autenticacion.cambiarRol(idRol);
       await recargar();
-      navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
+      navegar(rutaTrasLogin(idRol), { replace: true });
     } catch (fallo) {
       // Si el backend responde 409 significa que ya estabamos con ese rol:
       // no es un error, el token ya sirve. Se entra directo.
       if (fallo instanceof ErrorApi && fallo.estado === 409) {
         await recargar();
-        navegar(RUTA_POR_ROL[idRol] ?? "/login", { replace: true });
+        navegar(rutaTrasLogin(idRol), { replace: true });
         return;
       }
       setError(

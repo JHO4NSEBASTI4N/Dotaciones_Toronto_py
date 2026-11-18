@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { ClipboardCheck, Minus, Plus, RefreshCw, ShoppingCart, Trash2, Truck } from "../../components/iconos";
 
 import { carrito as apiCarrito, numero, pedidos, pesos } from "../../services/api";
+import { migrarCarritoPortada } from "../../services/carrito-portada";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -33,12 +34,29 @@ export default function CarritoVista() {
   const cargarDatos = useCallback(async () => {
     setCargando(true);
     setError("");
+    let errorCarga = "";
+
+    try {
+      const cantidadTransferida = await migrarCarritoPortada();
+      if (cantidadTransferida > 0) {
+        setMensaje(
+          `${cantidadTransferida} producto(s) de tu selección de la página principal se agregaron al carrito.`
+        );
+      }
+    } catch (fallo) {
+      errorCarga =
+        fallo instanceof Error
+          ? `${fallo.message} Tu selección pendiente sigue guardada para volver a intentarlo.`
+          : "No se pudo completar la transferencia de tu selección. Sigue guardada para volver a intentarlo.";
+    }
 
     try {
       setCarro(await apiCarrito.obtener());
     } catch (fallo) {
-      setError(fallo instanceof Error ? fallo.message : "No se pudo cargar tu carrito.");
+      const errorCarrito = fallo instanceof Error ? fallo.message : "No se pudo cargar tu carrito.";
+      errorCarga = errorCarga ? `${errorCarga} ${errorCarrito}` : errorCarrito;
     } finally {
+      setError(errorCarga);
       setCargando(false);
     }
   }, []);
