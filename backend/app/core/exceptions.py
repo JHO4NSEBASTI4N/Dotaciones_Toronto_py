@@ -82,3 +82,15 @@ def registrar_manejadores(app: FastAPI) -> None:
                 "que MySQL este encendido y que DATABASE_URL sea correcta.",
             },
         )
+
+    @app.exception_handler(Exception)
+    async def manejador_error_interno(request: Request, exc: Exception):
+        """Devuelve un 500 JSON uniforme (con cabeceras CORS) ante fallos no controlados."""
+        logger.exception("Error interno no controlado")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "ErrorInterno",
+                "detalle": "Ocurrio un error interno en el servidor.",
+            },
+        )
