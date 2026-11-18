@@ -10,7 +10,7 @@
 // Los datos del usuario se piden aparte a GET /auth/yo. Se guardan las tres
 // cosas en localStorage para no repetir peticiones en cada render.
 
-import { auth } from "./api";
+import { auth, type OpcionesPeticion } from "./api";
 import type { MisRoles, RolDisponible, TokenSalida, Usuario, UsuarioDetalle } from "../types";
 
 const CLAVE_TOKEN = "token";
@@ -62,7 +62,7 @@ export const autenticacion = {
 
     // Los datos del usuario van en otra peticion.
     try {
-      const usuario = await auth.yo();
+      const usuario = await auth.yo({ redirigirEnError: false });
       localStorage.setItem(CLAVE_USUARIO, JSON.stringify(usuario));
     } catch {
       // Si falla /auth/yo no se rompe el login: la sesion ya esta guardada.
@@ -123,8 +123,8 @@ export const autenticacion = {
   },
 
   /** Los roles con los que este usuario puede entrar (boton "cambiar rol"). */
-  async misRoles(): Promise<RolDisponible[]> {
-    const datos: MisRoles = await auth.misRoles();
+  async misRoles(opciones?: OpcionesPeticion): Promise<RolDisponible[]> {
+    const datos: MisRoles = await auth.misRoles(opciones);
     return datos.roles;
   },
 

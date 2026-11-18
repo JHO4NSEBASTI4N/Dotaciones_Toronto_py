@@ -1,4 +1,4 @@
-import { BASE_URL, ErrorApi } from "./api";
+import { BASE_URL, ErrorApi, notificarPaginaError } from "./api";
 
 export type ModuloReporte =
   | "panel"
@@ -42,24 +42,41 @@ export async function descargarReporteAdmin(
   formato: "excel" | "pdf"
 ): Promise<void> {
   const token = localStorage.getItem("token");
-  const respuesta = await fetch(`${BASE_URL}/reportes/admin/${formato}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(reporte),
-  });
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE_URL}/reportes/admin/${formato}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(reporte),
+    });
+  } catch {
+    const mensajeRed =
+      "No se pudo contactar el servidor para generar el reporte.";
+    notificarPaginaError("500", mensajeRed);
+    throw new ErrorApi(mensajeRed, 0);
+  }
 
   if (!respuesta.ok) {
+    if (respuesta.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("rol_activo");
+    }
+
     let mensaje = `No se pudo generar el reporte (${respuesta.status}).`;
     try {
       const datos: unknown = await respuesta.json();
-      if (typeof datos === "object" && datos !== null && "detail" in datos) {
-        const detalle = (datos as { detail?: unknown }).detail;
-        if (typeof detalle === "string") mensaje = detalle;
-        else if (Array.isArray(detalle)) {
-          mensaje = detalle
+      if (typeof datos === "object" && datos !== null) {
+        const cuerpo = datos as { detalle?: unknown; detail?: unknown };
+        if (typeof cuerpo.detalle === "string") {
+          mensaje = cuerpo.detalle;
+        } else if (typeof cuerpo.detail === "string") {
+          mensaje = cuerpo.detail;
+        } else if (Array.isArray(cuerpo.detail)) {
+          mensaje = cuerpo.detail
             .map((item) =>
               typeof item === "object" && item !== null && "msg" in item
                 ? String((item as { msg: unknown }).msg)
@@ -72,6 +89,13 @@ export async function descargarReporteAdmin(
     } catch {
       // La respuesta de error puede no venir en JSON.
     }
+
+    if (respuesta.status >= 500) {
+      notificarPaginaError("500", mensaje);
+    } else if (respuesta.status === 403) {
+      notificarPaginaError("403", mensaje);
+    }
+
     throw new ErrorApi(mensaje, respuesta.status);
   }
 

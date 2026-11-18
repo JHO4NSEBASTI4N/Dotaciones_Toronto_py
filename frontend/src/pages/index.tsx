@@ -29,6 +29,7 @@ import {
   urlImagenProducto,
 } from "../services/api";
 import type { Descuento, Producto } from "../types";
+import imagenError500 from "./error/error-500.png";
 
 const ESTILO_BARRA: CSSProperties = {
   background: "rgba(10, 16, 28, 0.55)",
@@ -274,7 +275,10 @@ export default function Portada() {
     setErrorCatalogo("");
 
     return traerTodo((saltar, limite) =>
-      productos.listar({ saltar, limite, incluir_inhabilitados: false })
+      productos.listar(
+        { saltar, limite, incluir_inhabilitados: false },
+        { redirigirEnError: false }
+      )
     )
       .then(async (datos) => {
         const habilitados = datos.items.filter((p) => !p.inhabilitado);
@@ -283,7 +287,9 @@ export default function Portada() {
         const pares = await Promise.all(
           habilitados.map(async (p) => {
             try {
-              const desc = await descuentos.deProducto(p.id_producto);
+              const desc = await descuentos.deProducto(p.id_producto, {
+                redirigirEnError: false,
+              });
               return desc ? ([p.id_producto, desc] as const) : null;
             } catch {
               return null;
@@ -578,8 +584,12 @@ export default function Portada() {
               <span className="dt-spinner" /> Cargando productos del catálogo…
             </div>
           ) : errorCatalogo ? (
-            <div style={{ padding: "24px 16px", textAlign: "center", color: "#b91c1c", fontSize: 14 }}>
-              <p style={{ margin: "0 0 10px" }}>{errorCatalogo}</p>
+            <div className="error-bloque-imagen" role="alert">
+              <img
+                src={imagenError500}
+                alt="Error al cargar el catálogo del servidor"
+              />
+              <p>{errorCatalogo}</p>
               <button
                 type="button"
                 className="dt-boton-secundario"
