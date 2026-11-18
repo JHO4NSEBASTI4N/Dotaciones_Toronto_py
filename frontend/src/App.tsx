@@ -4,7 +4,7 @@
 // proyecto Java: /admin, /vendedor, /bodeguero, /cliente, y fuera de ellos
 // /index (portada), /login, /registro, /seleccionar-rol y /error/*.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrowserRouter,
   NavLink,
@@ -120,7 +120,6 @@ const MENU: Record<number, EnlaceMenu[]> = {
   2: [
     { modulo: "dashboard", texto: "Mi resumen", ruta: "/cliente/panel", Icono: LayoutDashboard },
     { modulo: "catalogo", texto: "Productos", ruta: "/cliente/productos", Icono: Store },
-    { modulo: "carrito", texto: "Mi carrito", ruta: "/cliente/carrito", Icono: ShoppingCart },
     { modulo: "mis-pedidos", texto: "Mis pedidos", ruta: "/cliente/pedidos", Icono: ClipboardList },
     { modulo: "devoluciones", texto: "Mis devoluciones", ruta: "/cliente/devoluciones", Icono: ArrowLeftRight },
     { modulo: "perfil", texto: "Mi perfil", ruta: "/cliente/perfil", Icono: UserRound },
@@ -276,7 +275,13 @@ function RutaPublica({ children }: { children: React.ReactNode }) {
    LAYOUT DEL PANEL
 ========================================================= */
 
-function BannerRol({ rutaActual }: { rutaActual: string }) {
+function BannerRol({
+  rutaActual,
+  alAbrirCarrito,
+}: {
+  rutaActual: string;
+  alAbrirCarrito: () => void;
+}) {
   const { usuario } = useSesion();
   if (!usuario) return null;
 
@@ -295,16 +300,31 @@ function BannerRol({ rutaActual }: { rutaActual: string }) {
 
   return (
     <div className={`dt-banner-modulo dt-banner-${clase}`}>
-      <span className="dt-banner-icono">
-        <Icono size={18} />
-      </span>
-
-      <div>
-        <strong>Estás dentro como {usuario.nombre_rol}</strong>
-        <span>
-          {DESCRIPCION_MODULO[modulo] ?? "usa el menú de la izquierda para moverte"}
+      <div className="dt-banner-contenido">
+        <span className="dt-banner-icono">
+          <Icono size={18} />
         </span>
+
+        <div>
+          <strong>Estás dentro como {usuario.nombre_rol}</strong>
+          <span>
+            {DESCRIPCION_MODULO[modulo] ?? "usa el menú de la izquierda para moverte"}
+          </span>
+        </div>
       </div>
+
+      {usuario.id_rol === 2 && (
+        <button
+          type="button"
+          className="dt-banner-carrito"
+          onClick={alAbrirCarrito}
+          aria-label="Abrir mi carrito"
+          aria-haspopup="dialog"
+        >
+          <ShoppingCart size={17} />
+          <span>Mi carrito</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -320,9 +340,41 @@ const ROL_DE_AREA: Record<string, number> = {
 function EstructuraPanel() {
   const { usuario, salir, cambiarRol } = useSesion();
   const ubicacion = useLocation();
+  const navegar = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [cambiando, setCambiando] = useState(false);
   const [errorCambioRol, setErrorCambioRol] = useState("");
+  const rutaAnterior = useRef(ubicacion.pathname);
+
+  useEffect(() => {
+    const cambioRuta = rutaAnterior.current !== ubicacion.pathname;
+    rutaAnterior.current = ubicacion.pathname;
+    const estado = ubicacion.state as { abrirCarrito?: boolean } | null;
+
+    if (usuario?.id_rol === 2 && estado?.abrirCarrito) {
+      setCarritoAbierto(true);
+      navegar(ubicacion.pathname, { replace: true, state: null });
+    } else if (cambioRuta) {
+      setCarritoAbierto(false);
+    }
+  }, [ubicacion.pathname, ubicacion.state, usuario?.id_rol, navegar]);
+
+  useEffect(() => {
+    if (!carritoAbierto) return;
+
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const cerrarConEscape = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setCarritoAbierto(false);
+    };
+    window.addEventListener("keydown", cerrarConEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      window.removeEventListener("keydown", cerrarConEscape);
+    };
+  }, [carritoAbierto]);
 
   const claseRol = CLASE_ROL[usuario?.id_rol ?? 2] ?? "cliente";
   const enlaces = MENU[usuario?.id_rol ?? 2] ?? [];
@@ -477,9 +529,37 @@ function EstructuraPanel() {
           <Menu size={18} />
         </button>
 
-        <BannerRol rutaActual={ubicacion.pathname} />
+        <BannerRol
+          rutaActual={ubicacion.pathname}
+          alAbrirCarrito={() => setCarritoAbierto(true)}
+        />
         <Outlet />
       </main>
+
+      {carritoAbierto && usuario.id_rol === 2 && (
+        <div
+          className="dt-modal-fondo dt-carrito-modal-fondo"
+          onClick={() => setCarritoAbierto(false)}
+        >
+          <div
+            className="dt-modal dt-modal-carrito"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mi carrito"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="dt-boton-cerrar-modal dt-carrito-modal-cerrar"
+              onClick={() => setCarritoAbierto(false)}
+              aria-label="Cerrar carrito"
+            >
+              <X size={17} />
+            </button>
+            <CarritoCliente />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -625,7 +705,10 @@ function RutasConManejoErrores() {
                 <Route path="/cliente/productos" element={<ProductosCliente />} />
               </Route>
               <Route element={<RutaConModulo modulo="carrito" />}>
-                <Route path="/cliente/carrito" element={<CarritoCliente />} />
+                <Route
+                  path="/cliente/carrito"
+                  element={<Navigate to="/cliente/panel" replace state={{ abrirCarrito: true }} />}
+                />
               </Route>
               <Route element={<RutaConModulo modulo="mis-pedidos" />}>
                 <Route path="/cliente/pedidos" element={<PedidosCliente />} />
