@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, ShieldCheck, UserRound } from "../../components/iconos";
-import { roles as apiRoles, usuarios } from "../../services/api";
+import { ErrorApi, roles as apiRoles, usuarios } from "../../services/api";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -37,12 +37,18 @@ export default function EditarUsuarioAdmin() {
   });
 
   const cargarDatos = useCallback(async () => {
+    const idUsuario = Number(id);
+    if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
+      navegar("/error/404", { replace: true });
+      return;
+    }
+
     setCargando(true);
     setError("");
 
     try {
       const [detalle, catalogo] = await Promise.all([
-        usuarios.obtener(Number(id)),
+        usuarios.obtener(idUsuario),
         apiRoles.listar(),
       ]);
 
@@ -56,11 +62,15 @@ export default function EditarUsuarioAdmin() {
         id_rol: String(detalle.id_rol_fk ?? 2),
       });
     } catch (fallo) {
+      if (fallo instanceof ErrorApi && fallo.estado === 404) {
+        navegar("/error/404", { replace: true });
+        return;
+      }
       setError(fallo instanceof Error ? fallo.message : "No se pudo cargar la cuenta.");
     } finally {
       setCargando(false);
     }
-  }, [id]);
+  }, [id, navegar]);
 
   useEffect(() => {
     void cargarDatos();

@@ -4,7 +4,7 @@
 // proyecto Java: /admin, /vendedor, /bodeguero, /cliente, y fuera de ellos
 // /index (portada), /login, /registro, /seleccionar-rol y /error/*.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrowserRouter,
   NavLink,
@@ -13,6 +13,7 @@ import {
   Route,
   Routes,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import {
   ArrowLeftRight,
@@ -42,6 +43,10 @@ import {
   useSesion,
 } from "./context/sesion-contexto";
 
+import { LimiteErrores } from "./components/limite-errores";
+import { EVENTO_ERROR_HTTP, type EventoPaginaError } from "./services/api";
+import { autenticacion } from "./services/autenticacion";
+
 // Pantallas fuera de los roles
 import Portada from "./pages/index";
 import Login from "./pages/login";
@@ -50,6 +55,7 @@ import SeleccionarRol from "./pages/seleccionar-rol";
 import Error403 from "./pages/error/403";
 import Error404 from "./pages/error/404";
 import Error500 from "./pages/error/500";
+import ErrorGeneral from "./pages/error/general";
 
 // Administrador
 import PanelAdmin from "./pages/admin/panel-admin";
@@ -114,7 +120,6 @@ const MENU: Record<number, EnlaceMenu[]> = {
   2: [
     { modulo: "dashboard", texto: "Mi resumen", ruta: "/cliente/panel", Icono: LayoutDashboard },
     { modulo: "catalogo", texto: "Productos", ruta: "/cliente/productos", Icono: Store },
-    { modulo: "carrito", texto: "Mi carrito", ruta: "/cliente/carrito", Icono: ShoppingCart },
     { modulo: "mis-pedidos", texto: "Mis pedidos", ruta: "/cliente/pedidos", Icono: ClipboardList },
     { modulo: "devoluciones", texto: "Mis devoluciones", ruta: "/cliente/devoluciones", Icono: ArrowLeftRight },
     { modulo: "perfil", texto: "Mi perfil", ruta: "/cliente/perfil", Icono: UserRound },
@@ -172,24 +177,88 @@ function PantallaCargando() {
   );
 }
 
+const NOMBRE_AREA: Record<string, string> = {
+  admin: "Administrador",
+  cliente: "Cliente",
+  vendedor: "Vendedor",
+  bodeguero: "Bodeguero",
+};
+
+/** Si la subruta de un área no existe: 403 si es de otro rol, 404 si es del propio. */
+function SubrutaAreaNoEncontrada({ rolEsperado }: { rolEsperado: number }) {
+  const { usuario } = useSesion();
+  if (usuario && usuario.id_rol !== rolEsperado) {
+    return <Navigate to="/error/403" replace />;
+  }
+  return <Error404 />;
+}
+
+function urlLoginDenegado(ruta: string): { to: string; avisoAcceso: string } {
+  const area = ruta.split("/")[1] ?? "";
+  const rol = NOMBRE_AREA[area];
+  const codigo = rol ? area : "panel";
+  const avisoAcceso = rol
+    ? `Debes iniciar sesión para ingresar al panel de ${rol}.`
+    : "Debes iniciar sesión para ingresar a esta sección.";
+  return {
+    to: `/login?denegado=${encodeURIComponent(codigo)}`,
+    avisoAcceso,
+  };
+}
+
 function RutaProtegida() {
-  const { usuario, cargando, cambioRolEnCurso } = useSesion();
+  const { usuario, cargando, cambioRolEnCurso, cierreSesionEnCurso } = useSesion();
+  const ubicacion = useLocation();
 
   if (cargando || cambioRolEnCurso) return <PantallaCargando />;
-  if (!usuario) return <Navigate to="/login" replace />;
+  if (!usuario) {
+    if (cierreSesionEnCurso) {
+      return <Navigate to="/login" replace />;
+    }
+    const { to, avisoAcceso } = urlLoginDenegado(ubicacion.pathname);
+    return <Navigate to={to} replace state={{ avisoAcceso }} />;
+  }
 
   return <Outlet />;
 }
 
 /** Exige que el rol activo tenga ese módulo; si no, manda a /error/403. */
 function RutaConModulo({ modulo }: { modulo: string }) {
-  const { usuario, cargando, puedeVer } = useSesion();
+  const { usuario, cargando, cierreSesionEnCurso, puedeVer } = useSesion();
+  const ubicacion = useLocation();
 
   if (cargando) return <PantallaCargando />;
-  if (!usuario) return <Navigate to="/login" replace />;
+  if (!usuario) {
+    if (cierreSesionEnCurso) {
+      return <Navigate to="/login" replace />;
+    }
+    const { to, avisoAcceso } = urlLoginDenegado(ubicacion.pathname);
+    return <Navigate to={to} replace state={{ avisoAcceso }} />;
+  }
   if (!puedeVer(modulo)) return <Navigate to="/error/403" replace />;
 
   return <Outlet />;
+}
+
+/** Protege /seleccionar-rol cuando alguien entra directo por URL sin sesión. */
+function RutaSeleccionarRol() {
+  const { usuario, cargando, cierreSesionEnCurso } = useSesion();
+
+  if (cargando) return <PantallaCargando />;
+  if (!usuario && !autenticacion.estaAutenticado()) {
+    if (cierreSesionEnCurso) {
+      return <Navigate to="/login" replace />;
+    }
+    return (
+      <Navigate
+        to="/login?denegado=rol"
+        replace
+        state={{ avisoAcceso: "Debes iniciar sesión para seleccionar un rol." }}
+      />
+    );
+  }
+
+  return <SeleccionarRol />;
 }
 
 /** Si ya hay sesión, el login y el registro no tienen sentido. */
@@ -206,7 +275,13 @@ function RutaPublica({ children }: { children: React.ReactNode }) {
    LAYOUT DEL PANEL
 ========================================================= */
 
-function BannerRol({ rutaActual }: { rutaActual: string }) {
+function BannerRol({
+  rutaActual,
+  alAbrirCarrito,
+}: {
+  rutaActual: string;
+  alAbrirCarrito: () => void;
+}) {
   const { usuario } = useSesion();
   if (!usuario) return null;
 
@@ -225,16 +300,31 @@ function BannerRol({ rutaActual }: { rutaActual: string }) {
 
   return (
     <div className={`dt-banner-modulo dt-banner-${clase}`}>
-      <span className="dt-banner-icono">
-        <Icono size={18} />
-      </span>
-
-      <div>
-        <strong>Estás dentro como {usuario.nombre_rol}</strong>
-        <span>
-          {DESCRIPCION_MODULO[modulo] ?? "usa el menú de la izquierda para moverte"}
+      <div className="dt-banner-contenido">
+        <span className="dt-banner-icono">
+          <Icono size={18} />
         </span>
+
+        <div>
+          <strong>Estás dentro como {usuario.nombre_rol}</strong>
+          <span>
+            {DESCRIPCION_MODULO[modulo] ?? "usa el menú de la izquierda para moverte"}
+          </span>
+        </div>
       </div>
+
+      {usuario.id_rol === 2 && (
+        <button
+          type="button"
+          className="dt-banner-carrito"
+          onClick={alAbrirCarrito}
+          aria-label="Abrir mi carrito"
+          aria-haspopup="dialog"
+        >
+          <ShoppingCart size={17} />
+          <span>Mi carrito</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -250,9 +340,41 @@ const ROL_DE_AREA: Record<string, number> = {
 function EstructuraPanel() {
   const { usuario, salir, cambiarRol } = useSesion();
   const ubicacion = useLocation();
+  const navegar = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [cambiando, setCambiando] = useState(false);
   const [errorCambioRol, setErrorCambioRol] = useState("");
+  const rutaAnterior = useRef(ubicacion.pathname);
+
+  useEffect(() => {
+    const cambioRuta = rutaAnterior.current !== ubicacion.pathname;
+    rutaAnterior.current = ubicacion.pathname;
+    const estado = ubicacion.state as { abrirCarrito?: boolean } | null;
+
+    if (usuario?.id_rol === 2 && estado?.abrirCarrito) {
+      setCarritoAbierto(true);
+      navegar(ubicacion.pathname, { replace: true, state: null });
+    } else if (cambioRuta) {
+      setCarritoAbierto(false);
+    }
+  }, [ubicacion.pathname, ubicacion.state, usuario?.id_rol, navegar]);
+
+  useEffect(() => {
+    if (!carritoAbierto) return;
+
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const cerrarConEscape = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setCarritoAbierto(false);
+    };
+    window.addEventListener("keydown", cerrarConEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      window.removeEventListener("keydown", cerrarConEscape);
+    };
+  }, [carritoAbierto]);
 
   const claseRol = CLASE_ROL[usuario?.id_rol ?? 2] ?? "cliente";
   const enlaces = MENU[usuario?.id_rol ?? 2] ?? [];
@@ -407,9 +529,37 @@ function EstructuraPanel() {
           <Menu size={18} />
         </button>
 
-        <BannerRol rutaActual={ubicacion.pathname} />
+        <BannerRol
+          rutaActual={ubicacion.pathname}
+          alAbrirCarrito={() => setCarritoAbierto(true)}
+        />
         <Outlet />
       </main>
+
+      {carritoAbierto && usuario.id_rol === 2 && (
+        <div
+          className="dt-modal-fondo dt-carrito-modal-fondo"
+          onClick={() => setCarritoAbierto(false)}
+        >
+          <div
+            className="dt-modal dt-modal-carrito"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mi carrito"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="dt-boton-cerrar-modal dt-carrito-modal-cerrar"
+              onClick={() => setCarritoAbierto(false)}
+              aria-label="Cerrar carrito"
+            >
+              <X size={17} />
+            </button>
+            <CarritoCliente />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -418,37 +568,69 @@ function EstructuraPanel() {
    RUTAS
 ========================================================= */
 
-export default function App() {
+/** Escucha errores HTTP/red (403, 404, 5xx) y lleva a su pantalla con imagen. */
+function RutasConManejoErrores() {
+  const navegar = useNavigate();
+  const ubicacion = useLocation();
+
+  useEffect(() => {
+    const manejarError = (evento: Event) => {
+      const detalle = (evento as CustomEvent<EventoPaginaError>).detail;
+      if (!detalle?.codigo) return;
+
+      const destino = `/error/${detalle.codigo}`;
+      if (window.location.pathname === destino) return;
+
+      navegar(destino, {
+        replace: true,
+        state: {
+          origen: detalle.origen,
+          mensaje: detalle.mensaje,
+        },
+      });
+    };
+
+    window.addEventListener(EVENTO_ERROR_HTTP, manejarError);
+    return () => window.removeEventListener(EVENTO_ERROR_HTTP, manejarError);
+  }, [navegar]);
+
   return (
-    <BrowserRouter>
-      <ProveedorSesion>
-        <Routes>
-          {/* ---------- Públicas ---------- */}
-          <Route path="/" element={<Portada />} />
-          <Route path="/index" element={<Portada />} />
-          <Route
-            path="/login"
-            element={
-              <RutaPublica>
-                <Login />
-              </RutaPublica>
-            }
-          />
-          <Route
-            path="/registro"
-            element={
-              <RutaPublica>
-                <Registro />
-              </RutaPublica>
-            }
-          />
-          <Route path="/seleccionar-rol" element={<SeleccionarRol />} />
-          <Route path="/error/403" element={<Error403 />} />
-          <Route path="/error/500" element={<Error500 />} />
+    <LimiteErrores key={ubicacion.pathname}>
+      <Routes>
+        {/* ---------- Públicas ---------- */}
+        <Route path="/" element={<Portada />} />
+        <Route path="/index" element={<Portada />} />
+        <Route
+          path="/login"
+          element={
+            <RutaPublica>
+              <Login />
+            </RutaPublica>
+          }
+        />
+        <Route
+          path="/registro"
+          element={
+            <RutaPublica>
+              <Registro />
+            </RutaPublica>
+          }
+        />
+        <Route path="/seleccionar-rol" element={<RutaSeleccionarRol />} />
+        <Route path="/error/403" element={<Error403 />} />
+        <Route path="/error/404" element={<Error404 />} />
+        <Route path="/error/500" element={<Error500 />} />
+        <Route path="/error/general" element={<ErrorGeneral />} />
 
           {/* ---------- Panel (requiere sesión) ---------- */}
           <Route element={<RutaProtegida />}>
             <Route element={<EstructuraPanel />}>
+              {/* Atajos raíz por área */}
+              <Route path="/admin" element={<Navigate to="/admin/panel" replace />} />
+              <Route path="/vendedor" element={<Navigate to="/vendedor/panel" replace />} />
+              <Route path="/bodeguero" element={<Navigate to="/bodeguero/panel" replace />} />
+              <Route path="/cliente" element={<Navigate to="/cliente/panel" replace />} />
+
               {/* Administrador */}
               <Route element={<RutaConModulo modulo="dashboard" />}>
                 <Route path="/admin/panel" element={<PanelAdmin />} />
@@ -523,7 +705,10 @@ export default function App() {
                 <Route path="/cliente/productos" element={<ProductosCliente />} />
               </Route>
               <Route element={<RutaConModulo modulo="carrito" />}>
-                <Route path="/cliente/carrito" element={<CarritoCliente />} />
+                <Route
+                  path="/cliente/carrito"
+                  element={<Navigate to="/cliente/panel" replace state={{ abrirCarrito: true }} />}
+                />
               </Route>
               <Route element={<RutaConModulo modulo="mis-pedidos" />}>
                 <Route path="/cliente/pedidos" element={<PedidosCliente />} />
@@ -535,11 +720,26 @@ export default function App() {
                 <Route path="/cliente/perfil" element={<PerfilCliente />} />
               </Route>
             </Route>
+
+            {/* Cualquier otra subruta de un rol exige sesión primero */}
+            <Route path="/admin/*" element={<SubrutaAreaNoEncontrada rolEsperado={1} />} />
+            <Route path="/cliente/*" element={<SubrutaAreaNoEncontrada rolEsperado={2} />} />
+            <Route path="/vendedor/*" element={<SubrutaAreaNoEncontrada rolEsperado={3} />} />
+            <Route path="/bodeguero/*" element={<SubrutaAreaNoEncontrada rolEsperado={4} />} />
           </Route>
 
           {/* ---------- Sin ruta ---------- */}
           <Route path="*" element={<Error404 />} />
-        </Routes>
+      </Routes>
+    </LimiteErrores>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ProveedorSesion>
+        <RutasConManejoErrores />
       </ProveedorSesion>
     </BrowserRouter>
   );

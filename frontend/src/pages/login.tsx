@@ -4,9 +4,10 @@
 // la derecha (se apila en celular). Si el usuario tiene varios roles, después
 // de autenticarse elige con cuál trabajar.
 
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
@@ -34,21 +35,90 @@ function rutaTrasLogin(
   return rutaPredeterminada;
 }
 
+interface EstadoRutaLogin {
+  avisoAcceso?: string;
+}
+
+const DURACION_AVISO_ACCESO_MS = 5000;
+
+const MENSAJE_POR_CODIGO: Record<string, string> = {
+  admin: "Debes iniciar sesión para ingresar al panel de Administrador.",
+  cliente: "Debes iniciar sesión para ingresar al panel de Cliente.",
+  vendedor: "Debes iniciar sesión para ingresar al panel de Vendedor.",
+  bodeguero: "Debes iniciar sesión para ingresar al panel de Bodeguero.",
+  rol: "Debes iniciar sesión para seleccionar un rol.",
+  panel: "Debes iniciar sesión para ingresar a esta sección.",
+};
+
+function obtenerAvisoDesdeRuta(
+  estado: EstadoRutaLogin | null,
+  search: string
+): string {
+  if (estado?.avisoAcceso) return estado.avisoAcceso;
+  const codigo = new URLSearchParams(search).get("denegado");
+  if (!codigo) return "";
+  return MENSAJE_POR_CODIGO[codigo] ?? MENSAJE_POR_CODIGO.panel;
+}
+
 export default function Login() {
   const navegar = useNavigate();
+  const ubicacion = useLocation();
   const { establecerSesion, recargar } = useSesion();
+
+  const mensajeInicial = obtenerAvisoDesdeRuta(
+    (ubicacion.state as EstadoRutaLogin | null) ?? null,
+    ubicacion.search
+  );
 
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [verPassword, setVerPassword] = useState(false);
   const [entrando, setEntrando] = useState(false);
   const [error, setError] = useState("");
+  const [avisoAcceso, setAvisoAcceso] = useState<string>(mensajeInicial);
+  const [claveRutaVista, setClaveRutaVista] = useState(ubicacion.key);
   const [roles, setRoles] = useState<RolDisponible[] | null>(null);
+
+  // Si se vuelve a redirigir a /login desde otra ruta protegida, reactiva el aviso.
+  if (ubicacion.key !== claveRutaVista) {
+    setClaveRutaVista(ubicacion.key);
+    if (mensajeInicial) {
+      setAvisoAcceso(mensajeInicial);
+    }
+  }
+
+  // Oculta automáticamente el aviso de "Acceso denegado" a los 5 segundos y
+  // limpia la URL/historial para que no reaparezca al recargar la página (F5).
+  useEffect(() => {
+    if (!avisoAcceso) return;
+
+    const parametros = new URLSearchParams(window.location.search);
+    const teniaDenegado = parametros.has("denegado");
+    const teniaEstado = Boolean(window.history.state?.usr?.avisoAcceso);
+
+    if (teniaDenegado || teniaEstado) {
+      parametros.delete("denegado");
+      const nuevaQuery = parametros.toString();
+      const nuevaUrl = `${window.location.pathname}${nuevaQuery ? `?${nuevaQuery}` : ""}${window.location.hash}`;
+      window.history.replaceState(
+        { ...(window.history.state ?? {}), usr: null },
+        "",
+        nuevaUrl
+      );
+    }
+
+    const temporizador = window.setTimeout(() => {
+      setAvisoAcceso("");
+    }, DURACION_AVISO_ACCESO_MS);
+
+    return () => window.clearTimeout(temporizador);
+  }, [avisoAcceso, claveRutaVista]);
 
   /** Entra con el correo y contraseña escritos. */
   const entrar = async (evento: FormEvent) => {
     evento.preventDefault();
     setError("");
+    setAvisoAcceso("");
     setEntrando(true);
 
     try {
@@ -210,6 +280,37 @@ export default function Login() {
               </>
             ) : (
               <>
+                {avisoAcceso && (
+                  <div
+                    className="mensaje-error aviso-acceso-denegado"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <span
+                      className="aviso-acceso-denegado-icono"
+                      aria-hidden="true"
+                    >
+                      <AlertTriangle size={18} />
+                    </span>
+                    <div className="aviso-acceso-denegado-texto">
+                      <strong>Acceso denegado</strong>
+                      <span>{avisoAcceso}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="aviso-acceso-denegado-cerrar"
+                      onClick={() => setAvisoAcceso("")}
+                      aria-label="Cerrar aviso"
+                    >
+                      ×
+                    </button>
+                    <span
+                      className="aviso-acceso-denegado-barra"
+                      aria-hidden="true"
+                    />
+                  </div>
+                )}
+
                 <h2>Iniciar sesión</h2>
                 <p>Ingresa con el correo que te registró la empresa.</p>
 

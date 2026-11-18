@@ -16,7 +16,7 @@ import {
 
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { auth } from "../services/api";
+import { auth, ErrorApi } from "../services/api";
 import { autenticacion, RUTA_POR_ROL } from "../services/autenticacion";
 import type { RolDisponible, UsuarioDetalle } from "../types";
 
@@ -69,17 +69,24 @@ interface ValorSesion {
   usuario: UsuarioSesion | null;
   cargando: boolean;
   cambioRolEnCurso: boolean;
+  cierreSesionEnCurso: boolean;
   error: string;
   esAdministrador: boolean;
   rolActivo: number;
   puedeVer: (modulo: string) => boolean;
-  recargar: () => Promise<void>;
+  recargar: () => Promise<boolean>;
   establecerSesion: () => Promise<void>;
   cambiarRol: (idRol: number) => Promise<void>;
   salir: () => void;
 }
 
 const ContextoSesion = createContext<ValorSesion | null>(null);
+
+function esRutaDePanel(ruta: string): boolean {
+  return /^\/(admin|cliente|vendedor|bodeguero|seleccionar-rol)(\/|$)/.test(
+    ruta
+  );
+}
 
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const navegar = useNavigate();
@@ -88,6 +95,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [cargando, setCargando] = useState(true);
   const [rutaRolPendiente, setRutaRolPendiente] = useState<string | null>(null);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [error, setError] = useState("");
 
   // La guarda ve primero el estado de transición y muestra carga. Solo
@@ -104,21 +112,38 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     setRutaRolPendiente(null);
   }, [rutaRolPendiente, ubicacion.pathname, navegar]);
 
+  // Libera la marca de cierre voluntario al llegar a /login para no mostrar
+  // el aviso de "Acceso denegado" cuando el propio usuario cerró su sesión.
+  useEffect(() => {
+    if (cerrandoSesion && ubicacion.pathname === "/login") {
+      setCerrandoSesion(false);
+    }
+  }, [cerrandoSesion, ubicacion.pathname]);
+
   /** Pide /auth/yo + /auth/mis-roles y arma el objeto de sesión. */
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (): Promise<boolean> => {
     if (!autenticacion.estaAutenticado()) {
       setUsuario(null);
       setCargando(false);
-      return;
+      return true;
     }
 
     setCargando(true);
     setError("");
 
+    // Solo redirigimos automáticamente a /error/* si estamos validando una
+    // ruta protegida del panel; así entrar a /, /login o a una ruta 404 con
+    // el backend apagado no sobreescribe la pantalla actual.
+    const rutaActual =
+      typeof window !== "undefined" ? window.location.pathname : "/";
+    const redirigirEnError = esRutaDePanel(rutaActual);
+
     try {
       const [detalle, roles] = await Promise.all([
-        auth.yo() as Promise<UsuarioDetalle & { id_rol_fk?: number }>,
-        autenticacion.misRoles(),
+        auth.yo({ redirigirEnError }) as Promise<
+          UsuarioDetalle & { id_rol_fk?: number }
+        >,
+        autenticacion.misRoles({ redirigirEnError }),
       ]);
 
       const rolGuardado = autenticacion.rolActual();
@@ -137,10 +162,25 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
           rolGuardado?.nombre_rol ?? NOMBRE_ROL[idRol] ?? "Sin rol",
         roles,
       });
-    } catch {
+      return true;
+    } catch (fallo) {
+      const falloServidorORed =
+        !(fallo instanceof ErrorApi) ||
+        fallo.estado === 0 ||
+        fallo.estado >= 500;
+
+      if (falloServidorORed) {
+        // Conservamos el token para que al volver a encender el servidor el
+        // botón "Reintentar" recupere la sesión sin obligar a iniciar sesión.
+        setUsuario(null);
+        setError("No se pudo conectar con el servidor.");
+        return false;
+      }
+
       autenticacion.logout();
       setUsuario(null);
       setError("Tu sesión expiró. Inicia sesión nuevamente.");
+      return true;
     } finally {
       setCargando(false);
     }
@@ -182,6 +222,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   );
 
   const salir = useCallback(() => {
+    setCerrandoSesion(true);
     autenticacion.logout();
     setUsuario(null);
     navegar("/login", { replace: true });
@@ -194,6 +235,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       usuario,
       cargando,
       cambioRolEnCurso: rutaRolPendiente !== null,
+      cierreSesionEnCurso: cerrandoSesion,
       error,
       rolActivo,
       esAdministrador: rolActivo === ROL_ADMIN,
@@ -204,7 +246,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       cambiarRol,
       salir,
     };
-  }, [usuario, cargando, rutaRolPendiente, error, cargar, establecerSesion, cambiarRol, salir]);
+  }, [usuario, cargando, rutaRolPendiente, cerrandoSesion, error, cargar, establecerSesion, cambiarRol, salir]);
 
   return (
     <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>

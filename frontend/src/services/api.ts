@@ -74,34 +74,93 @@ export class ErrorApi extends Error {
   }
 }
 
+export type CodigoPaginaError = "403" | "404" | "500" | "general";
+
+export interface EventoPaginaError {
+  codigo: CodigoPaginaError;
+  origen: string;
+  mensaje?: string;
+}
+
+export interface OpcionesPeticion {
+  /** Si es false, no redirige automáticamente a /error/* ante fallos HTTP o de red. */
+  redirigirEnError?: boolean;
+}
+
+export const EVENTO_ERROR_HTTP = "dt:pagina-error";
+
+/** Dispara la navegación hacia la pantalla de error con su imagen correspondiente. */
+export function notificarPaginaError(
+  codigo: CodigoPaginaError,
+  mensaje?: string
+): void {
+  if (typeof window === "undefined") return;
+  const rutaActual = window.location.pathname;
+  if (rutaActual.startsWith("/error/")) return;
+
+  window.dispatchEvent(
+    new CustomEvent<EventoPaginaError>(EVENTO_ERROR_HTTP, {
+      detail: {
+        codigo,
+        origen: `${rutaActual}${window.location.search}`,
+        mensaje,
+      },
+    })
+  );
+}
+
+function esReglaNegocioEn403(endpoint: string): boolean {
+  // En /auth/login un 403 informa cuenta inhabilitada o sin rol asignado;
+  // en /pedidos/{id}/cancelar indica que el pedido ya no está en Pendiente.
+  return (
+    endpoint.startsWith("/auth/login") || /^\/pedidos\/\d+\/cancelar$/.test(endpoint)
+  );
+}
+
 // ---------- Cliente base ----------
 
 async function peticion<T>(
   endpoint: string,
   metodo: Metodo = "GET",
-  cuerpo?: unknown
+  cuerpo?: unknown,
+  opciones: OpcionesPeticion = {}
 ): Promise<T> {
+  const redirigir = opciones.redirigirEnError !== false;
   const token = localStorage.getItem("token");
 
-  const respuesta = await fetch(`${BASE_URL}${endpoint}`, {
-    method: metodo,
-    headers: {
-      ...(cuerpo instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body:
-      cuerpo === undefined
-        ? undefined
-        : cuerpo instanceof FormData
-          ? cuerpo
-          : JSON.stringify(cuerpo),
-  });
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE_URL}${endpoint}`, {
+      method: metodo,
+      headers: {
+        ...(cuerpo instanceof FormData ? {} : { "Content-Type": "application/json" }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body:
+        cuerpo === undefined
+          ? undefined
+          : cuerpo instanceof FormData
+            ? cuerpo
+            : JSON.stringify(cuerpo),
+    });
+  } catch (fallo) {
+    if (fallo instanceof DOMException && fallo.name === "AbortError") {
+      throw fallo;
+    }
+    const mensajeRed =
+      "No se pudo contactar el servidor. Revisa que el backend esté encendido.";
+    if (redirigir) {
+      notificarPaginaError("500", mensajeRed);
+    }
+    throw new ErrorApi(mensajeRed, 0);
+  }
 
   if (!respuesta.ok) {
     // 401 = token vencido o invalido: se cierra la sesion.
     if (respuesta.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("usuario");
+      localStorage.removeItem("rol_activo");
     }
 
     // El backend responde { error, detalle } en los errores de negocio.
@@ -120,6 +179,20 @@ async function peticion<T>(
     } catch {
       /* la respuesta no traia JSON */
     }
+
+    if (redirigir) {
+      if (respuesta.status >= 500) {
+        notificarPaginaError("500", mensaje);
+      } else if (respuesta.status === 403 && !esReglaNegocioEn403(endpoint)) {
+        if (mensaje.toLowerCase().includes("inhabilitado")) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("usuario");
+          localStorage.removeItem("rol_activo");
+        }
+        notificarPaginaError("403", mensaje);
+      }
+    }
+
     throw new ErrorApi(mensaje, respuesta.status);
   }
 
@@ -128,14 +201,16 @@ async function peticion<T>(
 }
 
 export const api = {
-  get: <T>(endpoint: string) => peticion<T>(endpoint, "GET"),
-  post: <T>(endpoint: string, cuerpo?: unknown) =>
-    peticion<T>(endpoint, "POST", cuerpo),
-  put: <T>(endpoint: string, cuerpo?: unknown) =>
-    peticion<T>(endpoint, "PUT", cuerpo),
-  patch: <T>(endpoint: string, cuerpo?: unknown) =>
-    peticion<T>(endpoint, "PATCH", cuerpo),
-  del: <T>(endpoint: string) => peticion<T>(endpoint, "DELETE"),
+  get: <T>(endpoint: string, opciones?: OpcionesPeticion) =>
+    peticion<T>(endpoint, "GET", undefined, opciones),
+  post: <T>(endpoint: string, cuerpo?: unknown, opciones?: OpcionesPeticion) =>
+    peticion<T>(endpoint, "POST", cuerpo, opciones),
+  put: <T>(endpoint: string, cuerpo?: unknown, opciones?: OpcionesPeticion) =>
+    peticion<T>(endpoint, "PUT", cuerpo, opciones),
+  patch: <T>(endpoint: string, cuerpo?: unknown, opciones?: OpcionesPeticion) =>
+    peticion<T>(endpoint, "PATCH", cuerpo, opciones),
+  del: <T>(endpoint: string, opciones?: OpcionesPeticion) =>
+    peticion<T>(endpoint, "DELETE", undefined, opciones),
 };
 
 // ---------------------------------------------------------------------------
@@ -146,8 +221,10 @@ export const auth = {
   login: (correo: string, password: string, id_rol?: number) =>
     api.post<TokenSalida>("/auth/login", { correo, password, id_rol }),
   registro: (datos: UsuarioCrear) => api.post<Usuario>("/auth/registro", datos),
-  yo: () => api.get<UsuarioDetalle>("/auth/yo"),
-  misRoles: () => api.get<MisRoles>("/auth/mis-roles"),
+  yo: (opciones?: OpcionesPeticion) =>
+    api.get<UsuarioDetalle>("/auth/yo", opciones),
+  misRoles: (opciones?: OpcionesPeticion) =>
+    api.get<MisRoles>("/auth/mis-roles", opciones),
   cambiarRol: (id_rol: number) =>
     api.post<TokenSalida>("/auth/cambiar-rol", { id_rol }),
   cambiarPassword: (password_actual: string, password_nueva: string) =>
@@ -210,9 +287,10 @@ export const clientes = {
 // ---------------------------------------------------------------------------
 
 export const productos = {
-  listar: (filtros: FiltrosProducto = {}) =>
-    api.get<Pagina<Producto>>(`/productos${aQuery(filtros)}`),
-  obtener: (id: number) => api.get<Producto>(`/productos/${id}`),
+  listar: (filtros: FiltrosProducto = {}, opciones?: OpcionesPeticion) =>
+    api.get<Pagina<Producto>>(`/productos${aQuery(filtros)}`, opciones),
+  obtener: (id: number, opciones?: OpcionesPeticion) =>
+    api.get<Producto>(`/productos/${id}`, opciones),
   crear: (datos: ProductoCrear) => api.post<Producto>("/productos", datos),
   subirImagen: (archivo: File) => {
     const formulario = new FormData();
@@ -278,8 +356,8 @@ export const descuentos = {
       `/descuentos${aQuery({ saltar, limite })}`
     ),
   obtener: (id: number) => api.get<Descuento>(`/descuentos/${id}`),
-  deProducto: (idProducto: number) =>
-    api.get<DescuentoVigente>(`/descuentos/producto/${idProducto}`),
+  deProducto: (idProducto: number, opciones?: OpcionesPeticion) =>
+    api.get<DescuentoVigente>(`/descuentos/producto/${idProducto}`, opciones),
   crear: (datos: {
     id_producto_fk: number;
     tipo_descuento: string;
