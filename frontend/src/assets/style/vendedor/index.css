@@ -1,6 +1,26 @@
 /* Estilos específicos del rol: vendedor. */
 /* Las reglas comunes viven en ../index.css. */
 
+/* Fondo del módulo de vendedor. */
+.dt-layout-vendedor {
+  background-color: #f4faf7;
+  background-image: url("../../images/fondo_vendedor.jpg");
+  background-size: cover;
+  background-position: right top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.dt-layout-vendedor .dt-contenido {
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  .dt-layout-vendedor {
+    background-attachment: scroll;
+  }
+}
+
 /* =========================================================================
    15. GRAFICA DE INGRESOS (SVG puro)
 ========================================================================= */
