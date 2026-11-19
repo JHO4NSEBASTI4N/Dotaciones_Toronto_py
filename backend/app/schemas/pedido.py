@@ -3,7 +3,12 @@ from decimal import Decimal
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 EstadoPedido = Literal['Pendiente', 'Enviado', 'Entregado', 'Cancelado']
-TRANSICIONES: dict[str, set[str]] = {'Pendiente': {'Enviado', 'Cancelado'}, 'Enviado': {'Entregado', 'Cancelado'}, 'Entregado': set(), 'Cancelado': set()}
+TRANSICIONES: dict[str, set[str]] = {
+    'Pendiente': {'Enviado', 'Entregado', 'Cancelado'},
+    'Enviado': {'Pendiente', 'Entregado', 'Cancelado'},
+    'Entregado': {'Pendiente', 'Enviado'},
+    'Cancelado': set(),
+}
 
 class PedidoEstadoActualizar(BaseModel):
     estado: EstadoPedido

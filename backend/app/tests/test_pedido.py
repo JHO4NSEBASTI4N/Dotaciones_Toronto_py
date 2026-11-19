@@ -174,10 +174,40 @@ def test_flujo_completo_pendiente_enviado_entregado(cliente, cabeceras_admin, pe
     assert r2.json()['estado'] == 'Entregado'
     assert r2.json()['oculto'] is True
 
-def test_no_se_puede_saltar_de_pendiente_a_entregado(cliente, cabeceras_admin, pedido):
-    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado'}, headers=cabeceras_admin)
-    assert respuesta.status_code == 400
-    assert 'Enviado' in respuesta.json()['detalle']
+def test_se_puede_pasar_entre_pendiente_enviado_y_entregado(cliente, cabeceras_vendedor, producto, pedido, sesion):
+    # Pendiente -> Entregado directo (descuenta inventario y crea venta)
+    r1 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado', 'metodo_pago': 'Efectivo'}, headers=cabeceras_vendedor)
+    assert r1.status_code == 200
+    assert r1.json()['estado'] == 'Entregado'
+    sesion.expire_all()
+    assert sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).first().cantidad_actual == 8
+
+    # Entregado -> Enviado (repone inventario y anula venta)
+    r2 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
+    assert r2.status_code == 200
+    assert r2.json()['estado'] == 'Enviado'
+    assert r2.json()['oculto'] is False
+    sesion.expire_all()
+    assert sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).first().cantidad_actual == 10
+    ventas_tras_revertir = cliente.get(f"/api/v1/ventas?id_pedido={pedido['id_pedido']}", headers=cabeceras_vendedor).json()
+    assert ventas_tras_revertir['total'] == 1
+    assert ventas_tras_revertir['items'][0]['estado'] == 'Anulada'
+
+    # Enviado -> Pendiente
+    r3 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Pendiente'}, headers=cabeceras_vendedor)
+    assert r3.status_code == 200
+    assert r3.json()['estado'] == 'Pendiente'
+
+    # Pendiente -> Entregado de nuevo (reactiva la misma venta sin duplicar)
+    r4 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado', 'metodo_pago': 'Nequi'}, headers=cabeceras_vendedor)
+    assert r4.status_code == 200
+    assert r4.json()['estado'] == 'Entregado'
+    sesion.expire_all()
+    assert sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).first().cantidad_actual == 8
+    ventas_final = cliente.get(f"/api/v1/ventas?id_pedido={pedido['id_pedido']}", headers=cabeceras_vendedor).json()
+    assert ventas_final['total'] == 1
+    assert ventas_final['items'][0]['estado'] == 'Completada'
+    assert ventas_final['items'][0]['factura']['estado'] == 'Vigente'
 
 def test_entregado_es_final(cliente, cabeceras_admin, pedido):
     for estado in ('Enviado', 'Entregado'):

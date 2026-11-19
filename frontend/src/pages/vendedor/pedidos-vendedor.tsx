@@ -1,7 +1,9 @@
-// src/pages/vendedor/pedidos.tsx
+// src/pages/vendedor/pedidos-vendedor.tsx
 //
-// Pedidos: se cambia el estado (Pendiente → Enviado → Entregado) o se cancelan.
-// Al pasar a "Entregado" el backend genera la venta y descuenta inventario.
+// Pedidos del vendedor: permite cambiar el estado directamente en la misma fila
+// del pedido (Pendiente, Enviado, Entregado) o cancelarlo.
+// Al pasar a "Entregado" el backend genera la venta y descuenta inventario;
+// si se revierte desde "Entregado", repone inventario y anula la venta.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -36,11 +38,30 @@ import {
 } from "../../components/indicadores";
 import type { Pedido } from "../../types";
 
-const ESTADOS = ["Pendiente", "Enviado", "Entregado", "Cancelado"];
+const ESTADOS_GESTION = ["Pendiente", "Enviado", "Entregado"] as const;
+const ESTADOS_FILTRO = ["Pendiente", "Enviado", "Entregado", "Cancelado"];
 
-// Metodos de pago que puede registrar el vendedor al entregar un pedido
+// Métodos de pago que puede registrar el vendedor al entregar un pedido
 // (se guarda en la venta y sale en el reporte).
-const METODOS_PAGO = ["Efectivo", "Tarjeta", "Transferencia", "Nequi", "DaviPlata", "Otro"];
+const METODOS_PAGO = [
+  "Efectivo",
+  "Tarjeta",
+  "Transferencia",
+  "Nequi",
+  "DaviPlata",
+  "Otro",
+];
+
+function claseSelectEstado(estado: string | null | undefined): string {
+  switch ((estado ?? "").toLowerCase()) {
+    case "entregado":
+      return "es-entregado";
+    case "enviado":
+      return "es-enviado";
+    default:
+      return "es-pendiente";
+  }
+}
 
 export default function PedidosVendedor() {
   const { usuario, esAdministrador } = useSesion();
@@ -48,6 +69,7 @@ export default function PedidosVendedor() {
   const [lista, setLista] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [idActualizando, setIdActualizando] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
@@ -55,7 +77,7 @@ export default function PedidosVendedor() {
   const [filtroEstado, setFiltroEstado] = useState("");
   const [detalle, setDetalle] = useState<Pedido | null>(null);
 
-  // Modal de entrega: se elige el metodo de pago al generar la venta.
+  // Modal de entrega: se elige el método de pago al generar la venta.
   const [entregaPedido, setEntregaPedido] = useState<Pedido | null>(null);
   const [metodoPago, setMetodoPago] = useState(METODOS_PAGO[0]);
 
@@ -64,10 +86,16 @@ export default function PedidosVendedor() {
     setError("");
 
     try {
-      const datos = await traerTodo((saltar, limite) => pedidos.listar({ saltar, limite }));
+      const datos = await traerTodo((saltar, limite) =>
+        pedidos.listar({ saltar, limite })
+      );
       setLista(datos.items);
     } catch (fallo) {
-      setError(fallo instanceof Error ? fallo.message : "No se pudieron cargar los pedidos.");
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudieron cargar los pedidos."
+      );
     } finally {
       setCargando(false);
     }
@@ -108,9 +136,24 @@ export default function PedidosVendedor() {
     generado_por: usuario?.nombre ?? "Administrador",
     indicadores: [
       { etiqueta: "Pedidos filtrados", valor: String(filtrados.length) },
-      { etiqueta: "Pendientes", valor: String(filtrados.filter((pedido) => pedido.estado === "Pendiente").length) },
-      { etiqueta: "Enviados", valor: String(filtrados.filter((pedido) => pedido.estado === "Enviado").length) },
-      { etiqueta: "Entregados", valor: String(filtrados.filter((pedido) => pedido.estado === "Entregado").length) },
+      {
+        etiqueta: "Pendientes",
+        valor: String(
+          filtrados.filter((pedido) => pedido.estado === "Pendiente").length
+        ),
+      },
+      {
+        etiqueta: "Enviados",
+        valor: String(
+          filtrados.filter((pedido) => pedido.estado === "Enviado").length
+        ),
+      },
+      {
+        etiqueta: "Entregados",
+        valor: String(
+          filtrados.filter((pedido) => pedido.estado === "Entregado").length
+        ),
+      },
     ],
     columnas: [
       { clave: "id", titulo: "Pedido" },
@@ -132,34 +175,69 @@ export default function PedidosVendedor() {
       descuento_cop: Number(pedido.descuento_total),
       estado: pedido.estado,
     })),
-    grafica: contarPorCategoria(filtrados.map((pedido) => pedido.estado ?? "Sin estado"), "Pedidos por estado"),
+    grafica: contarPorCategoria(
+      filtrados.map((pedido) => pedido.estado ?? "Sin estado"),
+      "Pedidos por estado"
+    ),
   });
 
-  const cambiarEstado = async (pedido: Pedido, nuevoEstado: string) => {
-    const confirmado = window.confirm(
-      nuevoEstado === "Entregado"
-        ? `¿Marcar el pedido #${pedido.id_pedido} como Entregado? Se genera la venta y se descuenta el inventario.`
-        : `¿Pasar el pedido #${pedido.id_pedido} a ${nuevoEstado}?`
+  /** Reemplaza en memoria el pedido actualizado sin recargar toda la tabla. */
+  const reemplazarPedido = (actualizado: Pedido) => {
+    setLista((actual) =>
+      actual.map((item) =>
+        item.id_pedido === actualizado.id_pedido ? actualizado : item
+      )
     );
-    if (!confirmado) return;
+    setDetalle((actual) =>
+      actual?.id_pedido === actualizado.id_pedido ? actualizado : actual
+    );
+  };
+
+  /** Maneja el cambio de estado directamente desde el selector de la fila. */
+  const seleccionarEstadoEnFila = async (
+    pedido: Pedido,
+    nuevoEstado: string
+  ) => {
+    const estadoActual = pedido.estado ?? "Pendiente";
+    if (nuevoEstado === estadoActual) return;
+
+    // Si pasa a Entregado, pedimos el método de pago para registrar la venta.
+    if (nuevoEstado === "Entregado") {
+      setMetodoPago(METODOS_PAGO[0]);
+      setEntregaPedido(pedido);
+      return;
+    }
+
+    // Si estaba Entregado y vuelve a Pendiente o Enviado, pedimos confirmación.
+    if (estadoActual === "Entregado") {
+      const confirmado = window.confirm(
+        `¿Cambiar el pedido #${pedido.id_pedido} de Entregado a ${nuevoEstado}? Se repondrá el inventario y se anulará la venta asociada.`
+      );
+      if (!confirmado) return;
+    }
 
     setGuardando(true);
+    setIdActualizando(pedido.id_pedido);
     setError("");
+    setMensaje("");
 
     try {
-      await pedidos.cambiarEstado(pedido.id_pedido, nuevoEstado);
-      setMensaje(`Pedido #${pedido.id_pedido} quedó en ${nuevoEstado}.`);
-      await cargarDatos();
-      } catch (fallo) {
-        setError(fallo instanceof Error ? fallo.message : "No se pudo cambiar el estado.");
-      } finally {
-        setGuardando(false);
-      }
-    };
-
-  const abrirEntrega = (pedido: Pedido) => {
-    setMetodoPago(METODOS_PAGO[0]);
-    setEntregaPedido(pedido);
+      const actualizado = await pedidos.cambiarEstado(
+        pedido.id_pedido,
+        nuevoEstado
+      );
+      reemplazarPedido(actualizado);
+      setMensaje(`Pedido #${pedido.id_pedido} actualizado a ${nuevoEstado}.`);
+    } catch (fallo) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo cambiar el estado del pedido."
+      );
+    } finally {
+      setGuardando(false);
+      setIdActualizando(null);
+    }
   };
 
   const confirmarEntrega = async () => {
@@ -167,18 +245,30 @@ export default function PedidosVendedor() {
 
     const pedido = entregaPedido;
     setGuardando(true);
+    setIdActualizando(pedido.id_pedido);
     setError("");
+    setMensaje("");
 
     try {
-      // Al entregar se genera la venta con el metodo de pago elegido.
-      await pedidos.cambiarEstado(pedido.id_pedido, "Entregado", metodoPago);
-      setMensaje(`Pedido #${pedido.id_pedido} quedó Entregado (${metodoPago}).`);
+      const actualizado = await pedidos.cambiarEstado(
+        pedido.id_pedido,
+        "Entregado",
+        metodoPago
+      );
+      reemplazarPedido(actualizado);
+      setMensaje(
+        `Pedido #${pedido.id_pedido} marcado como Entregado (${metodoPago}).`
+      );
       setEntregaPedido(null);
-      await cargarDatos();
     } catch (fallo) {
-      setError(fallo instanceof Error ? fallo.message : "No se pudo entregar el pedido.");
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo entregar el pedido."
+      );
     } finally {
       setGuardando(false);
+      setIdActualizando(null);
     }
   };
 
@@ -189,16 +279,23 @@ export default function PedidosVendedor() {
     if (!confirmado) return;
 
     setGuardando(true);
+    setIdActualizando(pedido.id_pedido);
     setError("");
+    setMensaje("");
 
     try {
-      await pedidos.cancelar(pedido.id_pedido);
+      const actualizado = await pedidos.cancelar(pedido.id_pedido);
+      reemplazarPedido(actualizado);
       setMensaje(`Pedido #${pedido.id_pedido} cancelado.`);
-      await cargarDatos();
     } catch (fallo) {
-      setError(fallo instanceof Error ? fallo.message : "No se pudo cancelar el pedido.");
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo cancelar el pedido."
+      );
     } finally {
       setGuardando(false);
+      setIdActualizando(null);
     }
   };
 
@@ -207,12 +304,23 @@ export default function PedidosVendedor() {
       <EncabezadoModulo
         seccion="Ventas"
         titulo="Pedidos"
-        descripcion="Cada pedido avanza Pendiente → Enviado → Entregado. Al entregarlo se crea la venta."
-        rol={usuario ? { nombre: usuario.nombre_rol, clase: "vendedor" } : undefined}
+        descripcion="Cambia el estado de cada pedido (Pendiente, Enviado o Entregado) directamente desde su fila."
+        rol={
+          usuario
+            ? {
+                nombre: usuario.nombre_rol,
+                clase: esAdministrador ? "admin" : "vendedor",
+              }
+            : undefined
+        }
         accion={
           <div className="dt-acciones-admin-encabezado">
             {esAdministrador && (
-              <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
+              <BotonesReportesAdmin
+                crearReporte={crearReporte}
+                alError={setError}
+                deshabilitado={cargando}
+              />
             )}
             <button
               type="button"
@@ -227,14 +335,46 @@ export default function PedidosVendedor() {
         }
       />
 
-      {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
-      {mensaje && <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />}
+      {error && (
+        <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />
+      )}
+      {mensaje && (
+        <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />
+      )}
 
       <FilaIndicadores>
-        <Indicador etiqueta="Pedidos" valor={resumen.total} descripcion="Registrados" icono={ClipboardList} tono="azul" cargando={cargando} />
-        <Indicador etiqueta="Pendientes" valor={resumen.pendientes} descripcion="Sin despachar" icono={ClipboardList} tono="ambar" cargando={cargando} />
-        <Indicador etiqueta="Enviados" valor={resumen.enviados} descripcion="En camino al cliente" icono={Truck} tono="morado" cargando={cargando} />
-        <Indicador etiqueta="Entregados" valor={resumen.entregados} descripcion="Ya son venta" icono={PackageCheck} tono="verde" cargando={cargando} />
+        <Indicador
+          etiqueta="Pedidos"
+          valor={resumen.total}
+          descripcion="Registrados"
+          icono={ClipboardList}
+          tono="azul"
+          cargando={cargando}
+        />
+        <Indicador
+          etiqueta="Pendientes"
+          valor={resumen.pendientes}
+          descripcion="Sin despachar"
+          icono={ClipboardList}
+          tono="ambar"
+          cargando={cargando}
+        />
+        <Indicador
+          etiqueta="Enviados"
+          valor={resumen.enviados}
+          descripcion="En camino al cliente"
+          icono={Truck}
+          tono="morado"
+          cargando={cargando}
+        />
+        <Indicador
+          etiqueta="Entregados"
+          valor={resumen.entregados}
+          descripcion="Ya son venta"
+          icono={PackageCheck}
+          tono="verde"
+          cargando={cargando}
+        />
       </FilaIndicadores>
 
       <section className="dt-listado">
@@ -243,14 +383,21 @@ export default function PedidosVendedor() {
           descripcion={`${filtrados.length} de ${lista.length} pedidos`}
           Icono={ClipboardList}
         >
-          <CajaBusqueda valor={busqueda} onCambio={setBusqueda} marcador="N.º de pedido o cliente" />
+          <CajaBusqueda
+            valor={busqueda}
+            onCambio={setBusqueda}
+            marcador="N.º de pedido o cliente"
+          />
 
           <FiltroEstado
             valor={filtroEstado}
             onCambio={setFiltroEstado}
             opciones={[
               { valor: "", texto: "Todos los estados" },
-              ...ESTADOS.map((estado) => ({ valor: estado, texto: estado })),
+              ...ESTADOS_FILTRO.map((estado) => ({
+                valor: estado,
+                texto: estado,
+              })),
             ]}
           />
 
@@ -289,85 +436,108 @@ export default function PedidosVendedor() {
               </thead>
 
               <tbody>
-                {filtrados.map((pedido) => (
-                  <tr key={pedido.id_pedido}>
-                    <td>
-                      <span className="dt-fila-principal">#{pedido.id_pedido}</span>
-                      <span className="dt-fila-secundaria">
-                        Cliente {pedido.id_usuario_fk ?? "—"}
-                      </span>
-                    </td>
+                {filtrados.map((pedido) => {
+                  const estadoActual = pedido.estado ?? "Pendiente";
+                  const actualizandoFila = idActualizando === pedido.id_pedido;
 
-                    <td>{fecha(pedido.fecha_pedido)}</td>
-                    <td>{pedido.items.length}</td>
-                    <td>{pedido.total_unidades}</td>
-
-                    <td>
-                      <span className="dt-fila-principal">{pesos(pedido.total)}</span>
-                      {Number(pedido.descuento_total) > 0 && (
-                        <span className="dt-fila-secundaria">
-                          Descuento {pesos(pedido.descuento_total)}
+                  return (
+                    <tr key={pedido.id_pedido}>
+                      <td>
+                        <span className="dt-fila-principal">
+                          #{pedido.id_pedido}
                         </span>
-                      )}
-                    </td>
+                        <span className="dt-fila-secundaria">
+                          Cliente {pedido.id_usuario_fk ?? "—"}
+                        </span>
+                      </td>
 
-                    <td>
-                      <EtiquetaEstado
-                        tipo={tonoDeEstado(pedido.estado ?? "")}
-                        texto={pedido.estado ?? "—"}
-                      />
-                    </td>
+                      <td>{fecha(pedido.fecha_pedido)}</td>
+                      <td>{pedido.items.length}</td>
+                      <td>{pedido.total_unidades}</td>
 
-                    <td>
-                      <div className="dt-acciones-fila">
-                        <button
-                          type="button"
-                          className="dt-boton-icono"
-                          title="Ver detalle"
-                          onClick={() => setDetalle(pedido)}
-                        >
-                          <Eye size={14} />
-                        </button>
+                      <td>
+                        <span className="dt-fila-principal">
+                          {pesos(pedido.total)}
+                        </span>
+                        {Number(pedido.descuento_total) > 0 && (
+                          <span className="dt-fila-secundaria">
+                            Descuento {pesos(pedido.descuento_total)}
+                          </span>
+                        )}
+                      </td>
 
-                        {pedido.estado === "Pendiente" && (
+                      <td>
+                        {estadoActual === "Cancelado" ? (
+                          <EtiquetaEstado
+                            tipo={tonoDeEstado(estadoActual)}
+                            texto={estadoActual}
+                          />
+                        ) : (
+                          <div className="dt-estado-fila">
+                            <label
+                              className={`dt-estado-select-caja ${claseSelectEstado(estadoActual)}`}
+                            >
+                              <span
+                                className="dt-estado-select-punto"
+                                aria-hidden="true"
+                              />
+                              <select
+                                className="dt-estado-select"
+                                value={estadoActual}
+                                disabled={guardando}
+                                aria-label={`Cambiar estado del pedido #${pedido.id_pedido}`}
+                                onChange={(evento) =>
+                                  void seleccionarEstadoEnFila(
+                                    pedido,
+                                    evento.target.value
+                                  )
+                                }
+                              >
+                                {ESTADOS_GESTION.map((opcion) => (
+                                  <option key={opcion} value={opcion}>
+                                    {opcion}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            {actualizandoFila && (
+                              <span
+                                className="dt-spinner"
+                                aria-label="Guardando estado"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      <td>
+                        <div className="dt-acciones-fila">
                           <button
                             type="button"
                             className="dt-boton-icono"
-                            title="Marcar como Enviado"
-                            disabled={guardando}
-                            onClick={() => void cambiarEstado(pedido, "Enviado")}
+                            title="Ver detalle"
+                            onClick={() => setDetalle(pedido)}
                           >
-                            <Truck size={14} />
+                            <Eye size={14} />
                           </button>
-                        )}
 
-                        {pedido.estado === "Enviado" && (
-                          <button
-                            type="button"
-                            className="dt-boton-icono"
-                            title="Marcar como Entregado"
-                            disabled={guardando}
-                            onClick={() => abrirEntrega(pedido)}
-                          >
-                            <PackageCheck size={14} />
-                          </button>
-                        )}
-
-                        {pedido.estado !== "Cancelado" && pedido.estado !== "Entregado" && (
-                          <button
-                            type="button"
-                            className="dt-boton-icono dt-boton-peligro"
-                            title="Cancelar pedido"
-                            disabled={guardando}
-                            onClick={() => void cancelar(pedido)}
-                          >
-                            <Ban size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {estadoActual !== "Cancelado" &&
+                            estadoActual !== "Entregado" && (
+                              <button
+                                type="button"
+                                className="dt-boton-icono dt-boton-peligro"
+                                title="Cancelar pedido"
+                                disabled={guardando}
+                                onClick={() => void cancelar(pedido)}
+                              >
+                                <Ban size={14} />
+                              </button>
+                            )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -421,7 +591,10 @@ export default function PedidosVendedor() {
                   <tbody>
                     {detalle.items.map((item) => (
                       <tr key={item.id_detalle_pedido}>
-                        <td>{item.nombre_producto ?? `Producto ${item.id_producto}`}</td>
+                        <td>
+                          {item.nombre_producto ??
+                            `Producto ${item.id_producto}`}
+                        </td>
                         <td>{item.cantidad}</td>
                         <td>{pesos(item.precio_unitario)}</td>
                         <td>{pesos(item.subtotal)}</td>
@@ -431,7 +604,10 @@ export default function PedidosVendedor() {
                 </table>
               </div>
 
-              <div className="dt-listado-contexto" style={{ marginTop: 12, borderRadius: 10 }}>
+              <div
+                className="dt-listado-contexto"
+                style={{ marginTop: 12, borderRadius: 10 }}
+              >
                 <span>
                   <span className="dt-punto-contexto" />
                   Total del pedido
@@ -457,7 +633,9 @@ export default function PedidosVendedor() {
         <div
           className="dt-modal-fondo"
           onMouseDown={(evento) => {
-            if (evento.target === evento.currentTarget) setEntregaPedido(null);
+            if (evento.target === evento.currentTarget && !guardando) {
+              setEntregaPedido(null);
+            }
           }}
         >
           <section className="dt-modal" role="dialog" aria-modal="true">
@@ -469,13 +647,17 @@ export default function PedidosVendedor() {
               <div className="dt-modal-titulo-grupo">
                 <span className="dt-migas">Entrega</span>
                 <h2>Entregar pedido #{entregaPedido.id_pedido}</h2>
-                <p>Se genera la venta registrando el método de pago elegido.</p>
+                <p>
+                  Se genera la venta y se descuenta el inventario registrando el
+                  método de pago elegido.
+                </p>
               </div>
 
               <button
                 type="button"
                 className="dt-boton-cerrar-modal"
                 onClick={() => setEntregaPedido(null)}
+                disabled={guardando}
                 aria-label="Cerrar"
               >
                 <X size={16} />
@@ -498,8 +680,17 @@ export default function PedidosVendedor() {
                 </select>
               </label>
 
-              <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: 12 }}>
-                Total del pedido: <strong style={{ color: "#0f172a" }}>{pesos(entregaPedido.total)}</strong>
+              <p
+                style={{
+                  color: "#64748b",
+                  fontSize: "0.85rem",
+                  marginTop: 12,
+                }}
+              >
+                Total del pedido:{" "}
+                <strong style={{ color: "#0f172a" }}>
+                  {pesos(entregaPedido.total)}
+                </strong>{" "}
                 · {entregaPedido.total_unidades} unidades
               </p>
             </div>
@@ -511,7 +702,7 @@ export default function PedidosVendedor() {
                 onClick={() => setEntregaPedido(null)}
                 disabled={guardando}
               >
-                Cerrar
+                Cancelar
               </button>
               <button
                 type="button"
@@ -520,7 +711,7 @@ export default function PedidosVendedor() {
                 disabled={guardando}
               >
                 <PackageCheck size={15} />
-                Confirmar entrega
+                {guardando ? "Guardando…" : "Confirmar entrega"}
               </button>
             </footer>
           </section>

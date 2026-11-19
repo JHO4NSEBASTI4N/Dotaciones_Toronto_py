@@ -1175,6 +1175,106 @@ a {
 .dt-etiqueta-estado.pendiente { color: var(--warn); background: var(--warn-bg); border-color: #f6e0bd; }
 .dt-etiqueta-estado.neutro { color: #475569; background: #f1f5f9; border-color: #e2e8f0; }
 
+/* Selector de estado en línea (Pendiente / Enviado / Entregado en la fila) */
+.dt-estado-fila {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dt-estado-select-caja {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: box-shadow 0.16s, border-color 0.16s, transform 0.12s;
+}
+
+.dt-estado-select-caja::after {
+  content: "▾";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.dt-estado-select-punto {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  pointer-events: none;
+}
+
+.dt-estado-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  border-radius: 999px;
+  padding: 0 24px 0 23px;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.dt-estado-select option {
+  color: var(--ink);
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.dt-estado-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.dt-estado-select-caja.es-pendiente {
+  color: var(--warn);
+  background: var(--warn-bg);
+  border-color: #f4d6a4;
+}
+
+.dt-estado-select-caja.es-enviado {
+  color: var(--info);
+  background: var(--info-bg);
+  border-color: #bfdbfe;
+}
+
+.dt-estado-select-caja.es-entregado {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: #b7e4c7;
+}
+
+.dt-estado-select-caja:hover:has(.dt-estado-select:not(:disabled)) {
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.dt-estado-select-caja:focus-within {
+  box-shadow: 0 0 0 3px rgba(250, 129, 59, 0.24);
+}
+
 /* =========================================================================
    5. AVISOS
 ========================================================================= */
