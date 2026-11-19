@@ -100,7 +100,7 @@ def entregar(cliente, cabeceras, id_pedido: int):
 
 
 @pytest.fixture()
-def venta(cliente, cabeceras_admin, cabeceras_cliente, producto):
+def venta(cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, producto):
     """Venta de 5 camisas (para poder devolver en varias tandas)."""
     cliente.post(
         "/api/v1/carrito/items",
@@ -108,7 +108,7 @@ def venta(cliente, cabeceras_admin, cabeceras_cliente, producto):
         headers=cabeceras_cliente,
     )
     pedido = cliente.post("/api/v1/pedidos", headers=cabeceras_cliente).json()
-    entregar(cliente, cabeceras_admin, pedido["id_pedido"])
+    entregar(cliente, cabeceras_vendedor, pedido["id_pedido"])
     return cliente.get(
         f"/api/v1/ventas?id_pedido={pedido['id_pedido']}", headers=cabeceras_admin
     ).json()["items"][0]

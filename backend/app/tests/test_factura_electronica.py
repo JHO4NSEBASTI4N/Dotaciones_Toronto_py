@@ -107,6 +107,7 @@ def resolucion(sesion, admin):
 def _crear_venta(
     cliente,
     admin,
+    vendedor,
     cliente_pepe,
     sesion,
     precio: str = "119000.00",
@@ -149,7 +150,7 @@ def _crear_venta(
         respuesta = cliente.patch(
             f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
             json={"estado": estado},
-            headers=admin,
+            headers=vendedor,
         )
         assert respuesta.status_code == 200, respuesta.text
 
@@ -159,8 +160,8 @@ def _crear_venta(
 
 
 @pytest.fixture()
-def venta(cliente, admin, cliente_pepe, sesion, resolucion):
-    return _crear_venta(cliente, admin, cliente_pepe, sesion)
+def venta(cliente, admin, vendedor, cliente_pepe, sesion, resolucion):
+    return _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion)
 
 
 def generar(cliente, cabeceras, id_venta: int):
@@ -272,7 +273,7 @@ def test_el_segundo_documento_lleva_el_siguiente_numero(
 ):
     generar(cliente, vendedor, venta["id_venta"])
 
-    otra_venta = _crear_venta(cliente, admin, cliente_pepe, sesion, nombre="Pantalon")
+    otra_venta = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion, nombre="Pantalon")
     datos = generar(cliente, vendedor, otra_venta["id_venta"]).json()
     assert datos["numero_factura"] == "DT0002"
 
@@ -287,7 +288,7 @@ def test_sin_resolucion_vigente_no_se_factura(
     cliente, sesion, admin, vendedor, cliente_pepe
 ):
     """Se crea la venta ANTES de la resolucion."""
-    venta = _crear_venta(cliente, admin, cliente_pepe, sesion)
+    venta = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion)
     respuesta = generar(cliente, vendedor, venta["id_venta"])
     assert respuesta.status_code == 400
     assert "resolucion" in respuesta.json()["detalle"].lower()
@@ -295,10 +296,10 @@ def test_sin_resolucion_vigente_no_se_factura(
 
 def test_resolucion_agotada_da_400(cliente, sesion, admin, vendedor, cliente_pepe):
     crear_resolucion(sesion, rango_hasta=1)
-    venta = _crear_venta(cliente, admin, cliente_pepe, sesion)
+    venta = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion)
     generar(cliente, vendedor, venta["id_venta"])  # usa el 1
 
-    otra = _crear_venta(cliente, admin, cliente_pepe, sesion, nombre="Pantalon")
+    otra = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion, nombre="Pantalon")
     respuesta = generar(cliente, vendedor, otra["id_venta"])
     assert respuesta.status_code == 400
     assert "agoto su rango" in respuesta.json()["detalle"]
@@ -348,7 +349,7 @@ def test_el_xml_escapa_los_caracteres_peligrosos(
 ):
     """Un nombre con & o < no puede romper el XML."""
     venta = _crear_venta(
-        cliente, admin, cliente_pepe, sesion,
+        cliente, admin, vendedor, cliente_pepe, sesion,
         nombre="Camisa & Pantalon <especial>",
         precio="11900.00",
     )

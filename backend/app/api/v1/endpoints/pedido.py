@@ -6,11 +6,14 @@ from app.core.pagination import PaginaRespuesta, ParametrosPaginacion
 from app.schemas.pedido import PedidoEstadoActualizar, PedidoRespuesta
 from app.services import pedido as servicio
 router = APIRouter()
-PuedeGestionar = Depends(requiere_rol(ROL_ADMINISTRADOR, ROL_VENDEDOR))
+PuedeCambiarEstado = Depends(requiere_rol(ROL_VENDEDOR))
 ROLES_QUE_VEN_TODO = {ROL_ADMINISTRADOR, ROL_VENDEDOR}
 
 def _es_staff(usuario) -> bool:
     return bool(roles_de(usuario) & ROLES_QUE_VEN_TODO)
+
+def _es_vendedor(usuario) -> bool:
+    return ROL_VENDEDOR in roles_de(usuario)
 
 @router.get('', response_model=PaginaRespuesta[PedidoRespuesta])
 def listar(sesion: SesionBD, usuario: UsuarioActual, paginacion: ParametrosPaginacion=Depends(), estado: Optional[str]=Query(None, description='Pendiente, Enviado, Entregado o Cancelado'), id_usuario: Optional[int]=Query(None, description='Solo administrador/vendedor'), incluir_ocultos: Optional[bool]=Query(None, description='Por defecto el cliente no ve los entregados')):
@@ -31,7 +34,7 @@ def detalle(id_pedido: int, sesion: SesionBD, usuario: UsuarioActual):
 def crear(sesion: SesionBD, usuario: UsuarioActual):
     return servicio.crear_desde_carrito(sesion, usuario.id_usuario)
 
-@router.patch('/{id_pedido}/estado', response_model=PedidoRespuesta, dependencies=[PuedeGestionar])
+@router.patch('/{id_pedido}/estado', response_model=PedidoRespuesta, dependencies=[PuedeCambiarEstado])
 def cambiar_estado(id_pedido: int, datos: PedidoEstadoActualizar, sesion: SesionBD, usuario: UsuarioActual):
     return servicio.cambiar_estado(
         sesion,
@@ -43,7 +46,9 @@ def cambiar_estado(id_pedido: int, datos: PedidoEstadoActualizar, sesion: Sesion
 
 @router.post('/{id_pedido}/cancelar', response_model=PedidoRespuesta)
 def cancelar(id_pedido: int, sesion: SesionBD, usuario: UsuarioActual):
-    if not _es_staff(usuario):
+    if not _es_vendedor(usuario):
+        if _es_staff(usuario):
+            raise Prohibido('El administrador no puede cambiar el estado de los pedidos')
         if not servicio.es_cancelable_por_cliente(sesion, id_pedido, usuario.id_usuario):
             if not servicio.es_del_usuario(sesion, id_pedido, usuario.id_usuario):
                 raise NoEncontrado(f'No existe el pedido con id {id_pedido}')

@@ -21,7 +21,7 @@ import { pedidos, pesos, traerTodo } from "../../services/api";
 import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
 import { contarPorCategoria } from "../../services/analitica-reportes";
 import type { ReporteAdmin } from "../../services/reportes";
-import { useSesion } from "../../context/sesion-contexto";
+import { ROL_VENDEDOR, useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
   BarraListado,
@@ -65,6 +65,9 @@ function claseSelectEstado(estado: string | null | undefined): string {
 
 export default function PedidosVendedor() {
   const { usuario, esAdministrador } = useSesion();
+  // Solo el vendedor puede cambiar el estado de un pedido; el administrador
+  // únicamente consulta, revisa detalles y descarga reportes.
+  const puedeCambiarEstado = usuario?.id_rol === ROL_VENDEDOR;
 
   const [lista, setLista] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -198,6 +201,7 @@ export default function PedidosVendedor() {
     pedido: Pedido,
     nuevoEstado: string
   ) => {
+    if (!puedeCambiarEstado) return;
     const estadoActual = pedido.estado ?? "Pendiente";
     if (nuevoEstado === estadoActual) return;
 
@@ -241,7 +245,7 @@ export default function PedidosVendedor() {
   };
 
   const confirmarEntrega = async () => {
-    if (!entregaPedido) return;
+    if (!puedeCambiarEstado || !entregaPedido) return;
 
     const pedido = entregaPedido;
     setGuardando(true);
@@ -273,6 +277,7 @@ export default function PedidosVendedor() {
   };
 
   const cancelar = async (pedido: Pedido) => {
+    if (!puedeCambiarEstado) return;
     const confirmado = window.confirm(
       `¿Cancelar el pedido #${pedido.id_pedido}? No se borra: queda marcado como Cancelado.`
     );
@@ -302,9 +307,13 @@ export default function PedidosVendedor() {
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
-        seccion="Ventas"
+        seccion={esAdministrador ? "Administración" : "Ventas"}
         titulo="Pedidos"
-        descripcion="Cambia el estado de cada pedido (Pendiente, Enviado o Entregado) directamente desde su fila."
+        descripcion={
+          esAdministrador
+            ? "Consulta el listado de pedidos, revisa su detalle y exporta reportes."
+            : "Cambia el estado de cada pedido (Pendiente, Enviado o Entregado) directamente desde su fila."
+        }
         rol={
           usuario
             ? {
@@ -467,7 +476,7 @@ export default function PedidosVendedor() {
                       </td>
 
                       <td>
-                        {estadoActual === "Cancelado" ? (
+                        {!puedeCambiarEstado || estadoActual === "Cancelado" ? (
                           <EtiquetaEstado
                             tipo={tonoDeEstado(estadoActual)}
                             texto={estadoActual}
@@ -521,7 +530,8 @@ export default function PedidosVendedor() {
                             <Eye size={14} />
                           </button>
 
-                          {estadoActual !== "Cancelado" &&
+                          {puedeCambiarEstado &&
+                            estadoActual !== "Cancelado" &&
                             estadoActual !== "Entregado" && (
                               <button
                                 type="button"
@@ -629,7 +639,7 @@ export default function PedidosVendedor() {
         </div>
       )}
 
-      {entregaPedido && (
+      {puedeCambiarEstado && entregaPedido && (
         <div
           className="dt-modal-fondo"
           onMouseDown={(evento) => {

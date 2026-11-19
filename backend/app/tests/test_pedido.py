@@ -164,12 +164,12 @@ def test_detalle_ajeno_da_404(cliente, cabeceras_otro, pedido):
 def test_detalle_inexistente_da_404(cliente, cabeceras_admin):
     assert cliente.get('/api/v1/pedidos/9999', headers=cabeceras_admin).status_code == 404
 
-def test_flujo_completo_pendiente_enviado_entregado(cliente, cabeceras_admin, pedido):
-    r1 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_admin)
+def test_flujo_completo_pendiente_enviado_entregado(cliente, cabeceras_vendedor, pedido):
+    r1 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
     assert r1.status_code == 200
     assert r1.json()['estado'] == 'Enviado'
     assert r1.json()['oculto'] is False
-    r2 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado'}, headers=cabeceras_admin)
+    r2 = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado'}, headers=cabeceras_vendedor)
     assert r2.status_code == 200
     assert r2.json()['estado'] == 'Entregado'
     assert r2.json()['oculto'] is True
@@ -209,78 +209,84 @@ def test_se_puede_pasar_entre_pendiente_enviado_y_entregado(cliente, cabeceras_v
     assert ventas_final['items'][0]['estado'] == 'Completada'
     assert ventas_final['items'][0]['factura']['estado'] == 'Vigente'
 
-def test_entregado_es_final(cliente, cabeceras_admin, pedido):
+def test_entregado_es_final(cliente, cabeceras_vendedor, pedido):
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
-    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Cancelado'}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
+    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Cancelado'}, headers=cabeceras_vendedor)
     assert respuesta.status_code == 409
 
-def test_mismo_estado_da_409(cliente, cabeceras_admin, pedido):
-    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Pendiente'}, headers=cabeceras_admin)
+def test_mismo_estado_da_409(cliente, cabeceras_vendedor, pedido):
+    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Pendiente'}, headers=cabeceras_vendedor)
     assert respuesta.status_code == 409
 
-def test_estado_invalido_da_422(cliente, cabeceras_admin, pedido):
-    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Perdido'}, headers=cabeceras_admin)
+def test_estado_invalido_da_422(cliente, cabeceras_vendedor, pedido):
+    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Perdido'}, headers=cabeceras_vendedor)
     assert respuesta.status_code == 422
 
 def test_cliente_no_puede_cambiar_estado(cliente, cabeceras_cliente, pedido):
     respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_cliente)
     assert respuesta.status_code == 403
 
+def test_admin_no_puede_cambiar_estado(cliente, cabeceras_admin, pedido):
+    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_admin)
+    assert respuesta.status_code == 403
+    cancelacion = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_admin)
+    assert cancelacion.status_code == 403
+
 def test_vendedor_puede_cambiar_estado(cliente, cabeceras_vendedor, pedido):
     respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
     assert respuesta.status_code == 200
 
-def test_entregar_descuenta_inventario(cliente, cabeceras_admin, cabeceras_cliente, producto, pedido, sesion):
+def test_entregar_descuenta_inventario(cliente, cabeceras_vendedor, cabeceras_cliente, producto, pedido, sesion):
     fila = sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).first()
     assert fila.cantidad_actual == 10
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     sesion.expire_all()
     fila = sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).first()
     assert fila.cantidad_actual == 8
 
-def test_entregar_registra_el_movimiento(cliente, cabeceras_admin, pedido, sesion):
+def test_entregar_registra_el_movimiento(cliente, cabeceras_vendedor, pedido, sesion):
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     movimientos = sesion.query(MovimientoInventario).all()
     assert len(movimientos) == 1
     assert movimientos[0].tipo_movimiento == 'SALIDA'
     assert movimientos[0].cantidad == 2
     assert f"Pedido #{pedido['id_pedido']}" in movimientos[0].motivo
 
-def test_entregar_reparte_entre_varias_filas(cliente, cabeceras_admin, cabeceras_cliente, producto, sesion):
+def test_entregar_reparte_entre_varias_filas(cliente, cabeceras_vendedor, cabeceras_cliente, producto, sesion):
     sesion.add(Inventario(id_producto_fk=producto['id_producto'], cantidad_actual=1, stock_minimo=0))
     sesion.commit()
     cliente.post('/api/v1/carrito/items', json={'id_producto': producto['id_producto'], 'cantidad': 3}, headers=cabeceras_cliente)
     pedido = cliente.post('/api/v1/pedidos', headers=cabeceras_cliente).json()
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     sesion.expire_all()
     filas = sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).all()
     assert sum((f.cantidad_actual for f in filas)) == 8
 
-def test_entregar_sin_stock_suficiente_da_400_y_no_cambia_estado(cliente, cabeceras_admin, cabeceras_cliente, producto, sesion):
+def test_entregar_sin_stock_suficiente_da_400_y_no_cambia_estado(cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, producto, sesion):
     cliente.post('/api/v1/carrito/items', json={'id_producto': producto['id_producto'], 'cantidad': 5}, headers=cabeceras_cliente)
     pedido = cliente.post('/api/v1/pedidos', headers=cabeceras_cliente).json()
-    cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_admin)
+    cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
     fila = sesion.query(Inventario).first()
     fila.cantidad_actual = 1
     sesion.commit()
-    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado'}, headers=cabeceras_admin)
+    respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Entregado'}, headers=cabeceras_vendedor)
     assert respuesta.status_code == 400
     assert 'Stock insuficiente' in respuesta.json()['detalle']
     cuerpo = cliente.get(f"/api/v1/pedidos/{pedido['id_pedido']}", headers=cabeceras_admin).json()
     assert cuerpo['estado'] == 'Enviado'
 
-def test_entregar_deja_alerta_si_baja_del_minimo(cliente, cabeceras_admin, cabeceras_cliente, producto, sesion):
+def test_entregar_deja_alerta_si_baja_del_minimo(cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, producto, sesion):
     fila = sesion.query(Inventario).first()
     fila.stock_minimo = 8
     sesion.commit()
     cliente.post('/api/v1/carrito/items', json={'id_producto': producto['id_producto'], 'cantidad': 3}, headers=cabeceras_cliente)
     pedido = cliente.post('/api/v1/pedidos', headers=cabeceras_cliente).json()
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     alertas = cliente.get('/api/v1/inventario/alertas', headers=cabeceras_admin).json()
     assert alertas['total'] == 1
     assert alertas['items'][0]['nivel_stock'] == 7
@@ -290,8 +296,8 @@ def test_cliente_cancela_su_pedido_pendiente(cliente, cabeceras_cliente, pedido)
     assert respuesta.status_code == 200
     assert respuesta.json()['estado'] == 'Cancelado'
 
-def test_cliente_no_cancela_un_pedido_enviado(cliente, cabeceras_admin, cabeceras_cliente, pedido):
-    cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_admin)
+def test_cliente_no_cancela_un_pedido_enviado(cliente, cabeceras_vendedor, cabeceras_cliente, pedido):
+    cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
     respuesta = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_cliente)
     assert respuesta.status_code == 403
 
@@ -299,9 +305,9 @@ def test_no_cancela_pedido_ajeno(cliente, cabeceras_otro, pedido):
     respuesta = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_otro)
     assert respuesta.status_code == 404
 
-def test_admin_cancela_un_pedido_enviado(cliente, cabeceras_admin, pedido):
-    cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_admin)
-    respuesta = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_admin)
+def test_vendedor_cancela_un_pedido_enviado(cliente, cabeceras_vendedor, pedido):
+    cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
+    respuesta = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_vendedor)
     assert respuesta.status_code == 200
     assert respuesta.json()['estado'] == 'Cancelado'
 
@@ -313,27 +319,27 @@ def test_cancelar_no_devuelve_inventario_ni_borra(cliente, cabeceras_cliente, pr
     assert fila.cantidad_actual == 10
     assert sesion.query(Pedido).count() == 1
 
-def test_cancelar_pedido_entregado_da_409(cliente, cabeceras_admin, pedido):
+def test_cancelar_pedido_entregado_da_409(cliente, cabeceras_vendedor, pedido):
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
-    respuesta = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
+    respuesta = cliente.post(f"/api/v1/pedidos/{pedido['id_pedido']}/cancelar", headers=cabeceras_vendedor)
     assert respuesta.status_code == 409
 
-def test_cliente_no_ve_sus_pedidos_entregados(cliente, cabeceras_admin, cabeceras_cliente, pedido):
+def test_cliente_no_ve_sus_pedidos_entregados(cliente, cabeceras_vendedor, cabeceras_cliente, pedido):
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     assert cliente.get('/api/v1/pedidos', headers=cabeceras_cliente).json()['total'] == 0
     con_ocultos = cliente.get('/api/v1/pedidos?incluir_ocultos=true', headers=cabeceras_cliente).json()
     assert con_ocultos['total'] == 1
 
-def test_admin_si_ve_los_entregados(cliente, cabeceras_admin, pedido):
+def test_admin_si_ve_los_entregados(cliente, cabeceras_admin, cabeceras_vendedor, pedido):
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     assert cliente.get('/api/v1/pedidos', headers=cabeceras_admin).json()['total'] == 1
 
-def test_cliente_puede_consultar_su_pedido_entregado_por_id(cliente, cabeceras_admin, cabeceras_cliente, pedido):
+def test_cliente_puede_consultar_su_pedido_entregado_por_id(cliente, cabeceras_vendedor, cabeceras_cliente, pedido):
     for estado in ('Enviado', 'Entregado'):
-        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_admin)
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
     respuesta = cliente.get(f"/api/v1/pedidos/{pedido['id_pedido']}", headers=cabeceras_cliente)
     assert respuesta.status_code == 200
     assert respuesta.json()['oculto'] is True
