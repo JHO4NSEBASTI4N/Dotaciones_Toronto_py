@@ -221,7 +221,9 @@ const FORMULARIO_CONTACTO_INICIAL = {
 };
 
 const CLAVE_CARRITO_PORTADA = "carrito_portada";
-const PRODUCTOS_POR_PAGINA = 4;
+
+// La API de productos puede incluir disponibilidad y descripción en la portada.
+type ProductoPortada = Producto & { descripcion?: string | null; stock?: number };
 
 interface ItemCarritoPortada {
   producto: Producto;
@@ -240,12 +242,16 @@ export default function Portada() {
   const [contacto, setContacto] = useState(FORMULARIO_CONTACTO_INICIAL);
   const [enviado, setEnviado] = useState(false);
 
-  const [catalogo, setCatalogo] = useState<Producto[]>([]);
+  const [catalogo, setCatalogo] = useState<ProductoPortada[]>([]);
   const [descuentosPorProducto, setDescuentosPorProducto] = useState<Record<number, DescuentoVigente>>({});
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [paginaCatalogo, setPaginaCatalogo] = useState(0);
+  // Dos filas: 4 columnas en escritorio y 2 columnas en pantallas pequeñas.
+  const [productosPorPagina, setProductosPorPagina] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches ? 4 : 8
+  );
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [avisoCarrito, setAvisoCarrito] = useState("");
   const [carritoLocal, setCarritoLocal] = useState<ItemCarritoPortada[]>(() => {
@@ -316,6 +322,16 @@ export default function Portada() {
     void cargarCatalogo();
   }, []);
 
+  useEffect(() => {
+    const pantallaPequena = window.matchMedia("(max-width: 900px)");
+    const ajustarPagina = () => {
+      setProductosPorPagina(pantallaPequena.matches ? 4 : 8);
+      setPaginaCatalogo(0);
+    };
+    pantallaPequena.addEventListener("change", ajustarPagina);
+    return () => pantallaPequena.removeEventListener("change", ajustarPagina);
+  }, []);
+
   const productosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return catalogo;
@@ -330,13 +346,13 @@ export default function Portada() {
 
   const totalPaginasCatalogo = Math.max(
     1,
-    Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA)
+    Math.ceil(productosFiltrados.length / productosPorPagina)
   );
   const paginaVisibleCatalogo = Math.min(paginaCatalogo, totalPaginasCatalogo - 1);
   const productosPagina = useMemo(() => {
-    const inicio = paginaVisibleCatalogo * PRODUCTOS_POR_PAGINA;
-    return productosFiltrados.slice(inicio, inicio + PRODUCTOS_POR_PAGINA);
-  }, [productosFiltrados, paginaVisibleCatalogo]);
+    const inicio = paginaVisibleCatalogo * productosPorPagina;
+    return productosFiltrados.slice(inicio, inicio + productosPorPagina);
+  }, [productosFiltrados, paginaVisibleCatalogo, productosPorPagina]);
 
   const totalUnidadesCarrito = useMemo(
     () => carritoLocal.reduce((acc, item) => acc + item.cantidad, 0),
@@ -622,7 +638,7 @@ export default function Portada() {
                     const tieneStockDefinido = typeof producto.stock === "number";
                     const sinStock =
                       producto.estado?.toLowerCase() === "agotado" ||
-                      (tieneStockDefinido && producto.stock <= 0);
+                      (tieneStockDefinido && (producto.stock ?? 0) <= 0);
 
                     return (
                       <article
@@ -639,6 +655,7 @@ export default function Portada() {
                       >
                         <div
                           style={{
+                            position: "relative",
                             height: 150,
                             borderRadius: 8,
                             background: "#f8fafc",
@@ -657,6 +674,28 @@ export default function Portada() {
                           ) : (
                             <Package size={36} style={{ color: "#94a3b8" }} />
                           )}
+                          {tieneDescuento && desc && (
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                maxWidth: "calc(100% - 16px)",
+                                padding: "5px 8px",
+                                borderRadius: 6,
+                                color: "#ffffff",
+                                background: "#c2410c",
+                                fontSize: 11,
+                                fontWeight: 700,
+                                lineHeight: 1.2,
+                                textAlign: "right",
+                              }}
+                            >
+                              {desc.descuento.tipo_descuento === "PORCENTAJE"
+                                ? `${numero(desc.descuento.valor_descuento)}% de descuento`
+                                : `${pesos(desc.descuento.valor_descuento)} de descuento`}
+                            </span>
+                          )}
                         </div>
 
                         <div style={{ flex: 1 }}>
@@ -674,6 +713,14 @@ export default function Portada() {
                         </div>
 
                         <div>
+                          {tieneDescuento && desc && (
+                            <div style={{ marginBottom: 5, color: "#15803d", fontSize: 12, fontWeight: 700 }}>
+                              Promoción: {desc.descuento.tipo_descuento === "PORCENTAJE"
+                                ? `${numero(desc.descuento.valor_descuento)}% de descuento`
+                                : `${pesos(desc.descuento.valor_descuento)} de descuento`}
+                              {desc.descuento.fecha_fin && ` · Hasta ${desc.descuento.fecha_fin}`}
+                            </div>
+                          )}
                           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                             <strong style={{ fontSize: 16, color: "#0f172a" }}>
                               {pesos(precioFinal)}
@@ -713,14 +760,14 @@ export default function Portada() {
                             <button
                               type="button"
                               className="dt-boton-icono"
-                              disabled={sinStock || (tieneStockDefinido && cantidad >= producto.stock)}
+                              disabled={sinStock || (tieneStockDefinido && cantidad >= (producto.stock ?? 0))}
                               onClick={() =>
                                 setCantidades((prev) => {
                                   const siguiente = (prev[producto.id_producto] ?? 1) + 1;
                                   return {
                                     ...prev,
                                     [producto.id_producto]: tieneStockDefinido
-                                      ? Math.min(producto.stock, siguiente)
+                                      ? Math.min(producto.stock ?? siguiente, siguiente)
                                       : siguiente,
                                   };
                                 })
