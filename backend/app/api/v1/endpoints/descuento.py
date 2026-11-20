@@ -28,7 +28,7 @@ class DescuentoVigenteRespuesta(BaseModel):
     precio_unitario: Decimal
 
 
-@router.get("", response_model=PaginaRespuesta[DescuentoRespuesta])
+@router.get("", response_model=PaginaRespuesta[DescuentoRespuesta], dependencies=[SoloAdministrador])
 def listar(
     sesion: SesionBD,
     paginacion: ParametrosPaginacion = Depends(),
@@ -36,7 +36,7 @@ def listar(
     tipo_descuento: Optional[str] = Query(None, description="PORCENTAJE o FIJO"),
     activo: Optional[bool] = Query(None, description="true = vigentes"),
 ):
-    """Listado paginado de descuentos. Publico (no requiere token)."""
+    """Listado administrativo paginado de descuentos, incluidos los inactivos."""
     items, total = servicio.listar_descuentos(
         sesion,
         saltar=paginacion.saltar,
@@ -70,9 +70,9 @@ def vigente_de_producto(id_producto: int, sesion: SesionBD):
     )
 
 
-@router.get("/{id_descuento}", response_model=DescuentoRespuesta)
+@router.get("/{id_descuento}", response_model=DescuentoRespuesta, dependencies=[SoloAdministrador])
 def detalle(id_descuento: int, sesion: SesionBD):
-    """Detalle de un descuento. Publico."""
+    """Detalle administrativo de un descuento."""
     return servicio.obtener_descuento(sesion, id_descuento)
 
 

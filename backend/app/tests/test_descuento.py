@@ -94,8 +94,8 @@ def descuento_porcentaje(cliente, cabeceras_admin, producto):
 
 # --- listado y consulta ------------------------------------------------------
 
-def test_listar_vacio(cliente):
-    respuesta = cliente.get("/api/v1/descuentos")
+def test_listar_vacio(cliente, cabeceras_admin):
+    respuesta = cliente.get("/api/v1/descuentos", headers=cabeceras_admin)
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
     assert cuerpo["total"] == 0
@@ -103,47 +103,47 @@ def test_listar_vacio(cliente):
     assert cuerpo["limite"] == 20
 
 
-def test_listar_devuelve_el_descuento(cliente, descuento_porcentaje):
-    cuerpo = cliente.get("/api/v1/descuentos").json()
+def test_listar_devuelve_el_descuento(cliente, cabeceras_admin, descuento_porcentaje):
+    cuerpo = cliente.get("/api/v1/descuentos", headers=cabeceras_admin).json()
     assert cuerpo["total"] == 1
     assert cuerpo["items"][0]["tipo_descuento"] == "PORCENTAJE"
     assert cuerpo["items"][0]["valor_descuento"] == "10.00"
     assert cuerpo["items"][0]["activo"] is True
 
 
-def test_listar_no_expone_campos_internos(cliente, descuento_porcentaje):
-    campos = set(cliente.get("/api/v1/descuentos").json()["items"][0])
+def test_listar_no_expone_campos_internos(cliente, cabeceras_admin, descuento_porcentaje):
+    campos = set(cliente.get("/api/v1/descuentos", headers=cabeceras_admin).json()["items"][0])
     assert campos == {
         "id_descuento", "id_producto_fk", "tipo_descuento",
-        "valor_descuento", "activo",
+        "valor_descuento", "activo", "fecha_inicio", "fecha_fin",
     }
 
 
-def test_filtro_por_producto(cliente, descuento_porcentaje, producto_dos):
+def test_filtro_por_producto(cliente, cabeceras_admin, descuento_porcentaje, producto_dos):
     assert cliente.get(
-        f"/api/v1/descuentos?id_producto={descuento_porcentaje['id_producto_fk']}"
+        f"/api/v1/descuentos?id_producto={descuento_porcentaje['id_producto_fk']}", headers=cabeceras_admin
     ).json()["total"] == 1
 
     assert cliente.get(
-        f"/api/v1/descuentos?id_producto={producto_dos['id_producto']}"
+        f"/api/v1/descuentos?id_producto={producto_dos['id_producto']}", headers=cabeceras_admin
     ).json()["total"] == 0
 
 
-def test_filtro_por_tipo_y_activo(cliente, descuento_porcentaje):
-    assert cliente.get("/api/v1/descuentos?tipo_descuento=FIJO").json()["total"] == 0
-    assert cliente.get("/api/v1/descuentos?tipo_descuento=PORCENTAJE").json()["total"] == 1
-    assert cliente.get("/api/v1/descuentos?activo=true").json()["total"] == 1
-    assert cliente.get("/api/v1/descuentos?activo=false").json()["total"] == 0
+def test_filtro_por_tipo_y_activo(cliente, cabeceras_admin, descuento_porcentaje):
+    assert cliente.get("/api/v1/descuentos?tipo_descuento=FIJO", headers=cabeceras_admin).json()["total"] == 0
+    assert cliente.get("/api/v1/descuentos?tipo_descuento=PORCENTAJE", headers=cabeceras_admin).json()["total"] == 1
+    assert cliente.get("/api/v1/descuentos?activo=true", headers=cabeceras_admin).json()["total"] == 1
+    assert cliente.get("/api/v1/descuentos?activo=false", headers=cabeceras_admin).json()["total"] == 0
 
 
-def test_detalle_existente(cliente, descuento_porcentaje):
-    respuesta = cliente.get(f"/api/v1/descuentos/{descuento_porcentaje['id_descuento']}")
+def test_detalle_existente(cliente, cabeceras_admin, descuento_porcentaje):
+    respuesta = cliente.get(f"/api/v1/descuentos/{descuento_porcentaje['id_descuento']}", headers=cabeceras_admin)
     assert respuesta.status_code == 200
     assert respuesta.json()["id_descuento"] == descuento_porcentaje["id_descuento"]
 
 
-def test_detalle_inexistente_da_404(cliente):
-    assert cliente.get("/api/v1/descuentos/9999").status_code == 404
+def test_detalle_inexistente_da_404(cliente, cabeceras_admin):
+    assert cliente.get("/api/v1/descuentos/9999", headers=cabeceras_admin).status_code == 404
 
 
 def test_paginacion(cliente, cabeceras_admin, producto, producto_dos):
@@ -157,14 +157,14 @@ def test_paginacion(cliente, cabeceras_admin, producto, producto_dos):
             },
             headers=cabeceras_admin,
         )
-    cuerpo = cliente.get("/api/v1/descuentos?saltar=1&limite=1").json()
+    cuerpo = cliente.get("/api/v1/descuentos?saltar=1&limite=1", headers=cabeceras_admin).json()
     assert cuerpo["total"] == 2
     assert len(cuerpo["items"]) == 1
     assert cuerpo["saltar"] == 1
 
 
-def test_limite_mayor_al_maximo_da_422(cliente):
-    assert cliente.get("/api/v1/descuentos?limite=500").status_code == 422
+def test_limite_mayor_al_maximo_da_422(cliente, cabeceras_admin):
+    assert cliente.get("/api/v1/descuentos?limite=500", headers=cabeceras_admin).status_code == 422
 
 
 # --- creacion y validaciones -------------------------------------------------
@@ -314,14 +314,14 @@ def test_crear_segundo_apaga_el_primero(
     assert respuesta.status_code == 201
 
     vigentes = cliente.get(
-        f"/api/v1/descuentos?id_producto={producto['id_producto']}&activo=true"
+        f"/api/v1/descuentos?id_producto={producto['id_producto']}&activo=true", headers=cabeceras_admin
     ).json()
     assert vigentes["total"] == 1
     assert vigentes["items"][0]["id_descuento"] == respuesta.json()["id_descuento"]
 
     # El primero no se borro: sigue en la tabla, inactivo.
     todos = cliente.get(
-        f"/api/v1/descuentos?id_producto={producto['id_producto']}"
+        f"/api/v1/descuentos?id_producto={producto['id_producto']}", headers=cabeceras_admin
     ).json()
     assert todos["total"] == 2
 
@@ -413,7 +413,7 @@ def test_desactivar_no_borra(cliente, cabeceras_admin, descuento_porcentaje):
 
     # Sigue existiendo y se puede consultar.
     assert cliente.get(
-        f"/api/v1/descuentos/{descuento_porcentaje['id_descuento']}"
+        f"/api/v1/descuentos/{descuento_porcentaje['id_descuento']}", headers=cabeceras_admin
     ).status_code == 200
 
 
@@ -450,13 +450,13 @@ def test_activar_apaga_el_vigente(
     assert respuesta.json()["activo"] is True
 
     vigentes = cliente.get(
-        f"/api/v1/descuentos?id_producto={producto['id_producto']}&activo=true"
+        f"/api/v1/descuentos?id_producto={producto['id_producto']}&activo=true", headers=cabeceras_admin
     ).json()
     assert vigentes["total"] == 1
     assert vigentes["items"][0]["id_descuento"] == descuento_porcentaje["id_descuento"]
 
     # El segundo quedo inactivo, no borrado.
-    assert cliente.get(f"/api/v1/descuentos/{segundo['id_descuento']}").json()["activo"] is False
+    assert cliente.get(f"/api/v1/descuentos/{segundo['id_descuento']}", headers=cabeceras_admin).json()["activo"] is False
 
 
 def test_activar_uno_ya_activo_da_409(
@@ -575,3 +575,81 @@ def test_calcular_precio_final_ignora_descuento_inactivo():
     )
     assert rebaja == Decimal("0.00")
     assert final == Decimal("1000.00")
+
+# --- promociones programadas y permisos ------------------------------------
+
+def crear_programada(cliente, cabeceras, producto, inicio, fin, valor="10.00"):
+    return cliente.post("/api/v1/descuentos", headers=cabeceras, json={
+        "id_producto_fk": producto["id_producto"], "tipo_descuento": "PORCENTAJE",
+        "valor_descuento": valor, "fecha_inicio": inicio, "fecha_fin": fin,
+    })
+
+
+def fijar_fecha(monkeypatch, fecha):
+    from datetime import datetime
+    import app.repositories.descuento as repo
+    class Reloj(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls.fromisoformat(fecha + "T12:00:00").replace(tzinfo=tz)
+    monkeypatch.setattr(repo, "datetime", Reloj)
+
+
+def test_fechas_inclusivas_en_consulta_carrito_y_pedido(cliente, cabeceras_admin, cabeceras_cliente, producto, sesion, monkeypatch):
+    from app.models.inventario import Inventario
+    sesion.add(Inventario(id_producto_fk=producto["id_producto"], cantidad_actual=10, stock_minimo=1))
+    sesion.commit()
+    respuesta = crear_programada(cliente, cabeceras_admin, producto, "2030-01-10", "2030-01-20")
+    assert respuesta.status_code == 201, respuesta.text
+    url = f"/api/v1/descuentos/producto/{producto['id_producto']}"
+    fijar_fecha(monkeypatch, "2030-01-09")
+    assert cliente.get(url).status_code == 404
+    carro = cliente.post("/api/v1/carrito/items", headers=cabeceras_cliente, json={"id_producto": producto["id_producto"], "cantidad": 1})
+    assert carro.status_code == 201, carro.text
+    assert carro.json()["total"] == "30000.00"
+    fijar_fecha(monkeypatch, "2030-01-10")
+    assert cliente.get(url).json()["precio_unitario"] == "27000.00"
+    assert cliente.get("/api/v1/carrito", headers=cabeceras_cliente).json()["total"] == "27000.00"
+    fijar_fecha(monkeypatch, "2030-01-20")
+    assert cliente.get(url).json()["precio_unitario"] == "27000.00"
+    pedido = cliente.post("/api/v1/pedidos", headers=cabeceras_cliente)
+    assert pedido.status_code == 201, pedido.text
+    assert pedido.json()["total"] == "27000.00"
+    fijar_fecha(monkeypatch, "2030-01-21")
+    assert cliente.get(url).status_code == 404
+    assert cliente.get(f"/api/v1/pedidos/{pedido.json()['id_pedido']}", headers=cabeceras_cliente).json()["total"] == "27000.00"
+
+
+def test_fechas_invalidas_y_edicion_parcial(cliente, cabeceras_admin, producto):
+    assert crear_programada(cliente, cabeceras_admin, producto, "2030-03-02", "2030-03-01").status_code == 422
+    d = crear_programada(cliente, cabeceras_admin, producto, "2030-03-01", "2030-03-10").json()
+    res = cliente.patch(f"/api/v1/descuentos/{d['id_descuento']}", headers=cabeceras_admin, json={"fecha_inicio": "2030-03-11"})
+    assert res.status_code == 400
+    assert cliente.get(f"/api/v1/descuentos/{d['id_descuento']}", headers=cabeceras_admin).json()["fecha_inicio"] == "2030-03-01"
+
+
+def test_programar_sin_solapamientos_y_conflictos(cliente, cabeceras_admin, producto):
+    primero = crear_programada(cliente, cabeceras_admin, producto, "2030-01-01", "2030-01-10")
+    segundo = crear_programada(cliente, cabeceras_admin, producto, "2030-01-11", "2030-01-20")
+    assert primero.status_code == segundo.status_code == 201
+    assert crear_programada(cliente, cabeceras_admin, producto, "2030-01-10", "2030-01-11").status_code == 409
+    ruta = f"/api/v1/descuentos/{segundo.json()['id_descuento']}"
+    assert cliente.patch(ruta, headers=cabeceras_admin, json={"fecha_inicio": "2030-01-10"}).status_code == 409
+    assert cliente.post(ruta + "/desactivar", headers=cabeceras_admin).status_code == 200
+    assert crear_programada(cliente, cabeceras_admin, producto, "2030-01-11", "2030-01-20").status_code == 201
+    assert cliente.post(ruta + "/activar", headers=cabeceras_admin).status_code == 409
+
+
+@pytest.mark.parametrize("rol", [2, 3, 4])
+def test_gestion_de_promociones_solo_admin(cliente, sesion, cabeceras_admin, producto, rol):
+    crear_usuario_con_rol(sesion, f"rol{rol}@toronto.com", rol)
+    cabeceras = token_de(cliente, f"rol{rol}@toronto.com")
+    promo = crear_programada(cliente, cabeceras_admin, producto, "2030-01-01", "2030-01-10").json()
+    ruta = f"/api/v1/descuentos/{promo['id_descuento']}"
+    assert cliente.get("/api/v1/descuentos", headers=cabeceras).status_code == 403
+    assert cliente.get(ruta, headers=cabeceras).status_code == 403
+    assert crear_programada(cliente, cabeceras, producto, "2031-01-01", "2031-01-10").status_code == 403
+    assert cliente.patch(ruta, headers=cabeceras, json={"valor_descuento": 20}).status_code == 403
+    assert cliente.post(ruta + "/desactivar", headers=cabeceras).status_code == 403
+    assert cliente.post(ruta + "/activar", headers=cabeceras).status_code == 403
+    assert cliente.get("/api/v1/descuentos").status_code == 401

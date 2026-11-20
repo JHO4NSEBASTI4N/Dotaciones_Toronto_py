@@ -2,8 +2,8 @@
 
 Reglas de negocio implementadas aqui:
 
-  - Un producto tiene como maximo UN descuento activo. Al crear o activar uno
-    nuevo, los anteriores se apagan (no se borran: quedan como historial).
+  - Las promociones con fechas no se solapan por producto.
+  - Para compatibilidad, crear o activar descuentos sin fechas desactiva los anteriores.
   - No se descuenta un producto inexistente ni uno inhabilitado.
   - PORCENTAJE: el valor va de 0 a 100.
   - FIJO: el valor no puede superar el precio del producto (lo dejaria en cero).
@@ -11,7 +11,10 @@ Reglas de negocio implementadas aqui:
     para congelar el precio en `detalle_pedido`.
 """
 
+from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
+
+from sqlalchemy import select
 
 from sqlalchemy.orm import Session
 
@@ -155,13 +158,38 @@ def obtener_vigente_de_producto(
     }
 
 
+def _validar_fechas(inicio: date | None, fin: date | None) -> None:
+    if inicio and fin and inicio > fin:
+        raise ReglaNegocio("La fecha final no puede ser anterior al inicio")
+
+
+def _verificar_solapamiento(sesion, id_producto, inicio, fin, excluir=None):
+    """No hay dos promociones habilitadas para el mismo producto en un mismo día."""
+    # En MySQL serializa las modificaciones concurrentes para un mismo producto.
+    sesion.execute(select(Producto.id_producto).where(Producto.id_producto == id_producto).with_for_update()).first()
+    existentes = sesion.scalars(select(Descuento).where(
+        Descuento.id_producto_fk == id_producto, Descuento.activo == True,  # noqa: E712
+    ).with_for_update()).all()
+    for otro in existentes:
+        if otro.id_descuento == excluir:
+            continue
+        if (fin is None or otro.fecha_inicio is None or otro.fecha_inicio <= fin) and (
+            otro.fecha_fin is None or inicio is None or inicio <= otro.fecha_fin
+        ):
+            raise Conflicto("Ya existe una promoción habilitada para este producto en esas fechas. Edita sus fechas o desactívala.")
+
+
 def crear_descuento(sesion: Session, datos: DescuentoCrear) -> Descuento:
     repo = DescuentoRepositorio(sesion)
     producto = _obtener_producto_valido(sesion, datos.id_producto_fk)
     _validar_valor(datos.tipo_descuento, datos.valor_descuento, producto.precio)
 
-    # Un solo activo por producto: los anteriores pasan a inactivos (historial).
-    repo.desactivar_activos_de_producto(producto.id_producto)
+    _validar_fechas(datos.fecha_inicio, datos.fecha_fin)
+    if datos.fecha_inicio is None and datos.fecha_fin is None:
+        # Compatibilidad con clientes antiguos que creaban descuentos sin fechas.
+        repo.desactivar_activos_de_producto(producto.id_producto)
+    else:
+        _verificar_solapamiento(sesion, producto.id_producto, datos.fecha_inicio, datos.fecha_fin)
 
     descuento = repo.crear(datos)
     sesion.commit()
@@ -187,9 +215,11 @@ def actualizar_descuento(
     producto = _obtener_producto_valido(sesion, id_producto)
     _validar_valor(tipo, valor, producto.precio)
 
-    if id_producto != descuento.id_producto_fk and descuento.activo:
-        # Se mueve un descuento vigente a otro producto: manda el nuevo destino.
-        repo.desactivar_activos_de_producto(id_producto)
+    inicio = cambios.get("fecha_inicio", descuento.fecha_inicio)
+    fin = cambios.get("fecha_fin", descuento.fecha_fin)
+    _validar_fechas(inicio, fin)
+    if descuento.activo:
+        _verificar_solapamiento(sesion, id_producto, inicio, fin, descuento.id_descuento)
 
     descuento = repo.actualizar(descuento, datos)
     sesion.commit()
@@ -221,8 +251,10 @@ def activar_descuento(sesion: Session, id_descuento: int) -> Descuento:
         descuento.tipo_descuento, descuento.valor_descuento, producto.precio
     )
 
-    # Regla de un solo activo por producto: se apaga el que estuviera vigente.
-    repo.desactivar_activos_de_producto(descuento.id_producto_fk)
+    if descuento.fecha_inicio is None and descuento.fecha_fin is None:
+        repo.desactivar_activos_de_producto(descuento.id_producto_fk)
+    else:
+        _verificar_solapamiento(sesion, descuento.id_producto_fk, descuento.fecha_inicio, descuento.fecha_fin, descuento.id_descuento)
 
     descuento = repo.activar(descuento)
     sesion.commit()

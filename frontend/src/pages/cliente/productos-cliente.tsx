@@ -10,6 +10,7 @@ import { Minus, Plus, RefreshCw, Search, Shirt, ShoppingCart, Store, Tag } from 
 import {
   carrito as apiCarrito,
   descuentos,
+  ErrorApi,
   pesos,
   productos,
   traerTodo,
@@ -33,6 +34,7 @@ interface PrecioProducto {
   precio_lista: number;
   precio_final: number;
   tiene_descuento: boolean;
+  texto_descuento?: string;
 }
 
 export default function CatalogoVista() {
@@ -69,9 +71,13 @@ export default function CatalogoVista() {
                 precio_lista: Number(vigente.precio_lista),
                 precio_final: Number(vigente.precio_unitario),
                 tiene_descuento: Boolean(vigente.descuento),
+                texto_descuento: vigente.descuento.tipo_descuento === "PORCENTAJE"
+                  ? `${Number(vigente.descuento.valor_descuento)}% de descuento`
+                  : `${pesos(vigente.descuento.valor_descuento)} de descuento`,
               },
             ] as const;
-          } catch {
+          } catch (fallo) {
+            if (!(fallo instanceof ErrorApi && fallo.estado === 404)) throw fallo;
             return [
               producto.id_producto,
               {
@@ -228,7 +234,7 @@ export default function CatalogoVista() {
                       {producto.categoria || "Dotación"}
                     </span>
                     {precio?.tiene_descuento && (
-                      <span className="dt-producto-descuento">Oferta</span>
+                      <span className="dt-producto-descuento">{precio.texto_descuento || "Oferta"}</span>
                     )}
                   </div>
 
