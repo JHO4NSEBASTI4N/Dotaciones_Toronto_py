@@ -1,7 +1,8 @@
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, Numeric, String, text
+from sqlalchemy import BigInteger, Boolean, Date, ForeignKey, Integer, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -21,6 +22,9 @@ class Descuento(Base):
     activo: Mapped[bool] = mapped_column(
         Boolean, server_default=text("1"), default=True, nullable=False
     )
+
+    fecha_inicio: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    fecha_fin: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
     producto: Mapped[Optional["Producto"]] = relationship(
         "Producto", back_populates="descuentos"

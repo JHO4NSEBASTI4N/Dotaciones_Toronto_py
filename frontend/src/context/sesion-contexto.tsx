@@ -43,7 +43,7 @@ export const CLASE_ROL: Record<number, string> = {
 /** Qué módulos abre cada rol. Es la misma lista que usa el menú. */
 export const MODULOS_POR_ROL: Record<number, string[]> = {
   1: [
-    "dashboard", "usuarios", "roles", "productos", "pedidos", "ventas",
+    "dashboard", "usuarios", "roles", "productos", "promociones", "pedidos", "ventas",
     "devoluciones", "inventario", "alertas", "facturacion", "perfil",
   ],
   2: ["dashboard", "catalogo", "carrito", "mis-pedidos", "devoluciones", "perfil"],

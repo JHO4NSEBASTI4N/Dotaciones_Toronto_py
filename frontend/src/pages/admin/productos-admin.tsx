@@ -142,7 +142,11 @@ export default function ProductosAdmin() {
       talla: producto.talla,
       color: producto.color,
       precio_cop: Number(producto.precio),
-      estado: producto.inhabilitado ? "Inhabilitado" : "Disponible",
+      estado: producto.inhabilitado
+        ? "Inhabilitado"
+        : typeof producto.stock === "number" && producto.stock <= 0
+          ? "Agotado"
+          : "Disponible",
     })),
     grafica: contarPorCategoria(
       filtrados.map((producto) => producto.categoria),
@@ -399,9 +403,12 @@ export default function ProductosAdmin() {
 
                     <td>
                       <EtiquetaActivo
-                        activo={!producto.inhabilitado}
+                        activo={
+                          !producto.inhabilitado &&
+                          !(typeof producto.stock === "number" && producto.stock <= 0)
+                        }
                         textoActivo="Disponible"
-                        textoInactivo="Inhabilitado"
+                        textoInactivo={producto.inhabilitado ? "Inhabilitado" : "Agotado"}
                       />
                     </td>
 

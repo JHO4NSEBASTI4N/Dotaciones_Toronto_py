@@ -318,6 +318,10 @@ export default function InventarioVista() {
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    if (!idInventario) {
+      setError("Selecciona la talla y el color del inventario que vas a modificar.");
+      return;
+    }
     setGuardando(true);
     setError("");
 
@@ -343,6 +347,8 @@ export default function InventarioVista() {
       setGuardando(false);
     }
   };
+
+  const filasModal = producto ? filasDelProducto(producto.id_producto) : [];
 
   return (
     <section className="dt-modulo">
@@ -947,14 +953,24 @@ export default function InventarioVista() {
                       onChange={(e) => setIdInventario(e.target.value)}
                       required
                     >
-                      <option value="">Selecciona talla y color</option>
-                      {filasDelProducto(producto.id_producto).map((fila) => (
+                      <option value="" disabled={filasModal.length === 0}>
+                        {filasModal.length > 0
+                          ? "Selecciona talla y color"
+                          : "No hay filas activas de inventario para este producto"}
+                      </option>
+                      {filasModal.map((fila) => (
                         <option key={fila.id_inventario} value={fila.id_inventario}>
-                          Inventario #{fila.id_inventario} · hay {fila.cantidad_actual ?? 0} ·
-                          mínimo {fila.stock_minimo ?? 0}
+                          {producto.talla ?? "Talla única"} · {producto.color ?? "Color único"}
+                          {` · ${fila.cantidad_actual ?? 0} u. · fila #${fila.id_inventario}`}
                         </option>
                       ))}
                     </select>
+                    {filasModal.length === 0 && (
+                      <small>
+                        Recarga el inventario. Si continúa vacío, verifica que el producto tenga
+                        una fila de inventario activa.
+                      </small>
+                    )}
                   </label>
 
                   <label>
@@ -989,7 +1005,11 @@ export default function InventarioVista() {
                   Cancelar
                 </button>
 
-                <button type="submit" className="dt-accion-principal" disabled={guardando}>
+                <button
+                  type="submit"
+                  className="dt-accion-principal"
+                  disabled={guardando || filasModal.length === 0}
+                >
                   {guardando ? <span className="dt-spinner" /> : <Boxes size={15} />}
                   Registrar {operacion}
                 </button>

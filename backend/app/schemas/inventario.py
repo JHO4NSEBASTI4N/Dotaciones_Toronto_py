@@ -11,7 +11,19 @@ class _BitABooleano(BaseModel):
     @classmethod
     def convertir_bit(cls, valor: object) -> bool:
         if isinstance(valor, (bytes, bytearray)):
-            return valor != b"\x00"
+            try:
+                texto = bytes(valor).decode("ascii").strip()
+                if texto in {"0", "1"}:
+                    return texto == "1"
+            except UnicodeDecodeError:
+                pass
+            return any(valor)
+        if isinstance(valor, str):
+            texto = valor.strip().lower()
+            if texto in {"0", "false", "f", "no", "n", ""}:
+                return False
+            if texto in {"1", "true", "t", "yes", "s"}:
+                return True
         return bool(valor)
 
 
