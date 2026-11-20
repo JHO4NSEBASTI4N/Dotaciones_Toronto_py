@@ -34,7 +34,15 @@ def _obtener_fila_o_fallar(repo: InventarioRepositorio, id_inventario: int) -> I
 def _verificar_alerta(
     repo: InventarioRepositorio, id_producto: int | None, stock_nuevo: int, minimo: int
 ) -> AlertaStock | None:
-    """Genera alerta si el stock cayo al minimo o por debajo (una por dia)."""
+    """Genera alerta si el stock cayo al minimo o por debajo (una por dia) y sincroniza producto.estado."""
+    if id_producto is not None:
+        from app.models.producto import Producto
+
+        producto = repo.sesion.get(Producto, id_producto)
+        if producto is not None:
+            producto.estado = "Agotado" if stock_nuevo <= 0 else "Disponible"
+            repo.sesion.add(producto)
+
     if id_producto is None or stock_nuevo > minimo:
         return None
     if repo.alerta_vigente(id_producto) is not None:

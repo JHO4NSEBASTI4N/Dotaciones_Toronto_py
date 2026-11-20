@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type CSSProperties, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRight,
   Boxes,
   Check,
@@ -114,7 +115,7 @@ const ESTILO_TARJETA_BLANCA: CSSProperties = {
 const ESTILO_CONTACTO_SECCION: CSSProperties = {
   maxWidth: 1120,
   margin: "0 auto",
-  padding: "0 26px 96px", // ← más separación de la parte de abajo
+  padding: "0 26px 96px",
   background: "transparent",
   border: "none",
   boxShadow: "none",
@@ -230,6 +231,7 @@ const FORMULARIO_CONTACTO_INICIAL = {
 };
 
 const CLAVE_CARRITO_PORTADA = "carrito_portada";
+const PRODUCTOS_POR_PAGINA = 4;
 
 interface ItemCarritoPortada {
   producto: Producto;
@@ -259,6 +261,7 @@ export default function Portada() {
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [paginaCatalogo, setPaginaCatalogo] = useState(0);
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [avisoCarrito, setAvisoCarrito] = useState("");
   const [carritoLocal, setCarritoLocal] = useState<ItemCarritoPortada[]>(() => {
@@ -340,6 +343,16 @@ export default function Portada() {
     );
   }, [catalogo, busqueda]);
 
+  const totalPaginasCatalogo = Math.max(
+    1,
+    Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA)
+  );
+  const paginaVisibleCatalogo = Math.min(paginaCatalogo, totalPaginasCatalogo - 1);
+  const productosPagina = useMemo(() => {
+    const inicio = paginaVisibleCatalogo * PRODUCTOS_POR_PAGINA;
+    return productosFiltrados.slice(inicio, inicio + PRODUCTOS_POR_PAGINA);
+  }, [productosFiltrados, paginaVisibleCatalogo]);
+
   const totalUnidadesCarrito = useMemo(
     () => carritoLocal.reduce((acc, item) => acc + item.cantidad, 0),
     [carritoLocal]
@@ -397,7 +410,6 @@ export default function Portada() {
 
   function enviarContacto(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    // Cuando exista el endpoint de contacto en el backend, la llamada va aquí.
     setContacto(FORMULARIO_CONTACTO_INICIAL);
     setEnviado(true);
   }
@@ -411,7 +423,6 @@ export default function Portada() {
     );
   }
 
-  // Si ya inició sesión, no tiene sentido mostrarle la portada.
   if (usuario) {
     return (
       <Navigate
@@ -553,7 +564,10 @@ export default function Portada() {
                 <input
                   type="search"
                   value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
+                  onChange={(e) => {
+                    setBusqueda(e.target.value);
+                    setPaginaCatalogo(0);
+                  }}
                   placeholder="Buscar producto, talla o color..."
                   style={{ border: "none", outline: "none", fontSize: 13, minWidth: 200 }}
                 />
@@ -623,26 +637,6 @@ export default function Portada() {
               No hay productos disponibles en este momento.
             </div>
           ) : (
-<<<<<<< HEAD
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
-                gap: 16,
-              }}
-            >
-              {productosFiltrados.map((producto) => {
-                const desc = descuentosPorProducto[producto.id_producto];
-                const precioLista = numero(producto.precio);
-                const precioFinal = calcularPrecioConDescuento(producto.precio, desc);
-                const tieneDescuento = precioFinal < precioLista;
-                const cantidad = cantidades[producto.id_producto] ?? 1;
-                const imagen = urlImagenProducto(producto.imagen);
-                const tieneStockDefinido = typeof producto.stock === "number";
-                const sinStock =
-                  producto.estado?.toLowerCase() === "agotado" ||
-                  (tieneStockDefinido && producto.stock <= 0);
-=======
             <div className="portada-carrusel">
               <div className="portada-carrusel-escenario">
                 {totalPaginasCatalogo > 1 && (
@@ -669,131 +663,42 @@ export default function Portada() {
                     const sinStock =
                       producto.estado?.toLowerCase() === "agotado" ||
                       (tieneStockDefinido && producto.stock <= 0);
->>>>>>> 42c33ee423dc35f42d41cd58c793f70bd76a621e
 
-                return (
-                  <article
-                    key={producto.id_producto}
-                    style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 12,
-                      padding: 14,
-                      background: "#ffffff",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 150,
-                        borderRadius: 8,
-                        background: "#f8fafc",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {imagen ? (
-                        <img
-                          src={imagen}
-                          alt={producto.nombre}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <Package size={36} style={{ color: "#94a3b8" }} />
-                      )}
-                    </div>
-
-                    <div style={{ flex: 1 }}>
-                      <strong style={{ fontSize: 14.5, display: "block" }}>{producto.nombre}</strong>
-                      {(producto.talla || producto.color) && (
-                        <span style={{ fontSize: 12, color: "#64748b", display: "block", marginTop: 2 }}>
-                          {producto.talla ?? "Única"} · {producto.color ?? "Estándar"}
-                        </span>
-                      )}
-                      {producto.descripcion && (
-                        <p style={{ fontSize: 12, color: "#475569", margin: "6px 0 0" }}>
-                          {producto.descripcion}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                        <strong style={{ fontSize: 16, color: "#0f172a" }}>
-                          {pesos(precioFinal)}
-                        </strong>
-                        {tieneDescuento && (
-                          <s style={{ fontSize: 12, color: "#94a3b8" }}>{pesos(precioLista)}</s>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 11.5, color: sinStock ? "#dc2626" : "#64748b" }}>
-                        {sinStock
-                          ? "Agotado"
-                          : tieneStockDefinido
-                            ? `Disponible: ${producto.stock}`
-                            : "Disponible"}
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <button
-                          type="button"
-                          className="dt-boton-icono"
-                          disabled={sinStock || cantidad <= 1}
-                          onClick={() =>
-                            setCantidades((prev) => ({
-                              ...prev,
-                              [producto.id_producto]: Math.max(1, (prev[producto.id_producto] ?? 1) - 1),
-                            }))
-                          }
-                          aria-label="Disminuir cantidad"
-                        >
-                          <Minus size={13} />
-                        </button>
-                        <span style={{ minWidth: 22, textAlign: "center", fontSize: 13, fontWeight: 600 }}>
-                          {cantidad}
-                        </span>
-                        <button
-                          type="button"
-                          className="dt-boton-icono"
-                          disabled={sinStock || (tieneStockDefinido && cantidad >= producto.stock)}
-                          onClick={() =>
-                            setCantidades((prev) => {
-                              const siguiente = (prev[producto.id_producto] ?? 1) + 1;
-                              return {
-                                ...prev,
-                                [producto.id_producto]: tieneStockDefinido
-                                  ? Math.min(producto.stock, siguiente)
-                                  : siguiente,
-                              };
-                            })
-                          }
-                          aria-label="Aumentar cantidad"
-                        >
-                          <Plus size={13} />
-                        </button>
-                      </div>
-
-<<<<<<< HEAD
-                      <button
-                        type="button"
-                        className="dt-accion-principal"
-                        disabled={sinStock}
-                        onClick={() => agregarAlCarrito(producto)}
-                        style={{ flex: 1, justifyContent: "center", fontSize: 12.5, padding: "8px 10px" }}
+                    return (
+                      <article
+                        key={producto.id_producto}
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 12,
+                          padding: 14,
+                          background: "#ffffff",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
                       >
-                        <ShoppingCart size={14} />
-                        Agregar
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-=======
+                        <div
+                          style={{
+                            height: 150,
+                            borderRadius: 8,
+                            background: "#f8fafc",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {imagen ? (
+                            <img
+                              src={imagen}
+                              alt={producto.nombre}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <Package size={36} style={{ color: "#94a3b8" }} />
+                          )}
+                        </div>
+
                         <div style={{ flex: 1 }}>
                           <strong style={{ fontSize: 14.5, display: "block" }}>{producto.nombre}</strong>
                           {(producto.talla || producto.color) && (
@@ -914,7 +819,6 @@ export default function Portada() {
                   ))}
                 </nav>
               )}
->>>>>>> 42c33ee423dc35f42d41cd58c793f70bd76a621e
             </div>
           )}
 
