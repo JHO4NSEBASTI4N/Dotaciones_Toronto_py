@@ -1,8 +1,23 @@
 import pytest
+from sqlalchemy.dialects.mysql import dialect as dialecto_mysql
 
 from app.core.security import hashear_password
+from app.models.inventario import Inventario as ModeloInventario
 from app.models.usuario import Usuario
 from app.models.usuario_rol import UsuarioRol
+
+
+def test_inventario_interpreta_bit_mysql_cero_como_falso():
+    tipo = ModeloInventario.__table__.c.inhabilitado.type
+    convertir = tipo.result_processor(dialecto_mysql(), None)
+    enlazar = tipo.bind_processor(dialecto_mysql())
+
+    assert convertir is not None
+    assert enlazar is not None
+    assert convertir(b"\x00") is False
+    assert convertir(b"\x01") is True
+    assert enlazar(False) == 0
+    assert enlazar(True) == 1
 
 
 def crear_usuario_con_rol(sesion, correo: str, id_rol: int) -> Usuario:

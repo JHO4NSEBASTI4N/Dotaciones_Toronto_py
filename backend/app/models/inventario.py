@@ -1,9 +1,10 @@
 from typing import Optional
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, text
+from sqlalchemy import BigInteger, ForeignKey, Integer, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+from app.database.types import BooleanBit
 
 
 class Inventario(Base):
@@ -16,7 +17,7 @@ class Inventario(Base):
     cantidad_actual: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     stock_minimo: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     inhabilitado: Mapped[Optional[bool]] = mapped_column(
-        Boolean, server_default=text("b'0'"), nullable=True
+        BooleanBit(), server_default=text("b'0'"), nullable=True
     )
 
     producto: Mapped[Optional["Producto"]] = relationship(
