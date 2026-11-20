@@ -105,7 +105,7 @@ const ESTILO_TARJETA_BLANCA: CSSProperties = {
 const ESTILO_CONTACTO_SECCION: CSSProperties = {
   maxWidth: 1120,
   margin: "0 auto",
-  padding: "0 26px 96px", // ← más separación de la parte de abajo
+  padding: "0 26px 96px",
   background: "transparent",
   border: "none",
   boxShadow: "none",
@@ -221,9 +221,7 @@ const FORMULARIO_CONTACTO_INICIAL = {
 };
 
 const CLAVE_CARRITO_PORTADA = "carrito_portada";
-const PRODUCTOS_POR_PAGINA = 8;
-
-type ProductoPortada = Producto & { descripcion?: string | null; stock?: number };
+const PRODUCTOS_POR_PAGINA = 4;
 
 interface ItemCarritoPortada {
   producto: Producto;
@@ -233,7 +231,6 @@ interface ItemCarritoPortada {
 }
 
 function calcularPrecioConDescuento(precio: string | number, descuento?: DescuentoVigente): number {
-  // El backend es la fuente de verdad y aplica exactamente el mismo redondeo que el carrito.
   return descuento ? numero(descuento.precio_unitario) : numero(precio);
 }
 
@@ -243,7 +240,7 @@ export default function Portada() {
   const [contacto, setContacto] = useState(FORMULARIO_CONTACTO_INICIAL);
   const [enviado, setEnviado] = useState(false);
 
-  const [catalogo, setCatalogo] = useState<ProductoPortada[]>([]);
+  const [catalogo, setCatalogo] = useState<Producto[]>([]);
   const [descuentosPorProducto, setDescuentosPorProducto] = useState<Record<number, DescuentoVigente>>({});
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
@@ -331,15 +328,15 @@ export default function Portada() {
     );
   }, [catalogo, busqueda]);
 
-  const totalPaginasCatalogo = Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA);
-  const paginaVisibleCatalogo = Math.min(
-    paginaCatalogo,
-    Math.max(totalPaginasCatalogo - 1, 0)
+  const totalPaginasCatalogo = Math.max(
+    1,
+    Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA)
   );
-  const productosPagina = productosFiltrados.slice(
-    paginaVisibleCatalogo * PRODUCTOS_POR_PAGINA,
-    (paginaVisibleCatalogo + 1) * PRODUCTOS_POR_PAGINA
-  );
+  const paginaVisibleCatalogo = Math.min(paginaCatalogo, totalPaginasCatalogo - 1);
+  const productosPagina = useMemo(() => {
+    const inicio = paginaVisibleCatalogo * PRODUCTOS_POR_PAGINA;
+    return productosFiltrados.slice(inicio, inicio + PRODUCTOS_POR_PAGINA);
+  }, [productosFiltrados, paginaVisibleCatalogo]);
 
   const totalUnidadesCarrito = useMemo(
     () => carritoLocal.reduce((acc, item) => acc + item.cantidad, 0),
@@ -405,7 +402,6 @@ export default function Portada() {
 
   function enviarContacto(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    // Cuando exista el endpoint de contacto en el backend, la llamada va aquí.
     setContacto(FORMULARIO_CONTACTO_INICIAL);
     setEnviado(true);
   }
@@ -419,7 +415,6 @@ export default function Portada() {
     );
   }
 
-  // Si ya inició sesión, no tiene sentido mostrarle la portada.
   if (usuario) {
     return (
       <Navigate
@@ -627,7 +622,7 @@ export default function Portada() {
                     const tieneStockDefinido = typeof producto.stock === "number";
                     const sinStock =
                       producto.estado?.toLowerCase() === "agotado" ||
-                      (tieneStockDefinido && (producto.stock ?? 0) <= 0);
+                      (tieneStockDefinido && producto.stock <= 0);
 
                     return (
                       <article
@@ -679,12 +674,6 @@ export default function Portada() {
                         </div>
 
                         <div>
-                          {tieneDescuento && desc && (
-                            <span style={{ display: "block", color: "#15803d", fontSize: 12, fontWeight: 700 }}>
-                              Oferta: {desc.descuento.tipo_descuento === "PORCENTAJE" ? `${numero(desc.descuento.valor_descuento)}% de descuento` : `${pesos(desc.descuento.valor_descuento)} de descuento`}
-                              {desc.descuento.fecha_fin && ` · Hasta ${desc.descuento.fecha_fin}`}
-                            </span>
-                          )}
                           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                             <strong style={{ fontSize: 16, color: "#0f172a" }}>
                               {pesos(precioFinal)}
@@ -724,14 +713,14 @@ export default function Portada() {
                             <button
                               type="button"
                               className="dt-boton-icono"
-                              disabled={sinStock || (tieneStockDefinido && cantidad >= (producto.stock ?? 0))}
+                              disabled={sinStock || (tieneStockDefinido && cantidad >= producto.stock)}
                               onClick={() =>
                                 setCantidades((prev) => {
                                   const siguiente = (prev[producto.id_producto] ?? 1) + 1;
                                   return {
                                     ...prev,
                                     [producto.id_producto]: tieneStockDefinido
-                                      ? Math.min(producto.stock ?? siguiente, siguiente)
+                                      ? Math.min(producto.stock, siguiente)
                                       : siguiente,
                                   };
                                 })
