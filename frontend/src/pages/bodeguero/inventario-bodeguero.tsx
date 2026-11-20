@@ -1,7 +1,7 @@
 // src/pages/bodeguero/inventario.tsx
 //
 // Inventario por producto con imágenes, barras de progreso, selección múltiple,
-// exportación CSV y generación de reportes ejecutivos en PDF.
+// exportación CSV y generación de reportes ejecutivos en PDF y Excel unificados.
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
@@ -155,8 +155,8 @@ export default function InventarioVista() {
 
     return {
       modulo: "inventario",
-      titulo: "Reporte de inventario y existencias",
-      generado_por: usuario?.nombre ?? "Administrador",
+      titulo: "Reporte de inventario y existencias en bodega",
+      generado_por: usuario?.nombre ?? (esAdministrador ? "Administrador" : "Bodeguero"),
       indicadores: [
         { etiqueta: "Productos incluidos", valor: String(itemsAExportar.length) },
         { etiqueta: "Agotados", valor: String(agotados) },
@@ -164,28 +164,28 @@ export default function InventarioVista() {
         { etiqueta: "Stock normal", valor: String(normales) },
       ],
       columnas: [
-        { clave: "id", titulo: "Producto" },
-        { clave: "nombre", titulo: "Nombre" },
+        { clave: "id", titulo: "ID" },
+        { clave: "nombre", titulo: "Producto" },
         { clave: "categoria", titulo: "Categoría" },
         { clave: "talla", titulo: "Talla" },
         { clave: "color", titulo: "Color" },
-        { clave: "stock", titulo: "Stock actual" },
-        { clave: "minimo", titulo: "Stock mínimo" },
+        { clave: "stock", titulo: "Stock Actual" },
+        { clave: "minimo", titulo: "Stock Mínimo" },
         { clave: "estado", titulo: "Estado" },
       ],
       filas: itemsAExportar.map((fila) => ({
         id: fila.id_producto,
         nombre: fila.nombre,
-        categoria: fila.categoria,
-        talla: fila.talla,
-        color: fila.color,
+        categoria: fila.categoria ?? "General",
+        talla: fila.talla ?? "—",
+        color: fila.color ?? "—",
         stock: fila.stock_total,
         minimo: fila.stock_minimo,
         estado: fila.stock_total === 0
           ? "Agotado"
           : fila.bajo_minimo
             ? "Bajo mínimo"
-            : "Normal",
+            : "Disponible",
       })),
       grafica: contarPorCategoria(
         itemsAExportar.map((fila) =>
@@ -193,9 +193,9 @@ export default function InventarioVista() {
             ? "Agotado"
             : fila.bajo_minimo
               ? "Bajo mínimo"
-              : "Normal"
+              : "Disponible"
         ),
-        "Productos por nivel de inventario"
+        "Existencias por nivel de inventario"
       ),
     };
   };
@@ -215,7 +215,7 @@ export default function InventarioVista() {
     );
   };
 
-  // Exportar a archivo CSV
+  // Exportar a archivo CSV (respaldo plano)
   const exportarCSV = () => {
     const itemsAExportar =
       seleccionados.length > 0
@@ -253,129 +253,6 @@ export default function InventarioVista() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  // Exportar reporte ejecutivo en PDF (vista de impresión corporativa)
-  const exportarPDF = () => {
-    const itemsAExportar =
-      seleccionados.length > 0
-        ? filtrados.filter((f) => seleccionados.includes(f.id_producto))
-        : filtrados;
-
-    const totalUnidades = itemsAExportar.reduce((acc, item) => acc + item.stock_total, 0);
-    const totalCriticos = itemsAExportar.filter((item) => item.bajo_minimo).length;
-    const totalAgotados = itemsAExportar.filter((item) => item.stock_total === 0).length;
-
-    const ventana = window.open("", "_blank", "width=1000,height=800");
-    if (!ventana) {
-      setError("Por favor permite las ventanas emergentes para generar el reporte PDF.");
-      return;
-    }
-
-    const filasHtml = itemsAExportar
-      .map((f) => {
-        const estadoClase = f.stock_total === 0 ? "agotado" : f.bajo_minimo ? "bajo" : "ok";
-        const estadoTexto =
-          f.stock_total === 0 ? "AGOTADO" : f.bajo_minimo ? "BAJO MÍNIMO" : "DISPONIBLE";
-        return `
-        <tr>
-          <td><strong>${f.nombre}</strong></td>
-          <td>${f.categoria ?? "General"}</td>
-          <td>${f.talla ?? "—"} / ${f.color ?? "—"}</td>
-          <td style="text-align: right; font-weight: 700;">${f.stock_total} u.</td>
-          <td style="text-align: right; color: #64748b;">${f.stock_minimo} u.</td>
-          <td style="text-align: center;"><span class="badge ${estadoClase}">${estadoTexto}</span></td>
-        </tr>
-      `;
-      })
-      .join("");
-
-    ventana.document.write(`
-      <!DOCTYPE html>
-      <html lang="es">
-      <head>
-        <meta charset="UTF-8" />
-        <title>Reporte de Inventario - Dotaciones Toronto</title>
-        <style>
-          * { box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-          body { margin: 0; padding: 32px; color: #0f172a; background: #ffffff; }
-          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #881337; padding-bottom: 20px; margin-bottom: 24px; }
-          .brand h1 { margin: 0; font-size: 24px; font-weight: 800; color: #881337; letter-spacing: 0.5px; text-transform: uppercase; }
-          .brand p { margin: 4px 0 0; font-size: 13px; color: #64748b; }
-          .meta { text-align: right; font-size: 12px; color: #475569; line-height: 1.6; }
-          .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-          .kpi-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #f8fafc; }
-          .kpi-card span { display: block; font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; }
-          .kpi-card strong { display: block; font-size: 20px; margin-top: 4px; color: #0f172a; }
-          table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-          th { background: #0f172a; color: #ffffff; text-align: left; padding: 10px 12px; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.4px; }
-          td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
-          tr:nth-child(even) { background: #f8fafc; }
-          .badge { padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; display: inline-block; }
-          .badge.ok { background: #dcfce7; color: #166534; }
-          .badge.bajo { background: #fef3c7; color: #92400e; }
-          .badge.agotado { background: #fee2e2; color: #991b1b; }
-          .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; }
-          @media print {
-            body { padding: 16px; }
-            .kpi-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand">
-            <h1>Dotaciones Toronto</h1>
-            <p>Reporte Oficial de Existencias en Bodega</p>
-          </div>
-          <div class="meta">
-            <div><strong>Fecha de emisión:</strong> ${new Date().toLocaleDateString("es-CO")} ${new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}</div>
-            <div><strong>Generado por:</strong> ${usuario?.nombre ?? "Bodeguero"} (${usuario?.nombre_rol ?? "Bodega"})</div>
-            <div><strong>Alcance:</strong> ${seleccionados.length > 0 ? `${itemsAExportar.length} productos seleccionados` : "Inventario filtrado completo"}</div>
-          </div>
-        </div>
-
-        <div class="kpis">
-          <div class="kpi-card"><span>Referencias</span><strong>${itemsAExportar.length}</strong></div>
-          <div class="kpi-card"><span>Unidades Totales</span><strong>${totalUnidades} u.</strong></div>
-          <div class="kpi-card"><span>Bajo Mínimo</span><strong style="color: #d97706;">${totalCriticos}</strong></div>
-          <div class="kpi-card"><span>Agotados</span><strong style="color: #dc2626;">${totalAgotados}</strong></div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Producto / Dotación</th>
-              <th>Categoría</th>
-              <th>Talla / Color</th>
-              <th style="text-align: right;">Stock Actual</th>
-              <th style="text-align: right;">Mínimo</th>
-              <th style="text-align: center;">Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filasHtml}
-          </tbody>
-        </table>
-
-        <div class="footer">
-          <span>Sistema de Gestión de Inventarios · Dotaciones Toronto</span>
-          <span>Documento para control interno y auditoría de bodega</span>
-        </div>
-
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 250);
-          };
-        </script>
-      </body>
-      </html>
-    `);
-    ventana.document.close();
   };
 
   const productosDisponibles = useMemo(() => {
@@ -441,6 +318,10 @@ export default function InventarioVista() {
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    if (!idInventario) {
+      setError("Selecciona la talla y el color del inventario que vas a modificar.");
+      return;
+    }
     setGuardando(true);
     setError("");
 
@@ -467,6 +348,8 @@ export default function InventarioVista() {
     }
   };
 
+  const filasModal = producto ? filasDelProducto(producto.id_producto) : [];
+
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
@@ -483,24 +366,13 @@ export default function InventarioVista() {
             className="dt-acciones-inventario"
             style={{ display: "flex", gap: 8, flexWrap: "wrap" }}
           >
-            {esAdministrador && vista === "stock" && (
+            {/* Reportes unificados (PDF y Excel ejecutivos) para Bodeguero y Administrador */}
+            {vista === "stock" && (
               <BotonesReportesAdmin
                 crearReporte={crearReporte}
                 alError={setError}
                 deshabilitado={cargando || filtrados.length === 0}
               />
-            )}
-            {!esAdministrador && vista === "stock" && (
-              <button
-                type="button"
-                className="dt-boton-secundario"
-                onClick={exportarPDF}
-                disabled={cargando || filtrados.length === 0}
-                title="Generar reporte visual en PDF"
-              >
-                <ArrowDownToLine size={15} />
-                Reporte PDF {seleccionados.length > 0 ? `(${seleccionados.length})` : ""}
-              </button>
             )}
             {vista === "stock" && (
               <button
@@ -1081,14 +953,24 @@ export default function InventarioVista() {
                       onChange={(e) => setIdInventario(e.target.value)}
                       required
                     >
-                      <option value="">Selecciona talla y color</option>
-                      {filasDelProducto(producto.id_producto).map((fila) => (
+                      <option value="" disabled={filasModal.length === 0}>
+                        {filasModal.length > 0
+                          ? "Selecciona talla y color"
+                          : "No hay filas activas de inventario para este producto"}
+                      </option>
+                      {filasModal.map((fila) => (
                         <option key={fila.id_inventario} value={fila.id_inventario}>
-                          Inventario #{fila.id_inventario} · hay {fila.cantidad_actual ?? 0} ·
-                          mínimo {fila.stock_minimo ?? 0}
+                          {producto.talla ?? "Talla única"} · {producto.color ?? "Color único"}
+                          {` · ${fila.cantidad_actual ?? 0} u. · fila #${fila.id_inventario}`}
                         </option>
                       ))}
                     </select>
+                    {filasModal.length === 0 && (
+                      <small>
+                        Recarga el inventario. Si continúa vacío, verifica que el producto tenga
+                        una fila de inventario activa.
+                      </small>
+                    )}
                   </label>
 
                   <label>
@@ -1123,7 +1005,11 @@ export default function InventarioVista() {
                   Cancelar
                 </button>
 
-                <button type="submit" className="dt-accion-principal" disabled={guardando}>
+                <button
+                  type="submit"
+                  className="dt-accion-principal"
+                  disabled={guardando || filasModal.length === 0}
+                >
                   {guardando ? <span className="dt-spinner" /> : <Boxes size={15} />}
                   Registrar {operacion}
                 </button>
