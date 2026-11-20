@@ -623,6 +623,7 @@ export default function Portada() {
               No hay productos disponibles en este momento.
             </div>
           ) : (
+<<<<<<< HEAD
             <div
               style={{
                 display: "grid",
@@ -641,6 +642,34 @@ export default function Portada() {
                 const sinStock =
                   producto.estado?.toLowerCase() === "agotado" ||
                   (tieneStockDefinido && producto.stock <= 0);
+=======
+            <div className="portada-carrusel">
+              <div className="portada-carrusel-escenario">
+                {totalPaginasCatalogo > 1 && (
+                  <button
+                    type="button"
+                    className="portada-carrusel-flecha portada-carrusel-anterior"
+                    onClick={() => setPaginaCatalogo(Math.max(0, paginaVisibleCatalogo - 1))}
+                    disabled={paginaVisibleCatalogo === 0}
+                    aria-label="Ver productos anteriores"
+                    title="Productos anteriores"
+                  >
+                    <ArrowLeft size={20} />
+                  </button>
+                )}
+                <div className="portada-carrusel-grid" aria-live="polite">
+                  {productosPagina.map((producto) => {
+                    const desc = descuentosPorProducto[producto.id_producto];
+                    const precioLista = numero(producto.precio);
+                    const precioFinal = calcularPrecioConDescuento(producto.precio, desc);
+                    const tieneDescuento = precioFinal < precioLista;
+                    const cantidad = cantidades[producto.id_producto] ?? 1;
+                    const imagen = urlImagenProducto(producto.imagen);
+                    const tieneStockDefinido = typeof producto.stock === "number";
+                    const sinStock =
+                      producto.estado?.toLowerCase() === "agotado" ||
+                      (tieneStockDefinido && producto.stock <= 0);
+>>>>>>> 42c33ee423dc35f42d41cd58c793f70bd76a621e
 
                 return (
                   <article
@@ -749,6 +778,7 @@ export default function Portada() {
                         </button>
                       </div>
 
+<<<<<<< HEAD
                       <button
                         type="button"
                         className="dt-accion-principal"
@@ -763,6 +793,128 @@ export default function Portada() {
                   </article>
                 );
               })}
+=======
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ fontSize: 14.5, display: "block" }}>{producto.nombre}</strong>
+                          {(producto.talla || producto.color) && (
+                            <span style={{ fontSize: 12, color: "#64748b", display: "block", marginTop: 2 }}>
+                              {producto.talla ?? "Única"} · {producto.color ?? "Estándar"}
+                            </span>
+                          )}
+                          {producto.descripcion && (
+                            <p style={{ fontSize: 12, color: "#475569", margin: "6px 0 0" }}>
+                              {producto.descripcion}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                            <strong style={{ fontSize: 16, color: "#0f172a" }}>
+                              {pesos(precioFinal)}
+                            </strong>
+                            {tieneDescuento && (
+                              <s style={{ fontSize: 12, color: "#94a3b8" }}>{pesos(precioLista)}</s>
+                            )}
+                          </div>
+                          <span style={{ fontSize: 11.5, color: sinStock ? "#dc2626" : "#64748b" }}>
+                            {sinStock
+                              ? "Agotado"
+                              : tieneStockDefinido
+                                ? `Disponible: ${producto.stock}`
+                                : "Disponible"}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <button
+                              type="button"
+                              className="dt-boton-icono"
+                              disabled={sinStock || cantidad <= 1}
+                              onClick={() =>
+                                setCantidades((prev) => ({
+                                  ...prev,
+                                  [producto.id_producto]: Math.max(1, (prev[producto.id_producto] ?? 1) - 1),
+                                }))
+                              }
+                              aria-label="Disminuir cantidad"
+                            >
+                              <Minus size={13} />
+                            </button>
+                            <span style={{ minWidth: 22, textAlign: "center", fontSize: 13, fontWeight: 600 }}>
+                              {cantidad}
+                            </span>
+                            <button
+                              type="button"
+                              className="dt-boton-icono"
+                              disabled={sinStock || (tieneStockDefinido && cantidad >= producto.stock)}
+                              onClick={() =>
+                                setCantidades((prev) => {
+                                  const siguiente = (prev[producto.id_producto] ?? 1) + 1;
+                                  return {
+                                    ...prev,
+                                    [producto.id_producto]: tieneStockDefinido
+                                      ? Math.min(producto.stock, siguiente)
+                                      : siguiente,
+                                  };
+                                })
+                              }
+                              aria-label="Aumentar cantidad"
+                            >
+                              <Plus size={13} />
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="dt-accion-principal"
+                            disabled={sinStock}
+                            onClick={() => agregarAlCarrito(producto)}
+                            style={{ flex: 1, justifyContent: "center", fontSize: 12.5, padding: "8px 10px" }}
+                          >
+                            <ShoppingCart size={14} />
+                            Agregar
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+                {totalPaginasCatalogo > 1 && (
+                  <button
+                    type="button"
+                    className="portada-carrusel-flecha portada-carrusel-siguiente"
+                    onClick={() =>
+                      setPaginaCatalogo(
+                        Math.min(paginaVisibleCatalogo + 1, totalPaginasCatalogo - 1)
+                      )
+                    }
+                    disabled={paginaVisibleCatalogo >= totalPaginasCatalogo - 1}
+                    aria-label="Ver productos siguientes"
+                    title="Productos siguientes"
+                  >
+                    <ArrowRight size={20} />
+                  </button>
+                )}
+              </div>
+              {totalPaginasCatalogo > 1 && (
+                <nav className="portada-carrusel-puntos" aria-label="Páginas del catálogo">
+                  {Array.from({ length: totalPaginasCatalogo }, (_, pagina) => (
+                    <button
+                      key={pagina}
+                      type="button"
+                      className={`portada-carrusel-punto ${
+                        paginaVisibleCatalogo === pagina ? "activo" : ""
+                      }`}
+                      onClick={() => setPaginaCatalogo(pagina)}
+                      aria-label={`Ver página ${pagina + 1} de ${totalPaginasCatalogo}`}
+                      aria-current={paginaVisibleCatalogo === pagina ? "page" : undefined}
+                    />
+                  ))}
+                </nav>
+              )}
+>>>>>>> 42c33ee423dc35f42d41cd58c793f70bd76a621e
             </div>
           )}
 
