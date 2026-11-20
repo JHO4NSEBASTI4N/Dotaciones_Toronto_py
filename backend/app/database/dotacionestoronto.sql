@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 14-11-2026 a las 22:35:14
+-- Tiempo de generación: 20-11-2026 a las 21:40:45
 -- Versión del servidor: 10.11.16-MariaDB
 -- Versión de PHP: 8.5.12
 
@@ -53,9 +53,10 @@ CREATE TABLE `carrito` (
 --
 
 INSERT INTO `carrito` (`id_carrito`, `id_usuario_fk`, `fecha_creacion`, `inhabilitado`) VALUES
-(1, 14, '2026-11-13', 0),
+(1, 14, '2026-11-13', 1),
 (2, 19, '2026-11-13', 0),
-(3, 13, '2026-11-13', 0);
+(3, 13, '2026-11-13', 0),
+(4, 14, '2026-11-18', 0);
 
 -- --------------------------------------------------------
 
@@ -68,8 +69,17 @@ CREATE TABLE `descuento` (
   `id_producto_fk` bigint(20) DEFAULT NULL,
   `tipo_descuento` varchar(50) DEFAULT NULL,
   `valor_descuento` decimal(10,2) DEFAULT NULL,
-  `activo` tinyint(1) NOT NULL DEFAULT 1
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `fecha_inicio` date DEFAULT NULL,
+  `fecha_fin` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `descuento`
+--
+
+INSERT INTO `descuento` (`id_descuento`, `id_producto_fk`, `tipo_descuento`, `valor_descuento`, `activo`, `fecha_inicio`, `fecha_fin`) VALUES
+(1, 6, 'PORCENTAJE', 10.00, 1, '2026-11-20', '2026-11-21');
 
 -- --------------------------------------------------------
 
@@ -84,6 +94,13 @@ CREATE TABLE `detalle_carrito` (
   `cantidad` int(11) DEFAULT NULL,
   `inhabilitado` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `detalle_carrito`
+--
+
+INSERT INTO `detalle_carrito` (`id_detalle_carrito`, `id_carrito_fk`, `id_producto_fk`, `cantidad`, `inhabilitado`) VALUES
+(1, 1, 6, 3, 0);
 
 -- --------------------------------------------------------
 
@@ -113,7 +130,8 @@ INSERT INTO `detalle_pedido` (`id_detalle_pedido`, `id_pedido_fk`, `id_producto_
 (9, 9, 12, 30000.00, 1, 0, NULL, 0.00),
 (10, 9, 11, 45000.00, 1, 0, NULL, 0.00),
 (11, 9, 10, 30000.00, 1, 0, NULL, 0.00),
-(12, 9, 9, 5000.00, 1, 0, NULL, 0.00);
+(12, 9, 9, 5000.00, 1, 0, NULL, 0.00),
+(13, 10, 6, 30000.00, 3, 0, 30000.00, 0.00);
 
 -- --------------------------------------------------------
 
@@ -141,7 +159,8 @@ INSERT INTO `detalle_venta` (`id_detalle_venta`, `id_venta_fk`, `id_producto_fk`
 (2, 2, 12, 1, 30000.00, 0, NULL, 0.00),
 (3, 2, 11, 1, 45000.00, 0, NULL, 0.00),
 (4, 2, 10, 1, 30000.00, 0, NULL, 0.00),
-(5, 2, 9, 1, 5000.00, 0, NULL, 0.00);
+(5, 2, 9, 1, 5000.00, 0, NULL, 0.00),
+(6, 3, 6, 3, 30000.00, 0, 30000.00, 0.00);
 
 -- --------------------------------------------------------
 
@@ -178,6 +197,13 @@ CREATE TABLE `factura` (
   `fecha_factura` datetime DEFAULT NULL,
   `estado` varchar(50) NOT NULL DEFAULT 'Vigente'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `factura`
+--
+
+INSERT INTO `factura` (`id_factura`, `id_venta_fk`, `total_factura`, `fecha_factura`, `estado`) VALUES
+(1, 3, 90000.00, '2026-11-18 22:24:23', 'Vigente');
 
 -- --------------------------------------------------------
 
@@ -336,7 +362,7 @@ INSERT INTO `inventario` (`id_inventario`, `id_producto_fk`, `cantidad_actual`, 
 (11, 9, 10, 5, b'0'),
 (12, 8, 0, 40, b'0'),
 (13, 10, 50, 20, b'0'),
-(14, 6, 30, 10, b'0'),
+(14, 6, 27, 10, b'0'),
 (16, 11, 40, 20, b'0'),
 (17, 12, 30, 31, b'0'),
 (18, 10, 23, 40, b'0');
@@ -380,7 +406,8 @@ INSERT INTO `movimientos_inventario` (`id`, `id_inventario`, `nombre_producto`, 
 (15, 10, 'Overol - L - Azul', 'SALIDA', 30, 'Situación actual del producto.', 'benzema', '2026-09-10 18:36:33'),
 (16, 16, 'Chaqueta  - S - Azul', 'ENTRADA', 40, 'Registro inicial de inventario (Admin)', 'benzema', '2026-09-10 18:42:44'),
 (17, 17, 'Pantalón Jean - M - Azul Oscuro', 'ENTRADA', 30, 'Registro inicial de inventario (Admin)', 'benzema', '2026-09-10 18:48:18'),
-(18, 18, 'Zapatos - L - Azul', 'ENTRADA', 23, 'Registro inicial de inventario (Admin)', 'jefferson', '2026-09-16 17:26:56');
+(18, 18, 'Zapatos - L - Azul', 'ENTRADA', 23, 'Registro inicial de inventario (Admin)', 'jefferson', '2026-09-16 17:26:56'),
+(19, 14, 'Camisa', 'SALIDA', 3, 'Pedido #10 entregado', 'david', '2026-11-18 22:24:23');
 
 -- --------------------------------------------------------
 
@@ -404,7 +431,8 @@ INSERT INTO `pedido` (`id_pedido`, `id_usuario_fk`, `fecha_pedido`, `estado`, `o
 (6, 13, '2026-09-16 01:49:14.000000', 'Cancelado', b'0'),
 (7, 13, '2026-09-16 01:49:21.000000', 'Entregado', b'1'),
 (8, 13, '2026-09-16 16:49:47.000000', 'Cancelado', b'0'),
-(9, 13, '2026-09-16 19:07:07.000000', 'Entregado', b'1');
+(9, 13, '2026-09-16 19:07:07.000000', 'Entregado', b'1'),
+(10, 14, '2026-11-18 22:23:55.227795', 'Entregado', b'0');
 
 -- --------------------------------------------------------
 
@@ -435,7 +463,9 @@ INSERT INTO `producto` (`id_producto`, `nombre`, `precio`, `talla`, `color`, `im
 (9, 'Medias', 5000.00, 'S', 'Azul', NULL, 'Disponible', b'0', 'Calzado'),
 (10, 'Zapatos', 30000.00, 'L', 'Azul', NULL, 'Disponible', b'0', 'Calzado'),
 (11, 'Chaqueta ', 45000.00, 'S', 'Azul', NULL, 'Disponible', b'0', 'Chaquetas'),
-(12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones');
+(12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones'),
+(14, 'cazco', 20000.00, '34', 'nergo', NULL, 'Disponible', b'0', 'Protección Personal'),
+(15, 'botas', 30000.00, 's', 'negros', NULL, 'Disponible', b'0', 'Protección Personal');
 
 -- --------------------------------------------------------
 
@@ -518,7 +548,7 @@ INSERT INTO `usuario` (`id_usuario`, `nombre`, `documento`, `correo`, `telefono`
 (16, 'Administrador', '0000000000', 'admin@dotacionestoronto.com', '0000000000', '$2a$10$nDWHoF9PA0oflPjxkkjK6.U5YcJQ/IDHhBoEoQABnixCEhS5sthny', 'Oficina principal', 'Habilitado', 1),
 (17, 'bladimir', '10203040', 'bladimir@gmail.com', '001', '$2a$10$9Hvg9FtiJoH8tT8U9rT4Pe4Yj97OMo/I2ixgH8d6PlK3uCQN.XWVi', '1234567890', 'Habilitado', 2),
 (18, 'dylan', '4573453', 'dylan@gmail.com', '32735437435', '$2a$10$UTzzHpiJk5pwPld2TYsKaOevB4Vqqo4LUgTSF.kKfgCldGgBbL/8y', 'calle', 'Habilitado', 2),
-(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Inhabilitado', 2);
+(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Habilitado', 2);
 
 -- --------------------------------------------------------
 
@@ -548,7 +578,9 @@ INSERT INTO `usuario_rol` (`id_usuario_rol`, `id_usuario_fk`, `id_rol_fk`, `acti
 (12, 13, 2, 1),
 (13, 13, 3, 1),
 (14, 14, 2, 1),
-(15, 15, 2, 1);
+(15, 15, 2, 1),
+(16, 14, 4, 1),
+(17, 14, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -572,7 +604,8 @@ CREATE TABLE `venta` (
 
 INSERT INTO `venta` (`id_venta`, `id_usuario_fk`, `id_pedido_fk`, `fecha_venta`, `total_pagado`, `estado`, `metodo_pago`) VALUES
 (1, 13, 7, '2026-09-16 01:49:59.000000', 120000, 'Completada', NULL),
-(2, 13, 9, '2026-10-23 18:44:25.000000', 110000, 'Completada', NULL);
+(2, 13, 9, '2026-10-23 18:44:25.000000', 110000, 'Completada', NULL),
+(3, 14, 10, '2026-11-18 22:24:23.979033', 90000, 'Completada', 'Transferencia');
 
 --
 -- Índices para tablas volcadas
@@ -739,31 +772,31 @@ ALTER TABLE `alerta_stock`
 -- AUTO_INCREMENT de la tabla `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_carrito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `descuento`
 --
 ALTER TABLE `descuento`
-  MODIFY `id_descuento` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_descuento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_carrito`
 --
 ALTER TABLE `detalle_carrito`
-  MODIFY `id_detalle_carrito` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle_carrito` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
-  MODIFY `id_detalle_pedido` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_detalle_pedido` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `id_detalle_venta` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_detalle_venta` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `devolucion`
@@ -775,7 +808,7 @@ ALTER TABLE `devolucion`
 -- AUTO_INCREMENT de la tabla `factura`
 --
 ALTER TABLE `factura`
-  MODIFY `id_factura` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_factura` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `factura_electronica`
@@ -805,19 +838,19 @@ ALTER TABLE `inventario`
 -- AUTO_INCREMENT de la tabla `movimientos_inventario`
 --
 ALTER TABLE `movimientos_inventario`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT de la tabla `pedido`
 --
 ALTER TABLE `pedido`
-  MODIFY `id_pedido` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_pedido` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de la tabla `producto`
 --
 ALTER TABLE `producto`
-  MODIFY `id_producto` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id_producto` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `resolucion_facturacion`
@@ -841,13 +874,13 @@ ALTER TABLE `usuario`
 -- AUTO_INCREMENT de la tabla `usuario_rol`
 --
 ALTER TABLE `usuario_rol`
-  MODIFY `id_usuario_rol` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id_usuario_rol` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT de la tabla `venta`
 --
 ALTER TABLE `venta`
-  MODIFY `id_venta` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_venta` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Restricciones para tablas volcadas
