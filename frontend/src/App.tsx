@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Store,
+  Tag,
   UserRound,
   Users,
   X,
@@ -63,6 +64,7 @@ import UsuariosAdmin from "./pages/admin/usuarios-admin";
 import EditarUsuarioAdmin from "./pages/admin/editar-usuario-admin";
 import RolesAdmin from "./pages/admin/roles-admin";
 import ProductosAdmin from "./pages/admin/productos-admin";
+import PromocionesAdmin from "./pages/admin/promociones-admin";
 import InventarioAdmin from "./pages/admin/inventario-admin";
 import PedidosAdmin from "./pages/admin/pedidos-admin";
 import VentasAdmin from "./pages/admin/ventas-admin";
@@ -110,6 +112,7 @@ const MENU: Record<number, EnlaceMenu[]> = {
     { modulo: "usuarios", texto: "Usuarios", ruta: "/admin/usuarios", Icono: Users },
     { modulo: "roles", texto: "Roles y permisos", ruta: "/admin/roles", Icono: ShieldCheck },
     { modulo: "productos", texto: "Productos", ruta: "/admin/productos", Icono: Package },
+    { modulo: "promociones", texto: "Promociones y descuentos", ruta: "/admin/promociones", Icono: Tag },
     { modulo: "pedidos", texto: "Pedidos", ruta: "/admin/pedidos", Icono: ClipboardList },
     { modulo: "ventas", texto: "Ventas", ruta: "/admin/ventas", Icono: CreditCard },
     { modulo: "devoluciones", texto: "Devoluciones", ruta: "/admin/devoluciones", Icono: ArrowLeftRight },
@@ -152,6 +155,7 @@ const DESCRIPCION_MODULO: Record<string, string> = {
   usuarios: "cuentas, roles asignados y estado",
   roles: "qué puede hacer cada rol del sistema",
   productos: "catálogo de dotaciones y sus precios",
+  promociones: "descuentos y promociones programadas",
   pedidos: "solicitudes pendientes de despacho",
   ventas: "facturas emitidas y su estado",
   devoluciones: "solicitudes de cambio o devolución",
@@ -644,6 +648,9 @@ function RutasConManejoErrores() {
               </Route>
               <Route element={<RutaConModulo modulo="productos" />}>
                 <Route path="/admin/productos" element={<ProductosAdmin />} />
+              </Route>
+              <Route element={<RutaConModulo modulo="promociones" />}>
+                <Route path="/admin/promociones" element={<PromocionesAdmin />} />
               </Route>
               <Route element={<RutaConModulo modulo="pedidos" />}>
                 <Route path="/admin/pedidos" element={<PedidosAdmin />} />

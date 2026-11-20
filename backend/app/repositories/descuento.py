@@ -1,6 +1,15 @@
 """Acceso a datos de descuentos. No hace commit: eso lo cierra el servicio."""
 
-from sqlalchemy import func, select, update
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+try:
+    ZONA_COLOMBIA = ZoneInfo("America/Bogota")
+except ZoneInfoNotFoundError:
+    # Windows puede no tener la base IANA instalada; Colombia usa UTC-05.
+    ZONA_COLOMBIA = timezone(timedelta(hours=-5))
+
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models.descuento import Descuento
@@ -56,11 +65,14 @@ class DescuentoRepositorio:
 
     def buscar_activo_por_producto(self, id_producto: int) -> Descuento | None:
         """El descuento vigente de un producto (a lo sumo uno, ver el servicio)."""
+        hoy = datetime.now(ZONA_COLOMBIA).date()
         return self.sesion.scalar(
             select(Descuento)
             .where(
                 Descuento.id_producto_fk == id_producto,
                 Descuento.activo == True,  # noqa: E712
+                or_(Descuento.fecha_inicio.is_(None), Descuento.fecha_inicio <= hoy),
+                or_(Descuento.fecha_fin.is_(None), Descuento.fecha_fin >= hoy),
             )
             .order_by(Descuento.id_descuento.desc())
         )

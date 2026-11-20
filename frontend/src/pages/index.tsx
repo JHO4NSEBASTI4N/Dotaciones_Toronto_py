@@ -22,13 +22,14 @@ import {
 import { useSesion } from "../context/sesion-contexto";
 import {
   descuentos,
+  ErrorApi,
   numero,
   pesos,
   productos,
   traerTodo,
   urlImagenProducto,
 } from "../services/api";
-import type { Descuento, Producto } from "../types";
+import type { DescuentoVigente, Producto } from "../types";
 import imagenError500 from "./error/error-500.png";
 
 /* 🖼️ Fondo de la portada.
@@ -240,14 +241,8 @@ interface ItemCarritoPortada {
   cantidad: number;
 }
 
-function calcularPrecioConDescuento(precio: string | number, descuento?: Descuento): number {
-  const base = numero(precio);
-  if (!descuento || descuento.inhabilitado) return base;
-  const valor = numero(descuento.valor);
-  if (descuento.tipo_descuento === "PORCENTAJE") {
-    return Math.max(0, base * (1 - valor / 100));
-  }
-  return Math.max(0, base - valor);
+function calcularPrecioConDescuento(precio: string | number, descuento?: DescuentoVigente): number {
+  return descuento ? numero(descuento.precio_unitario) : numero(precio);
 }
 
 export default function Portada() {
@@ -257,7 +252,7 @@ export default function Portada() {
   const [enviado, setEnviado] = useState(false);
 
   const [catalogo, setCatalogo] = useState<Producto[]>([]);
-  const [descuentosPorProducto, setDescuentosPorProducto] = useState<Record<number, Descuento>>({});
+  const [descuentosPorProducto, setDescuentosPorProducto] = useState<Record<number, DescuentoVigente>>({});
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
   const [busqueda, setBusqueda] = useState("");
@@ -302,13 +297,14 @@ export default function Portada() {
                 redirigirEnError: false,
               });
               return desc ? ([p.id_producto, desc] as const) : null;
-            } catch {
-              return null;
+            } catch (fallo) {
+              if (fallo instanceof ErrorApi && fallo.estado === 404) return null;
+              throw fallo;
             }
           })
         );
 
-        const mapa: Record<number, Descuento> = {};
+        const mapa: Record<number, DescuentoVigente> = {};
         for (const par of pares) {
           if (par) mapa[par[0]] = par[1];
         }

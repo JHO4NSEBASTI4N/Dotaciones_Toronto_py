@@ -1,6 +1,26 @@
 /* Estilos específicos del rol: bodeguero. */
 /* Las reglas comunes viven en ../index.css. */
 
+/* Fondo del panel de bodega. */
+.dt-layout-bodeguero {
+  background-color: #f8fafc;
+  background-image: url("../../images/fondo_bodeguero.svg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.dt-layout-bodeguero .dt-contenido {
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  .dt-layout-bodeguero {
+    background-attachment: scroll;
+  }
+}
+
 .dt-layout-bodeguero .dt-sidebar {
   background:
     radial-gradient(420px 260px at 0% 0%, rgba(248, 113, 113, 0.24), transparent 62%),

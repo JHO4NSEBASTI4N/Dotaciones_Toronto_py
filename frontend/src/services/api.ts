@@ -362,10 +362,12 @@ export const descuentos = {
     id_producto_fk: number;
     tipo_descuento: string;
     valor_descuento: number;
+    fecha_inicio?: string | null;
+    fecha_fin?: string | null;
   }) => api.post<Descuento>("/descuentos", datos),
   actualizar: (
     id: number,
-    datos: { tipo_descuento?: string; valor_descuento?: number }
+    datos: { tipo_descuento?: string; valor_descuento?: number; fecha_inicio?: string | null; fecha_fin?: string | null }
   ) => api.patch<Descuento>(`/descuentos/${id}`, datos),
   activar: (id: number) => api.post<Descuento>(`/descuentos/${id}/activar`),
   desactivar: (id: number) => api.post<Descuento>(`/descuentos/${id}/desactivar`),

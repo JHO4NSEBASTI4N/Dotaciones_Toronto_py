@@ -11,6 +11,7 @@ Decisiones de diseno:
     por eso el validator que lo convierte a booleano.
 """
 
+from datetime import date
 from decimal import Decimal
 from typing import Literal, Optional
 
@@ -24,11 +25,16 @@ class DescuentoBase(BaseModel):
     tipo_descuento: TipoDescuento
     valor_descuento: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
 
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+
     @model_validator(mode="after")
     def validar_rango_porcentaje(self):
         """Un porcentaje mayor a 100 regalaria el producto y ademas lo dejaria negativo."""
         if self.tipo_descuento == "PORCENTAJE" and self.valor_descuento > 100:
             raise ValueError("Un descuento PORCENTAJE no puede ser mayor a 100")
+        if self.fecha_inicio and self.fecha_fin and self.fecha_fin < self.fecha_inicio:
+            raise ValueError("La fecha final no puede ser anterior al inicio")
         return self
 
 
@@ -49,6 +55,9 @@ class DescuentoActualizar(BaseModel):
     valor_descuento: Optional[Decimal] = Field(
         default=None, gt=0, max_digits=10, decimal_places=2
     )
+
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
 
     @field_validator("tipo_descuento", "valor_descuento", "id_producto_fk")
     @classmethod
