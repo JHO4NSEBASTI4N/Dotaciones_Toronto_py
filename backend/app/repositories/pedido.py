@@ -48,6 +48,11 @@ class PedidoRepositorio:
         self.sesion.flush()
         return pedido
 
+    def mostrar(self, pedido: Pedido) -> Pedido:
+        pedido.oculto = False
+        self.sesion.flush()
+        return pedido
+
     def crear_detalle(self, id_pedido: int, id_producto: int, cantidad: int, precio_lista: Decimal, descuento_unitario: Decimal, precio_unitario: Decimal) -> DetallePedido:
         detalle = DetallePedido(id_pedido_fk=id_pedido, id_producto_fk=id_producto, cantidad=cantidad, precio_lista=precio_lista, descuento_unitario=descuento_unitario, precio_unitario=precio_unitario, inhabilitado=False)
         self.sesion.add(detalle)

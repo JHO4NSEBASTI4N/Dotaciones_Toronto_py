@@ -93,7 +93,7 @@ def entregar(cliente, cabeceras, id_pedido: int):
 
 
 @pytest.fixture()
-def venta(cliente, cabeceras_admin, cabeceras_cliente, producto):
+def venta(cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, producto):
     """Venta generada al entregar un pedido de 2 camisas."""
     cliente.post(
         "/api/v1/carrito/items",
@@ -101,7 +101,7 @@ def venta(cliente, cabeceras_admin, cabeceras_cliente, producto):
         headers=cabeceras_cliente,
     )
     pedido = cliente.post("/api/v1/pedidos", headers=cabeceras_cliente).json()
-    entregar(cliente, cabeceras_admin, pedido["id_pedido"])
+    entregar(cliente, cabeceras_vendedor, pedido["id_pedido"])
 
     return cliente.get(
         f"/api/v1/ventas?id_pedido={pedido['id_pedido']}", headers=cabeceras_admin
@@ -144,7 +144,7 @@ def test_pedido_pendiente_no_genera_venta(
 
 
 def test_pedido_enviado_no_genera_venta(
-    cliente, cabeceras_admin, cabeceras_cliente, producto
+    cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, producto
 ):
     cliente.post(
         "/api/v1/carrito/items",
@@ -155,13 +155,13 @@ def test_pedido_enviado_no_genera_venta(
     cliente.patch(
         f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
         json={"estado": "Enviado"},
-        headers=cabeceras_admin,
+        headers=cabeceras_vendedor,
     )
     assert cliente.get("/api/v1/ventas", headers=cabeceras_admin).json()["total"] == 0
 
 
 def test_venta_copia_el_precio_con_descuento(
-    cliente, cabeceras_admin, cabeceras_cliente, producto
+    cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, producto
 ):
     """El precio congelado en el pedido (con 10% de descuento) llega a la venta."""
     cliente.post(
@@ -179,7 +179,7 @@ def test_venta_copia_el_precio_con_descuento(
         headers=cabeceras_cliente,
     )
     pedido = cliente.post("/api/v1/pedidos", headers=cabeceras_cliente).json()
-    entregar(cliente, cabeceras_admin, pedido["id_pedido"])
+    entregar(cliente, cabeceras_vendedor, pedido["id_pedido"])
 
     cuerpo = cliente.get(
         f"/api/v1/ventas/{cliente.get('/api/v1/ventas', headers=cabeceras_admin).json()['items'][0]['id_venta']}",
@@ -213,7 +213,7 @@ def test_la_venta_no_recalcula_si_el_precio_cambia_despues(
 # --- idempotencia -------------------------------------------------------------
 
 def test_entregar_dos_veces_no_duplica_la_venta(
-    cliente, cabeceras_admin, cabeceras_cliente, producto, sesion
+    cliente, cabeceras_vendedor, cabeceras_cliente, producto, sesion
 ):
     cliente.post(
         "/api/v1/carrito/items",
@@ -221,13 +221,13 @@ def test_entregar_dos_veces_no_duplica_la_venta(
         headers=cabeceras_cliente,
     )
     pedido = cliente.post("/api/v1/pedidos", headers=cabeceras_cliente).json()
-    entregar(cliente, cabeceras_admin, pedido["id_pedido"])
+    entregar(cliente, cabeceras_vendedor, pedido["id_pedido"])
 
     # Segundo intento de entrega: debe dar 409 y no crear otra venta.
     respuesta = cliente.patch(
         f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
         json={"estado": "Entregado"},
-        headers=cabeceras_admin,
+        headers=cabeceras_vendedor,
     )
     assert respuesta.status_code == 409
     assert sesion.query(Venta).count() == 1

@@ -34,6 +34,7 @@ class ProductoRespuesta(ProductoBase):
     id_producto: int
     estado: Optional[str] = None
     inhabilitado: bool = False
+    stock: Optional[int] = None
 
     @field_validator("inhabilitado", mode="before")
     @classmethod

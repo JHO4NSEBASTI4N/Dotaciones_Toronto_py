@@ -6,7 +6,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type CSSProperties, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowRight,
   Boxes,
   Check,
@@ -30,6 +29,17 @@ import {
 } from "../services/api";
 import type { Descuento, Producto } from "../types";
 import imagenError500 from "./error/error-500.png";
+
+/* 🖼️ Fondo de la portada.
+   Archivo real: src/assets/images/fondo index.jpg */
+import fondoIndex from "../assets/images/fondo index.jpg";
+
+const ESTILO_PORTADA: CSSProperties = {
+  backgroundImage: `linear-gradient(rgba(10, 16, 28, 0.62), rgba(10, 16, 28, 0.62)), url("${fondoIndex}")`,
+  backgroundSize: "cover",
+  backgroundPosition: "center center",
+  backgroundRepeat: "no-repeat",
+};
 
 const ESTILO_BARRA: CSSProperties = {
   background: "rgba(10, 16, 28, 0.55)",
@@ -220,7 +230,6 @@ const FORMULARIO_CONTACTO_INICIAL = {
 };
 
 const CLAVE_CARRITO_PORTADA = "carrito_portada";
-const PRODUCTOS_POR_PAGINA = 8;
 
 interface ItemCarritoPortada {
   producto: Producto;
@@ -250,7 +259,6 @@ export default function Portada() {
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
   const [busqueda, setBusqueda] = useState("");
-  const [paginaCatalogo, setPaginaCatalogo] = useState(0);
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [avisoCarrito, setAvisoCarrito] = useState("");
   const [carritoLocal, setCarritoLocal] = useState<ItemCarritoPortada[]>(() => {
@@ -332,16 +340,6 @@ export default function Portada() {
     );
   }, [catalogo, busqueda]);
 
-  const totalPaginasCatalogo = Math.ceil(productosFiltrados.length / PRODUCTOS_POR_PAGINA);
-  const paginaVisibleCatalogo = Math.min(
-    paginaCatalogo,
-    Math.max(totalPaginasCatalogo - 1, 0)
-  );
-  const productosPagina = productosFiltrados.slice(
-    paginaVisibleCatalogo * PRODUCTOS_POR_PAGINA,
-    (paginaVisibleCatalogo + 1) * PRODUCTOS_POR_PAGINA
-  );
-
   const totalUnidadesCarrito = useMemo(
     () => carritoLocal.reduce((acc, item) => acc + item.cantidad, 0),
     [carritoLocal]
@@ -392,13 +390,6 @@ export default function Portada() {
     navegar("/login");
   };
 
-  const verCarrito = () => {
-    document.getElementById("carrito-portada")?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-  };
-
   function cambiarContacto(evento: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = evento.target;
     setContacto((anterior) => ({ ...anterior, [name]: value }));
@@ -435,7 +426,7 @@ export default function Portada() {
   }
 
   return (
-    <div className={`portada ${carritoLocal.length > 0 ? "portada-con-carrito" : ""}`}>
+    <div className="portada" style={ESTILO_PORTADA}>
       <header className="portada-barra" style={ESTILO_BARRA}>
         <div className="marca marca-oscura" style={ESTILO_MARCA_CLARA}>
           <span className="marca-icono-solido">
@@ -528,25 +519,41 @@ export default function Portada() {
         id="catalogo"
         style={{ ...ESTILO_SECCION, gridTemplateColumns: "1fr" }}
       >
-        <div className="portada-catalogo-panel" style={{ ...ESTILO_TARJETA_BLANCA, padding: 22 }}>
-          <div className="portada-catalogo-encabezado">
-            <div className="portada-catalogo-titulos">
-              <h2 className="portada-catalogo-titulo">Catálogo de dotaciones</h2>
-              <p className="portada-catalogo-descripcion">
+        <div style={{ ...ESTILO_TARJETA_BLANCA, padding: 22 }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <div>
+              <h2 style={{ margin: 0, fontSize: 20 }}>Catálogo de dotaciones</h2>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>
                 Selecciona los productos que necesitas y agrégalos al carrito. Para finalizar la compra debes iniciar sesión.
               </p>
             </div>
 
-            <div className="portada-catalogo-controles">
-              <div className="portada-catalogo-busqueda">
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  background: "#ffffff",
+                }}
+              >
                 <Search size={15} style={{ color: "#64748b" }} />
                 <input
                   type="search"
                   value={busqueda}
-                  onChange={(e) => {
-                    setBusqueda(e.target.value);
-                    setPaginaCatalogo(0);
-                  }}
+                  onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar producto, talla o color..."
                   style={{ border: "none", outline: "none", fontSize: 13, minWidth: 200 }}
                 />
@@ -554,28 +561,41 @@ export default function Portada() {
 
               <button
                 type="button"
-                className="dt-accion-principal portada-catalogo-boton-carrito"
-                onClick={verCarrito}
-                disabled={carritoLocal.length === 0}
-                aria-label={`Ver carrito con ${totalUnidadesCarrito} productos, total ${pesos(totalCarrito)}`}
+                className="dt-accion-principal"
+                onClick={irAComprar}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
               >
                 <ShoppingCart size={15} />
-                Ver carrito ({totalUnidadesCarrito}) · {pesos(totalCarrito)}
+                Carrito ({totalUnidadesCarrito}) · {pesos(totalCarrito)}
               </button>
             </div>
           </div>
 
           {avisoCarrito && (
-            <div className="portada-aviso-carrito" role="status" aria-live="polite">
+            <div
+              style={{
+                marginBottom: 14,
+                padding: "10px 14px",
+                borderRadius: 8,
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                color: "#065f46",
+                fontSize: 13,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
               <span>{avisoCarrito}</span>
-              <div className="portada-aviso-carrito-acciones">
-                <button type="button" onClick={verCarrito}>
-                  Ver carrito
-                </button>
-                <button type="button" onClick={() => setAvisoCarrito("")}>
-                  Cerrar
-                </button>
-              </div>
+              <button
+                type="button"
+                className="dt-boton-secundario"
+                onClick={() => setAvisoCarrito("")}
+                style={{ padding: "2px 8px", fontSize: 12 }}
+              >
+                Cerrar
+              </button>
             </div>
           )}
 
@@ -603,190 +623,167 @@ export default function Portada() {
               No hay productos disponibles en este momento.
             </div>
           ) : (
-            <div className="portada-carrusel">
-              <div className="portada-carrusel-escenario">
-                {totalPaginasCatalogo > 1 && (
-                  <button
-                    type="button"
-                    className="portada-carrusel-flecha portada-carrusel-anterior"
-                    onClick={() => setPaginaCatalogo(Math.max(0, paginaVisibleCatalogo - 1))}
-                    disabled={paginaVisibleCatalogo === 0}
-                    aria-label="Ver productos anteriores"
-                    title="Productos anteriores"
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
-                )}
-                <div className="portada-carrusel-grid" aria-live="polite">
-                  {productosPagina.map((producto) => {
-                    const desc = descuentosPorProducto[producto.id_producto];
-                    const precioLista = numero(producto.precio);
-                    const precioFinal = calcularPrecioConDescuento(producto.precio, desc);
-                    const tieneDescuento = precioFinal < precioLista;
-                    const cantidad = cantidades[producto.id_producto] ?? 1;
-                    const imagen = urlImagenProducto(producto.imagen_url);
-                    const sinStock = producto.stock <= 0;
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {productosFiltrados.map((producto) => {
+                const desc = descuentosPorProducto[producto.id_producto];
+                const precioLista = numero(producto.precio);
+                const precioFinal = calcularPrecioConDescuento(producto.precio, desc);
+                const tieneDescuento = precioFinal < precioLista;
+                const cantidad = cantidades[producto.id_producto] ?? 1;
+                const imagen = urlImagenProducto(producto.imagen);
+                const tieneStockDefinido = typeof producto.stock === "number";
+                const sinStock =
+                  producto.estado?.toLowerCase() === "agotado" ||
+                  (tieneStockDefinido && producto.stock <= 0);
 
-                    return (
-                      <article
-                        key={producto.id_producto}
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 12,
-                          padding: 14,
-                          background: "#ffffff",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 10,
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: 150,
-                            borderRadius: 8,
-                            background: "#f8fafc",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            overflow: "hidden",
-                          }}
+                return (
+                  <article
+                    key={producto.id_producto}
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 12,
+                      padding: 14,
+                      background: "#ffffff",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 150,
+                        borderRadius: 8,
+                        background: "#f8fafc",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {imagen ? (
+                        <img
+                          src={imagen}
+                          alt={producto.nombre}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <Package size={36} style={{ color: "#94a3b8" }} />
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <strong style={{ fontSize: 14.5, display: "block" }}>{producto.nombre}</strong>
+                      {(producto.talla || producto.color) && (
+                        <span style={{ fontSize: 12, color: "#64748b", display: "block", marginTop: 2 }}>
+                          {producto.talla ?? "Única"} · {producto.color ?? "Estándar"}
+                        </span>
+                      )}
+                      {producto.descripcion && (
+                        <p style={{ fontSize: 12, color: "#475569", margin: "6px 0 0" }}>
+                          {producto.descripcion}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                        <strong style={{ fontSize: 16, color: "#0f172a" }}>
+                          {pesos(precioFinal)}
+                        </strong>
+                        {tieneDescuento && (
+                          <s style={{ fontSize: 12, color: "#94a3b8" }}>{pesos(precioLista)}</s>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11.5, color: sinStock ? "#dc2626" : "#64748b" }}>
+                        {sinStock
+                          ? "Agotado"
+                          : tieneStockDefinido
+                            ? `Disponible: ${producto.stock}`
+                            : "Disponible"}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button
+                          type="button"
+                          className="dt-boton-icono"
+                          disabled={sinStock || cantidad <= 1}
+                          onClick={() =>
+                            setCantidades((prev) => ({
+                              ...prev,
+                              [producto.id_producto]: Math.max(1, (prev[producto.id_producto] ?? 1) - 1),
+                            }))
+                          }
+                          aria-label="Disminuir cantidad"
                         >
-                          {imagen ? (
-                            <img
-                              src={imagen}
-                              alt={producto.nombre}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          ) : (
-                            <Package size={36} style={{ color: "#94a3b8" }} />
-                          )}
-                        </div>
+                          <Minus size={13} />
+                        </button>
+                        <span style={{ minWidth: 22, textAlign: "center", fontSize: 13, fontWeight: 600 }}>
+                          {cantidad}
+                        </span>
+                        <button
+                          type="button"
+                          className="dt-boton-icono"
+                          disabled={sinStock || (tieneStockDefinido && cantidad >= producto.stock)}
+                          onClick={() =>
+                            setCantidades((prev) => {
+                              const siguiente = (prev[producto.id_producto] ?? 1) + 1;
+                              return {
+                                ...prev,
+                                [producto.id_producto]: tieneStockDefinido
+                                  ? Math.min(producto.stock, siguiente)
+                                  : siguiente,
+                              };
+                            })
+                          }
+                          aria-label="Aumentar cantidad"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
 
-                        <div style={{ flex: 1 }}>
-                          <strong style={{ fontSize: 14.5, display: "block" }}>{producto.nombre}</strong>
-                          {(producto.talla || producto.color) && (
-                            <span style={{ fontSize: 12, color: "#64748b", display: "block", marginTop: 2 }}>
-                              {producto.talla ?? "Única"} · {producto.color ?? "Estándar"}
-                            </span>
-                          )}
-                          {producto.descripcion && (
-                            <p style={{ fontSize: 12, color: "#475569", margin: "6px 0 0" }}>
-                              {producto.descripcion}
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                            <strong style={{ fontSize: 16, color: "#0f172a" }}>
-                              {pesos(precioFinal)}
-                            </strong>
-                            {tieneDescuento && (
-                              <s style={{ fontSize: 12, color: "#94a3b8" }}>{pesos(precioLista)}</s>
-                            )}
-                          </div>
-                          <span style={{ fontSize: 11.5, color: sinStock ? "#dc2626" : "#64748b" }}>
-                            {sinStock ? "Agotado" : `Disponible: ${producto.stock}`}
-                          </span>
-                        </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <button
-                              type="button"
-                              className="dt-boton-icono"
-                              disabled={sinStock || cantidad <= 1}
-                              onClick={() =>
-                                setCantidades((prev) => ({
-                                  ...prev,
-                                  [producto.id_producto]: Math.max(1, (prev[producto.id_producto] ?? 1) - 1),
-                                }))
-                              }
-                              aria-label="Disminuir cantidad"
-                            >
-                              <Minus size={13} />
-                            </button>
-                            <span style={{ minWidth: 22, textAlign: "center", fontSize: 13, fontWeight: 600 }}>
-                              {cantidad}
-                            </span>
-                            <button
-                              type="button"
-                              className="dt-boton-icono"
-                              disabled={sinStock || cantidad >= producto.stock}
-                              onClick={() =>
-                                setCantidades((prev) => ({
-                                  ...prev,
-                                  [producto.id_producto]: Math.min(
-                                    producto.stock,
-                                    (prev[producto.id_producto] ?? 1) + 1
-                                  ),
-                                }))
-                              }
-                              aria-label="Aumentar cantidad"
-                            >
-                              <Plus size={13} />
-                            </button>
-                          </div>
-
-                          <button
-                            type="button"
-                            className="dt-accion-principal"
-                            disabled={sinStock}
-                            onClick={() => agregarAlCarrito(producto)}
-                            style={{ flex: 1, justifyContent: "center", fontSize: 12.5, padding: "8px 10px" }}
-                          >
-                            <ShoppingCart size={14} />
-                            Agregar
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-                {totalPaginasCatalogo > 1 && (
-                  <button
-                    type="button"
-                    className="portada-carrusel-flecha portada-carrusel-siguiente"
-                    onClick={() =>
-                      setPaginaCatalogo(
-                        Math.min(paginaVisibleCatalogo + 1, totalPaginasCatalogo - 1)
-                      )
-                    }
-                    disabled={paginaVisibleCatalogo >= totalPaginasCatalogo - 1}
-                    aria-label="Ver productos siguientes"
-                    title="Productos siguientes"
-                  >
-                    <ArrowRight size={20} />
-                  </button>
-                )}
-              </div>
-              {totalPaginasCatalogo > 1 && (
-                <nav className="portada-carrusel-puntos" aria-label="Páginas del catálogo">
-                  {Array.from({ length: totalPaginasCatalogo }, (_, pagina) => (
-                    <button
-                      key={pagina}
-                      type="button"
-                      className={`portada-carrusel-punto ${
-                        paginaVisibleCatalogo === pagina ? "activo" : ""
-                      }`}
-                      onClick={() => setPaginaCatalogo(pagina)}
-                      aria-label={`Ver página ${pagina + 1} de ${totalPaginasCatalogo}`}
-                      aria-current={paginaVisibleCatalogo === pagina ? "page" : undefined}
-                    />
-                  ))}
-                </nav>
-              )}
+                      <button
+                        type="button"
+                        className="dt-accion-principal"
+                        disabled={sinStock}
+                        onClick={() => agregarAlCarrito(producto)}
+                        style={{ flex: 1, justifyContent: "center", fontSize: 12.5, padding: "8px 10px" }}
+                      >
+                        <ShoppingCart size={14} />
+                        Agregar
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
 
           {carritoLocal.length > 0 && (
             <div
-              id="carrito-portada"
-              className="portada-carrito-detalle"
-              tabIndex={-1}
-              aria-label="Productos seleccionados en el carrito"
+              style={{
+                marginTop: 20,
+                paddingTop: 16,
+                borderTop: "1px solid #e2e8f0",
+              }}
             >
-              <div className="portada-carrito-detalle-encabezado">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
                 <strong style={{ fontSize: 15 }}>
                   Tu carrito ({totalUnidadesCarrito} {totalUnidadesCarrito === 1 ? "unidad" : "unidades"})
                 </strong>
@@ -800,9 +797,23 @@ export default function Portada() {
                 </button>
               </div>
 
-              <div className="portada-carrito-items">
+              <div style={{ display: "grid", gap: 8 }}>
                 {carritoLocal.map((item) => (
-                  <div key={item.producto.id_producto} className="portada-carrito-item">
+                  <div
+                    key={item.producto.id_producto}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      fontSize: 13,
+                    }}
+                  >
                     <div>
                       <strong>{item.producto.nombre}</strong>
                       <span style={{ color: "#64748b", marginLeft: 8 }}>
@@ -810,7 +821,7 @@ export default function Portada() {
                       </span>
                     </div>
 
-                    <div className="portada-carrito-item-acciones">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <button
                         type="button"
                         className="dt-boton-icono"
@@ -1064,24 +1075,6 @@ export default function Portada() {
           </div>
         </div>
       </footer>
-
-      {carritoLocal.length > 0 && (
-        <aside className="portada-carrito-flotante" aria-live="polite" aria-label="Resumen del carrito">
-          <div className="portada-carrito-flotante-resumen">
-            <span className="portada-carrito-flotante-icono">
-              <ShoppingCart size={17} />
-            </span>
-            <span>
-              <strong>Tu carrito</strong>
-              <small>{totalUnidadesCarrito} {totalUnidadesCarrito === 1 ? "producto" : "productos"} seleccionados</small>
-            </span>
-          </div>
-          <strong className="portada-carrito-flotante-total">{pesos(totalCarrito)}</strong>
-          <button type="button" onClick={verCarrito}>
-            Ver carrito <ArrowRight size={15} />
-          </button>
-        </aside>
-      )}
     </div>
   );
 }

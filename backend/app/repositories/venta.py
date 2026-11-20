@@ -222,6 +222,15 @@ class VentaRepositorio:
         self.sesion.flush()
         return venta
 
+    def reactivar(self, venta: Venta, metodo_pago: str | None = None) -> Venta:
+        """Reactiva una venta previamente anulada al volver a entregar el pedido."""
+        venta.estado = "Completada"
+        venta.fecha_venta = datetime.now()
+        if metodo_pago is not None:
+            venta.metodo_pago = metodo_pago
+        self.sesion.flush()
+        return venta
+
     # --- detalle de venta ----------------------------------------------------
 
     def crear_detalle(
@@ -295,5 +304,11 @@ class VentaRepositorio:
 
     def anular_factura(self, factura: Factura) -> Factura:
         factura.estado = "Anulada"
+        self.sesion.flush()
+        return factura
+
+    def reactivar_factura(self, factura: Factura) -> Factura:
+        factura.estado = "Vigente"
+        factura.fecha_factura = datetime.now()
         self.sesion.flush()
         return factura

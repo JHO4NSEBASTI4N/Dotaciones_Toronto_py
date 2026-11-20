@@ -13,7 +13,7 @@ from app.repositories.pedido import PedidoRepositorio
 from app.repositories.producto import ProductoRepositorio
 from app.schemas.pedido import TRANSICIONES
 from app.services.carrito import cerrar_carrito
-from app.services.venta import crear_desde_pedido
+from app.services.venta import crear_desde_pedido, revertir_por_pedido
 from app.services.descuento import calcular_precio_final
 
 
@@ -115,6 +115,36 @@ def _descontar_inventario(
                 fila.cantidad_actual or 0
             )
 
+    sesion.flush()
+
+
+def _reponer_inventario(
+    sesion: Session,
+    id_producto: int | None,
+    cantidad: int,
+    motivo: str,
+    usuario_responsable: str | None,
+) -> None:
+    if id_producto is None or cantidad <= 0:
+        return
+
+    repo = InventarioRepositorio(sesion)
+    filas = repo.listar_por_producto(id_producto)
+    if not filas:
+        return
+
+    producto = ProductoRepositorio(sesion).buscar_por_id(id_producto)
+    fila = filas[0]
+    fila.cantidad_actual = (fila.cantidad_actual or 0) + cantidad
+
+    repo.registrar_movimiento(
+        id_inventario=fila.id_inventario,
+        nombre_producto=producto.nombre if producto else None,
+        tipo="ENTRADA",
+        cantidad=cantidad,
+        motivo=motivo,
+        usuario_responsable=usuario_responsable,
+    )
     sesion.flush()
 
 
@@ -296,11 +326,27 @@ def cambiar_estado(
             raise Conflicto(
                 f"El pedido esta en estado final '{actual}': ya no puede cambiar"
             )
+        if actual == ESTADO_ENTREGADO and nuevo_estado == "Cancelado":
+            raise Conflicto(
+                "El pedido ya fue entregado y no puede cancelarse directamente"
+            )
 
         raise ReglaNegocio(
             f"No se puede pasar de '{actual}' a '{nuevo_estado}'. "
             f"Transiciones permitidas: {', '.join(sorted(permitidos))}"
         )
+
+    if actual == ESTADO_ENTREGADO and nuevo_estado != ESTADO_ENTREGADO:
+        revertir_por_pedido(sesion, pedido.id_pedido)
+        for detalle in repo.listar_detalles(pedido.id_pedido):
+            _reponer_inventario(
+                sesion,
+                detalle.id_producto_fk,
+                detalle.cantidad or 0,
+                motivo=f"Pedido #{pedido.id_pedido} cambiado a {nuevo_estado}",
+                usuario_responsable=usuario_responsable,
+            )
+        repo.mostrar(pedido)
 
     if nuevo_estado == ESTADO_ENTREGADO:
 

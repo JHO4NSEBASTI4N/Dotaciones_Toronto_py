@@ -85,11 +85,22 @@ def listar(
         color=color,
         incluir_inhabilitados=incluir_inhabilitados,
     )
+    from app.repositories.inventario import InventarioRepositorio
+
+    stock_filas = InventarioRepositorio(sesion).stock_por_producto(saltar=0, limite=1000)
+    mapa_stock = {fila["id_producto"]: int(fila.get("stock_total") or 0) for fila in stock_filas}
+
+    respuestas = []
+    for p in items:
+        dto = ProductoRespuesta.model_validate(p)
+        dto.stock = mapa_stock.get(p.id_producto, 0)
+        respuestas.append(dto)
+
     return PaginaRespuesta[ProductoRespuesta](
         total=total,
         saltar=paginacion.saltar,
         limite=paginacion.limite,
-        items=[ProductoRespuesta.model_validate(p) for p in items],
+        items=respuestas,
     )
 
 

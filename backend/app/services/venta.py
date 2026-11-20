@@ -16,9 +16,11 @@ Reglas de negocio implementadas aqui:
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import Conflicto, NoEncontrado, ReglaNegocio
+from app.models.factura_electronica import FacturaElectronica
 from app.models.pedido import Pedido
 from app.models.venta import Venta
 from app.repositories.pedido import PedidoRepositorio
@@ -67,6 +69,11 @@ def crear_desde_pedido(
 
     existente = repo.buscar_por_pedido(pedido.id_pedido)
     if existente is not None:
+        if (existente.estado or ESTADO_COMPLETADA) == ESTADO_ANULADA:
+            repo.reactivar(existente, metodo_pago)
+            factura = repo.buscar_factura_de_venta(existente.id_venta)
+            if factura is not None and factura.estado == ESTADO_ANULADA:
+                repo.reactivar_factura(factura)
         return existente
 
     detalles = PedidoRepositorio(sesion).listar_detalles(pedido.id_pedido)
@@ -102,6 +109,40 @@ def crear_desde_pedido(
 
     repo.crear_factura(venta.id_venta, total)
     return venta
+
+
+def revertir_por_pedido(sesion: Session, id_pedido: int) -> None:
+    """Anula la venta y factura asociadas cuando un pedido Entregado vuelve a
+    Pendiente o Enviado. No hace commit (forma parte de la transaccion del pedido).
+    """
+    repo = VentaRepositorio(sesion)
+    venta = repo.buscar_por_pedido(id_pedido)
+    if venta is None or (venta.estado or ESTADO_COMPLETADA) == ESTADO_ANULADA:
+        return
+
+    for detalle in repo.listar_detalles(venta.id_venta):
+        if repo.cantidad_devuelta(detalle.id_detalle_venta) > 0:
+            raise ReglaNegocio(
+                "No se puede revertir la entrega porque la venta ya tiene "
+                "devoluciones aprobadas"
+            )
+
+    factura_dian = sesion.scalar(
+        select(FacturaElectronica).where(
+            FacturaElectronica.id_venta_fk == venta.id_venta,
+            FacturaElectronica.estado.in_(("ENVIADA", "ACEPTADA")),
+        )
+    )
+    if factura_dian is not None:
+        raise ReglaNegocio(
+            "No se puede revertir la entrega porque el pedido ya tiene una "
+            "factura electronica enviada a la DIAN"
+        )
+
+    repo.anular(venta)
+    factura = repo.buscar_factura_de_venta(venta.id_venta)
+    if factura is not None and factura.estado != ESTADO_ANULADA:
+        repo.anular_factura(factura)
 
 
 # --- consultas ----------------------------------------------------------------
