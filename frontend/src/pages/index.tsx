@@ -624,8 +624,11 @@ export default function Portada() {
                     const precioFinal = calcularPrecioConDescuento(producto.precio, desc);
                     const tieneDescuento = precioFinal < precioLista;
                     const cantidad = cantidades[producto.id_producto] ?? 1;
-                    const imagen = urlImagenProducto(producto.imagen_url);
-                    const sinStock = producto.stock <= 0;
+                    const imagen = urlImagenProducto(producto.imagen);
+                    const tieneStockDefinido = typeof producto.stock === "number";
+                    const sinStock =
+                      producto.estado?.toLowerCase() === "agotado" ||
+                      (tieneStockDefinido && producto.stock <= 0);
 
                     return (
                       <article
@@ -686,7 +689,11 @@ export default function Portada() {
                             )}
                           </div>
                           <span style={{ fontSize: 11.5, color: sinStock ? "#dc2626" : "#64748b" }}>
-                            {sinStock ? "Agotado" : `Disponible: ${producto.stock}`}
+                            {sinStock
+                              ? "Agotado"
+                              : tieneStockDefinido
+                                ? `Disponible: ${producto.stock}`
+                                : "Disponible"}
                           </span>
                         </div>
 
@@ -712,15 +719,17 @@ export default function Portada() {
                             <button
                               type="button"
                               className="dt-boton-icono"
-                              disabled={sinStock || cantidad >= producto.stock}
+                              disabled={sinStock || (tieneStockDefinido && cantidad >= producto.stock)}
                               onClick={() =>
-                                setCantidades((prev) => ({
-                                  ...prev,
-                                  [producto.id_producto]: Math.min(
-                                    producto.stock,
-                                    (prev[producto.id_producto] ?? 1) + 1
-                                  ),
-                                }))
+                                setCantidades((prev) => {
+                                  const siguiente = (prev[producto.id_producto] ?? 1) + 1;
+                                  return {
+                                    ...prev,
+                                    [producto.id_producto]: tieneStockDefinido
+                                      ? Math.min(producto.stock, siguiente)
+                                      : siguiente,
+                                  };
+                                })
                               }
                               aria-label="Aumentar cantidad"
                             >
