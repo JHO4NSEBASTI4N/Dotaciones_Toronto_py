@@ -24,6 +24,7 @@ from app.models.factura_electronica_detalle import FacturaElectronicaDetalle
 from app.models.factura_electronica_evento import FacturaElectronicaEvento
 from app.models.pedido import Pedido
 from app.models.producto import Producto
+from app.models.recuperacion_password import RecuperacionPassword
 from app.models.resolucion_facturacion import ResolucionFacturacion
 from app.models.rol import Rol
 from app.models.usuario import Usuario
@@ -46,6 +47,7 @@ __all__ = [
     "MovimientoInventario",
     "Pedido",
     "Producto",
+    "RecuperacionPassword",
     "ResolucionFacturacion",
     "Rol",
     "Usuario",

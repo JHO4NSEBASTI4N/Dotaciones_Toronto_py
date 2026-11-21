@@ -62,6 +62,7 @@ def motor_sqlite():
             modelos.Usuario.__table__,
             modelos.Rol.__table__,
             modelos.UsuarioRol.__table__,
+            modelos.RecuperacionPassword.__table__,
             modelos.Producto.__table__,
             modelos.Inventario.__table__,
             modelos.MovimientoInventario.__table__,

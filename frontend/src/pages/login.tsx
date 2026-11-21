@@ -313,6 +313,7 @@ export default function Login() {
 
                 <h2>Iniciar sesión</h2>
                 <p>Ingresa con el correo que te registró la empresa.</p>
+                {new URLSearchParams(ubicacion.search).get("recuperada") === "1" && <p role="status" style={{ color: "#16805b" }}>Contraseña actualizada. Ya puedes iniciar sesión.</p>}
 
                 <form className="login-formulario" onSubmit={entrar}>
                   <label className="campo">
@@ -352,6 +353,8 @@ export default function Login() {
                       </button>
                     </div>
                   </label>
+
+                  <Link to="/recuperar-password" style={{ textAlign: "right" }}>¿Olvidaste tu contraseña?</Link>
 
                   {error && (
                     <p className="mensaje-error" role="alert">

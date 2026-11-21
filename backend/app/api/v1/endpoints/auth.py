@@ -14,8 +14,10 @@ from app.schemas.usuario import (
     UsuarioRespuesta,
 )
 from app.services import auth as servicio
+from app.api.v1.endpoints import recuperacion
 
 router = APIRouter()
+router.include_router(recuperacion.router, prefix="/recuperacion", tags=["Recuperacion de contraseña"])
 
 
 @router.post("/registro", response_model=UsuarioRespuesta, status_code=status.HTTP_201_CREATED)

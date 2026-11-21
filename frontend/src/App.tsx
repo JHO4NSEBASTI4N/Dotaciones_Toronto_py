@@ -51,6 +51,7 @@ import { autenticacion } from "./services/autenticacion";
 // Pantallas fuera de los roles
 import Portada from "./pages/index";
 import Login from "./pages/login";
+import RecuperarPassword from "./pages/recuperar-password";
 import Registro from "./pages/registro";
 import SeleccionarRol from "./pages/seleccionar-rol";
 import Error403 from "./pages/error/403";
@@ -612,6 +613,7 @@ function RutasConManejoErrores() {
             </RutaPublica>
           }
         />
+        <Route path="/recuperar-password" element={<RutaPublica><RecuperarPassword /></RutaPublica>} />
         <Route
           path="/registro"
           element={
