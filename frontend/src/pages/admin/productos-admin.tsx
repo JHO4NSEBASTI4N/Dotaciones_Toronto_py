@@ -1,3 +1,4 @@
+import { CargaMasiva } from "../../components/carga-masiva";
 // src/pages/admin/productos.tsx
 //
 // Catálogo de dotaciones. No hay DELETE: se inhabilita y se puede rehabilitar.
@@ -292,6 +293,8 @@ export default function ProductosAdmin() {
           </div>
         }
       />
+
+      <CargaMasiva tipo="productos" alGuardar={() => void cargarDatos()} />
 
       {error && !modalAbierto && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
       {mensaje && <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />}

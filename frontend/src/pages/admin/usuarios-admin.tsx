@@ -1,3 +1,4 @@
+import { CargaMasiva } from "../../components/carga-masiva";
 // src/pages/admin/usuarios.tsx
 //
 // Cuentas del sistema: crear (POST /auth/registro), editar (PATCH), habilitar
@@ -86,6 +87,19 @@ export default function UsuariosVista() {
   useEffect(() => {
     void cargarDatos();
   }, [cargarDatos]);
+
+  // La recarga tras una carga masiva conserva un aviso de éxito una sola vez.
+  useEffect(() => {
+    try {
+      const clave = "dt-carga-masiva-usuarios-exitosa";
+      if (window.sessionStorage.getItem(clave) === "1") {
+        window.sessionStorage.removeItem(clave);
+        setMensaje("La carga masiva de usuarios se guardó correctamente.");
+      }
+    } catch {
+      // Si el navegador bloquea el almacenamiento, la lista igual se recarga.
+    }
+  }, []);
 
   /* ---------- resumen y filtrado ---------- */
 
@@ -310,6 +324,19 @@ export default function UsuariosVista() {
             </button>
           </div>
         }
+      />
+
+      <CargaMasiva
+        tipo="usuarios"
+        alGuardar={() => {
+          // Solo se llama cuando el servidor confirma la carga sin errores.
+          try {
+            window.sessionStorage.setItem("dt-carga-masiva-usuarios-exitosa", "1");
+          } catch {
+            // La actualización no depende del almacenamiento del navegador.
+          }
+          window.location.reload();
+        }}
       />
 
       {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}

@@ -1,3 +1,4 @@
+import { CargaMasiva } from "../../components/carga-masiva";
 // src/pages/bodeguero/inventario.tsx
 //
 // Inventario por producto con imágenes, barras de progreso, selección múltiple,
@@ -407,6 +408,8 @@ export default function InventarioVista() {
           </div>
         }
       />
+
+      {esAdministrador && <CargaMasiva tipo="inventario" alGuardar={() => void cargarDatos()} />}
 
       {error && !modalCrearAbierto && !modalAbierto && (
         <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />
