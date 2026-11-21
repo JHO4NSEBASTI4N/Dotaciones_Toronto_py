@@ -1,4 +1,4 @@
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,10 @@ class Configuracion(BaseSettings):
     admin_documento: str = "0000000000"
     admin_telefono: str = "0000000000"
     admin_direccion: str = "Oficina principal"
+
+    # --- correo del formulario de contacto (Gmail SMTP con SSL) --------
+    contacto_smtp_usuario: str = "dotacionestoronto1@gmail.com"
+    contacto_smtp_password: SecretStr = SecretStr("")
 
     # --- facturacion electronica (DIAN) --------------------------------
     # Todos con valor por defecto para que el proyecto corra sin tocar el

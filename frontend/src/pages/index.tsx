@@ -21,6 +21,7 @@ import {
 } from "../components/iconos";
 import { useSesion } from "../context/sesion-contexto";
 import {
+  api,
   descuentos,
   ErrorApi,
   numero,
@@ -241,6 +242,8 @@ export default function Portada() {
   const navegar = useNavigate();
   const [contacto, setContacto] = useState(FORMULARIO_CONTACTO_INICIAL);
   const [enviado, setEnviado] = useState(false);
+  const [enviandoContacto, setEnviandoContacto] = useState(false);
+  const [errorContacto, setErrorContacto] = useState("");
 
   const [catalogo, setCatalogo] = useState<ProductoPortada[]>([]);
   const [descuentosPorProducto, setDescuentosPorProducto] = useState<Record<number, DescuentoVigente>>({});
@@ -416,10 +419,31 @@ export default function Portada() {
     setContacto((anterior) => ({ ...anterior, [name]: value }));
   }
 
-  function enviarContacto(evento: FormEvent<HTMLFormElement>) {
+  async function enviarContacto(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    setContacto(FORMULARIO_CONTACTO_INICIAL);
-    setEnviado(true);
+    if (enviandoContacto) return;
+
+    const datos = {
+      nombre: contacto.nombre.trim(),
+      correo: contacto.correo.trim(),
+      mensaje: contacto.mensaje.trim(),
+    };
+    if (!datos.nombre || !datos.correo || !datos.mensaje) {
+      setErrorContacto("Completa todos los campos para enviar tu mensaje.");
+      return;
+    }
+
+    setErrorContacto("");
+    setEnviandoContacto(true);
+    try {
+      await api.post<{ mensaje: string }>("/contacto", datos, { redirigirEnError: false });
+      setContacto(FORMULARIO_CONTACTO_INICIAL);
+      setEnviado(true);
+    } catch (fallo) {
+      setErrorContacto(fallo instanceof Error ? fallo.message : "No se pudo enviar el mensaje. Inténtalo de nuevo.");
+    } finally {
+      setEnviandoContacto(false);
+    }
   }
 
   if (cargando) {
@@ -979,7 +1003,7 @@ export default function Portada() {
                 <span style={ESTILO_CONTACTO_ICONO}>
                   <i className="bi bi-envelope" aria-hidden="true" />
                 </span>
-                <span>dotaciones.elobrero@gmail.com</span>
+                <span>dotacionestoronto1@gmail.com</span>
               </div>
               <div style={ESTILO_CONTACTO_ITEM}>
                 <span style={ESTILO_CONTACTO_ICONO}>
@@ -1024,6 +1048,8 @@ export default function Portada() {
                     placeholder="¿Cómo te llamas?"
                     value={contacto.nombre}
                     onChange={cambiarContacto}
+                    maxLength={100}
+                    disabled={enviandoContacto}
                     required
                   />
                 </label>
@@ -1036,6 +1062,8 @@ export default function Portada() {
                     placeholder="tucorreo@ejemplo.com"
                     value={contacto.correo}
                     onChange={cambiarContacto}
+                    maxLength={254}
+                    disabled={enviandoContacto}
                     required
                   />
                 </label>
@@ -1047,12 +1075,19 @@ export default function Portada() {
                     placeholder="Cuéntanos qué necesitas"
                     value={contacto.mensaje}
                     onChange={cambiarContacto}
+                    maxLength={3000}
+                    disabled={enviandoContacto}
                     required
                   />
                 </label>
 
-                <button type="submit" className="dt-accion-principal portada-tablero-enviar">
-                  Enviar mensaje <ArrowRight size={14} />
+                {errorContacto && (
+                  <p role="alert" style={{ color: "#b91c1c", fontSize: 13, margin: 0 }}>
+                    {errorContacto}
+                  </p>
+                )}
+                <button type="submit" className="dt-accion-principal portada-tablero-enviar" disabled={enviandoContacto}>
+                  {enviandoContacto ? "Enviando…" : "Enviar mensaje"} <ArrowRight size={14} />
                 </button>
               </form>
             )}
