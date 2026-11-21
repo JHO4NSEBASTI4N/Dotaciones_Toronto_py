@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 20-11-2026 a las 21:40:45
+-- Tiempo de generación: 21-11-2026 a las 22:40:55
 -- Versión del servidor: 10.11.16-MariaDB
 -- Versión de PHP: 8.5.12
 
@@ -35,6 +35,13 @@ CREATE TABLE `alerta_stock` (
   `atendida` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `alerta_stock`
+--
+
+INSERT INTO `alerta_stock` (`id_alerta`, `id_producto_fk`, `nivel_stock`, `fecha_alerta`, `atendida`) VALUES
+(1, 6, 0, '2026-11-20', 0);
+
 -- --------------------------------------------------------
 
 --
@@ -56,7 +63,9 @@ INSERT INTO `carrito` (`id_carrito`, `id_usuario_fk`, `fecha_creacion`, `inhabil
 (1, 14, '2026-11-13', 1),
 (2, 19, '2026-11-13', 0),
 (3, 13, '2026-11-13', 0),
-(4, 14, '2026-11-18', 0);
+(4, 14, '2026-11-18', 0),
+(5, 15, '2026-11-20', 0),
+(6, 20, '2026-11-21', 0);
 
 -- --------------------------------------------------------
 
@@ -100,7 +109,8 @@ CREATE TABLE `detalle_carrito` (
 --
 
 INSERT INTO `detalle_carrito` (`id_detalle_carrito`, `id_carrito_fk`, `id_producto_fk`, `cantidad`, `inhabilitado`) VALUES
-(1, 1, 6, 3, 0);
+(1, 1, 6, 3, 0),
+(2, 4, 9, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -362,7 +372,7 @@ INSERT INTO `inventario` (`id_inventario`, `id_producto_fk`, `cantidad_actual`, 
 (11, 9, 10, 5, b'0'),
 (12, 8, 0, 40, b'0'),
 (13, 10, 50, 20, b'0'),
-(14, 6, 27, 10, b'0'),
+(14, 6, 4, 10, b'0'),
 (16, 11, 40, 20, b'0'),
 (17, 12, 30, 31, b'0'),
 (18, 10, 23, 40, b'0');
@@ -407,7 +417,10 @@ INSERT INTO `movimientos_inventario` (`id`, `id_inventario`, `nombre_producto`, 
 (16, 16, 'Chaqueta  - S - Azul', 'ENTRADA', 40, 'Registro inicial de inventario (Admin)', 'benzema', '2026-09-10 18:42:44'),
 (17, 17, 'Pantalón Jean - M - Azul Oscuro', 'ENTRADA', 30, 'Registro inicial de inventario (Admin)', 'benzema', '2026-09-10 18:48:18'),
 (18, 18, 'Zapatos - L - Azul', 'ENTRADA', 23, 'Registro inicial de inventario (Admin)', 'jefferson', '2026-09-16 17:26:56'),
-(19, 14, 'Camisa', 'SALIDA', 3, 'Pedido #10 entregado', 'david', '2026-11-18 22:24:23');
+(19, 14, 'Camisa', 'SALIDA', 3, 'Pedido #10 entregado', 'david', '2026-11-18 22:24:23'),
+(20, 14, 'Camisa', 'SALIDA', 9, 'comprados', 'david', '2026-11-20 16:40:07'),
+(21, 14, 'Camisa', 'SALIDA', 18, 'por q si', 'david', '2026-11-20 16:40:19'),
+(22, 14, 'Camisa', 'ENTRADA', 4, 'llego lola', 'david', '2026-11-20 16:41:51');
 
 -- --------------------------------------------------------
 
@@ -466,6 +479,30 @@ INSERT INTO `producto` (`id_producto`, `nombre`, `precio`, `talla`, `color`, `im
 (12, 'Pantalón Jean', 30000.00, 'M', 'Azul Oscuro', NULL, 'Disponible', b'0', 'Pantalones'),
 (14, 'cazco', 20000.00, '34', 'nergo', NULL, 'Disponible', b'0', 'Protección Personal'),
 (15, 'botas', 30000.00, 's', 'negros', NULL, 'Disponible', b'0', 'Protección Personal');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `recuperacion_password`
+--
+
+CREATE TABLE `recuperacion_password` (
+  `id_usuario_fk` bigint(20) NOT NULL,
+  `codigo_hash` varchar(64) DEFAULT NULL,
+  `ticket_hash` varchar(64) DEFAULT NULL,
+  `password_fingerprint` varchar(64) NOT NULL,
+  `creado_en` datetime NOT NULL,
+  `expira_en` datetime NOT NULL,
+  `intentos` int(11) NOT NULL DEFAULT 0,
+  `bloqueado_hasta` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `recuperacion_password`
+--
+
+INSERT INTO `recuperacion_password` (`id_usuario_fk`, `codigo_hash`, `ticket_hash`, `password_fingerprint`, `creado_en`, `expira_en`, `intentos`, `bloqueado_hasta`) VALUES
+(20, NULL, NULL, '89b1831ea54212f1ac0391e8177b2f582965a6f29459ef2fd09e183d0acd62b2', '2026-11-21 21:34:44', '2026-11-21 21:44:44', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -548,7 +585,8 @@ INSERT INTO `usuario` (`id_usuario`, `nombre`, `documento`, `correo`, `telefono`
 (16, 'Administrador', '0000000000', 'admin@dotacionestoronto.com', '0000000000', '$2a$10$nDWHoF9PA0oflPjxkkjK6.U5YcJQ/IDHhBoEoQABnixCEhS5sthny', 'Oficina principal', 'Habilitado', 1),
 (17, 'bladimir', '10203040', 'bladimir@gmail.com', '001', '$2a$10$9Hvg9FtiJoH8tT8U9rT4Pe4Yj97OMo/I2ixgH8d6PlK3uCQN.XWVi', '1234567890', 'Habilitado', 2),
 (18, 'dylan', '4573453', 'dylan@gmail.com', '32735437435', '$2a$10$UTzzHpiJk5pwPld2TYsKaOevB4Vqqo4LUgTSF.kKfgCldGgBbL/8y', 'calle', 'Habilitado', 2),
-(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Habilitado', 2);
+(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Habilitado', 2),
+(20, 'David', '1031812319', 'davidmorenocortes19@gmail.com', '3208555672', '$2b$12$d7iednUC/AwyU5RDxpxyd.UXqtfSwjCoRmyV8zmFKKMsgfUAWXFeO', 'clle12', 'Habilitado', 2);
 
 -- --------------------------------------------------------
 
@@ -722,6 +760,12 @@ ALTER TABLE `producto`
   ADD PRIMARY KEY (`id_producto`);
 
 --
+-- Indices de la tabla `recuperacion_password`
+--
+ALTER TABLE `recuperacion_password`
+  ADD PRIMARY KEY (`id_usuario_fk`);
+
+--
 -- Indices de la tabla `resolucion_facturacion`
 --
 ALTER TABLE `resolucion_facturacion`
@@ -766,13 +810,13 @@ ALTER TABLE `venta`
 -- AUTO_INCREMENT de la tabla `alerta_stock`
 --
 ALTER TABLE `alerta_stock`
-  MODIFY `id_alerta` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_alerta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `carrito`
 --
 ALTER TABLE `carrito`
-  MODIFY `id_carrito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_carrito` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `descuento`
@@ -784,7 +828,7 @@ ALTER TABLE `descuento`
 -- AUTO_INCREMENT de la tabla `detalle_carrito`
 --
 ALTER TABLE `detalle_carrito`
-  MODIFY `id_detalle_carrito` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_detalle_carrito` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_pedido`
@@ -838,7 +882,7 @@ ALTER TABLE `inventario`
 -- AUTO_INCREMENT de la tabla `movimientos_inventario`
 --
 ALTER TABLE `movimientos_inventario`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT de la tabla `pedido`
@@ -868,7 +912,7 @@ ALTER TABLE `rol`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id_usuario` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id_usuario` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario_rol`
@@ -948,6 +992,12 @@ ALTER TABLE `inventario`
 --
 ALTER TABLE `pedido`
   ADD CONSTRAINT `fk_pedido_usuario` FOREIGN KEY (`id_usuario_fk`) REFERENCES `usuario` (`id_usuario`);
+
+--
+-- Filtros para la tabla `recuperacion_password`
+--
+ALTER TABLE `recuperacion_password`
+  ADD CONSTRAINT `recuperacion_password_ibfk_1` FOREIGN KEY (`id_usuario_fk`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `usuario`
