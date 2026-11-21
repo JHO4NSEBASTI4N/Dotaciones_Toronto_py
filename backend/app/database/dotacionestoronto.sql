@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 21-11-2026 a las 22:40:55
+-- Tiempo de generación: 21-11-2026 a las 22:49:39
 -- Versión del servidor: 10.11.16-MariaDB
 -- Versión de PHP: 8.5.12
 
@@ -64,8 +64,7 @@ INSERT INTO `carrito` (`id_carrito`, `id_usuario_fk`, `fecha_creacion`, `inhabil
 (2, 19, '2026-11-13', 0),
 (3, 13, '2026-11-13', 0),
 (4, 14, '2026-11-18', 0),
-(5, 15, '2026-11-20', 0),
-(6, 20, '2026-11-21', 0);
+(5, 15, '2026-11-20', 0);
 
 -- --------------------------------------------------------
 
@@ -497,13 +496,6 @@ CREATE TABLE `recuperacion_password` (
   `bloqueado_hasta` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `recuperacion_password`
---
-
-INSERT INTO `recuperacion_password` (`id_usuario_fk`, `codigo_hash`, `ticket_hash`, `password_fingerprint`, `creado_en`, `expira_en`, `intentos`, `bloqueado_hasta`) VALUES
-(20, NULL, NULL, '89b1831ea54212f1ac0391e8177b2f582965a6f29459ef2fd09e183d0acd62b2', '2026-11-21 21:34:44', '2026-11-21 21:44:44', 0, NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -585,8 +577,7 @@ INSERT INTO `usuario` (`id_usuario`, `nombre`, `documento`, `correo`, `telefono`
 (16, 'Administrador', '0000000000', 'admin@dotacionestoronto.com', '0000000000', '$2a$10$nDWHoF9PA0oflPjxkkjK6.U5YcJQ/IDHhBoEoQABnixCEhS5sthny', 'Oficina principal', 'Habilitado', 1),
 (17, 'bladimir', '10203040', 'bladimir@gmail.com', '001', '$2a$10$9Hvg9FtiJoH8tT8U9rT4Pe4Yj97OMo/I2ixgH8d6PlK3uCQN.XWVi', '1234567890', 'Habilitado', 2),
 (18, 'dylan', '4573453', 'dylan@gmail.com', '32735437435', '$2a$10$UTzzHpiJk5pwPld2TYsKaOevB4Vqqo4LUgTSF.kKfgCldGgBbL/8y', 'calle', 'Habilitado', 2),
-(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Habilitado', 2),
-(20, 'David', '1031812319', 'davidmorenocortes19@gmail.com', '3208555672', '$2b$12$d7iednUC/AwyU5RDxpxyd.UXqtfSwjCoRmyV8zmFKKMsgfUAWXFeO', 'clle12', 'Habilitado', 2);
+(19, 'kevin', '42434244', 'kevin@gmail.com', '2434243243', '$2b$12$TU4CjsIdXbAMCfMgMXCaseLGDNnTt7ZBMIRj.rjLC9IKTyFIfcATG', 'calle12', 'Habilitado', 2);
 
 -- --------------------------------------------------------
 
