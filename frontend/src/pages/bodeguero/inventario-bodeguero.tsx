@@ -53,6 +53,7 @@ type Operacion = "entrada" | "salida" | "ajuste";
 export default function InventarioVista() {
   const { usuario } = useSesion();
   const esAdministrador = usuario?.id_rol === 1;
+  const puedeCargarInventario = esAdministrador || usuario?.id_rol === 4;
 
   const [stock, setStock] = useState<StockPorProducto[]>([]);
   const [filas, setFilas] = useState<Inventario[]>([]);
@@ -409,7 +410,7 @@ export default function InventarioVista() {
         }
       />
 
-      {esAdministrador && <CargaMasiva tipo="inventario" alGuardar={() => void cargarDatos()} />}
+      {puedeCargarInventario && <CargaMasiva tipo="inventario" alGuardar={() => void cargarDatos()} />}
 
       {error && !modalCrearAbierto && !modalAbierto && (
         <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />

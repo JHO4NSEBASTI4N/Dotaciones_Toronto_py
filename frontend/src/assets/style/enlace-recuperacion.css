@@ -1,0 +1,52 @@
+/* Enlace de recuperación, integrado con la paleta de la pantalla de acceso. */
+.login-formulario .login-recuperar {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 44px;
+  max-width: 100%;
+  margin: -8px -8px -4px 0;
+  padding: 8px;
+  border-radius: 8px;
+  color: #a63d0c;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
+  text-decoration: none;
+  transition: color 0.16s, background-color 0.16s;
+}
+
+.login-formulario .login-recuperar svg {
+  flex: none;
+  transition: transform 0.16s;
+}
+
+.login-formulario .login-recuperar:hover {
+  color: #7c2d0d;
+  background: #fff1e8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.login-formulario .login-recuperar:hover svg {
+  transform: translateX(3px);
+}
+
+.login-formulario .login-recuperar:focus-visible {
+  outline: 3px solid #d65d1b;
+  outline-offset: 2px;
+  background: #fff1e8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-formulario .login-recuperar,
+  .login-formulario .login-recuperar svg {
+    transition: none;
+  }
+  .login-formulario .login-recuperar:hover svg {
+    transform: none;
+  }
+}

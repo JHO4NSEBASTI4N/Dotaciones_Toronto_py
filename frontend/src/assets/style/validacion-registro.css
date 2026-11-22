@@ -1,0 +1,33 @@
+/* Mensajes de validación del registro, sin afectar otros formularios. */
+.registro-opcional {
+  color: #7b8796;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.registro-ayuda {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.registro-error,
+.registro-validacion-correcta {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.registro-error { color: #b42318; }
+.registro-validacion-correcta { color: #167647; }
+.registro-validacion-correcta:empty { display: none; }
+.registro-campo-valido .registro-entrada input { border-color: #67b788; }
+.registro-campo-valido .registro-entrada input:focus {
+  border-color: #22834d;
+  box-shadow: 0 0 0 3px rgba(34, 131, 77, .13);
+}
+.registro-campo-invalido .registro-entrada input { border-color: #dc6861; }
+.registro-campo-invalido .registro-entrada input:focus {
+  box-shadow: 0 0 0 3px rgba(220, 104, 97, .14);
+}

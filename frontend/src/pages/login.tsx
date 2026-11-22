@@ -26,6 +26,7 @@ import { ErrorApi } from "../services/api";
 import { hayCarritoPortadaPendiente } from "../services/carrito-portada";
 import { useSesion } from "../context/sesion-contexto";
 import type { RolDisponible } from "../types";
+import "../assets/style/enlace-recuperacion.css";
 
 function rutaTrasLogin(
   idRol: number,
@@ -354,7 +355,10 @@ export default function Login() {
                     </div>
                   </label>
 
-                  <Link to="/recuperar-password" style={{ textAlign: "right" }}>¿Olvidaste tu contraseña?</Link>
+                  <Link to="/recuperar-password" className="login-recuperar">
+                    ¿Olvidaste tu contraseña?
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </Link>
 
                   {error && (
                     <p className="mensaje-error" role="alert">

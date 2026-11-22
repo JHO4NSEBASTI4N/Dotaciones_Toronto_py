@@ -112,7 +112,7 @@ def usuario_registrado(cliente):
     datos = {
         "nombre": "Prueba Uno",
         "correo": "prueba@toronto.com",
-        "password": "secreta123",
+        "password": "secreta123!",
         "documento": "123456",
     }
     respuesta = cliente.post("/api/v1/auth/registro", json=datos)

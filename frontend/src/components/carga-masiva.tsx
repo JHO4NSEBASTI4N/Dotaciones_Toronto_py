@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { api, BASE_URL } from "../services/api";
+import "../assets/style/carga-masiva.css";
 
 type Tipo = "productos" | "inventario" | "usuarios";
 type Resultado = { total: number; validos: number; guardados: number; errores: { fila: number; mensaje: string }[] };
@@ -50,18 +51,64 @@ export function CargaMasiva({ tipo, alGuardar }: { tipo: Tipo; alGuardar: () => 
     } finally { setOcupado(false); }
   }
 
-  return <section style={{ margin: "16px 0", padding: 16, background: "white", border: "1px solid #dce5e1", borderRadius: 12 }}>
-    <button type="button" className="dt-boton-secundario" onClick={() => setAbierto(!abierto)} aria-expanded={abierto}>📄 Carga masiva desde Excel</button>
-    {abierto && <div style={{ marginTop: 12 }}>
-      <p>{descripcion}</p>
-      <p>Descarga la plantilla, llena la hoja Datos y guarda el archivo en formato .xlsx (máximo 500 filas y 2 MB).</p>
-      <button type="button" className="dt-boton-secundario" onClick={() => void descargar()} disabled={ocupado}>Descargar plantilla</button>{" "}
-      <label>Archivo: <input ref={entrada} type="file" accept=".xlsx" disabled={ocupado} onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setResultado(null); setMensaje(""); }} /></label>{" "}
-      <button type="button" className="dt-boton-secundario" disabled={!archivo || ocupado} onClick={() => void procesar(false)}>Validar archivo</button>{" "}
-      <button type="button" className="dt-accion-principal" disabled={!archivo || ocupado || !resultado || resultado.errores.length > 0 || resultado.guardados > 0} onClick={() => void procesar(true)}>Confirmar y guardar</button>
-      {ocupado && <p>Procesando…</p>}
-      {mensaje && <p role="status">{mensaje}</p>}
-      {!!resultado?.errores.length && <ul style={{ maxHeight: 200, overflow: "auto", color: "#9f2020" }}>{resultado.errores.map((e, i) => <li key={i}>Fila {e.fila}: {e.mensaje}</li>)}</ul>}
-    </div>}
-  </section>;
+  return (
+    <section className="carga-masiva">
+      <button
+        type="button"
+        className="carga-masiva__cabecera"
+        onClick={() => setAbierto(!abierto)}
+        aria-expanded={abierto}
+        aria-controls={`carga-masiva-${tipo}`}
+      >
+        <span className="carga-masiva__icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4M9 13h6M9 17h6"/>
+          </svg>
+        </span>
+        <span className="carga-masiva__titulo">
+          <strong>Carga masiva desde Excel</strong>
+          <small>Importa tus datos de forma sencilla y segura</small>
+        </span>
+        <span className="carga-masiva__flecha" aria-hidden="true">⌄</span>
+      </button>
+
+      {abierto && (
+        <div className="carga-masiva__contenido" id={`carga-masiva-${tipo}`}>
+          <p className="carga-masiva__descripcion">{descripcion}</p>
+          <p className="carga-masiva__instrucciones">
+            Descarga la plantilla, llena la hoja <strong>Datos</strong> y guarda el archivo en formato .xlsx.
+            <span>Máximo 500 filas y 2 MB.</span>
+          </p>
+
+          <div className="carga-masiva__pasos">
+            <button type="button" className="carga-masiva__boton carga-masiva__boton--secundario" onClick={() => void descargar()} disabled={ocupado}>
+              Descargar plantilla
+            </button>
+            <label className="carga-masiva__archivo">
+              <span>Selecciona tu archivo Excel</span>
+              <input ref={entrada} type="file" accept=".xlsx" disabled={ocupado} onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setResultado(null); setMensaje(""); }} />
+            </label>
+          </div>
+
+          <div className="carga-masiva__acciones">
+            <button type="button" className="carga-masiva__boton carga-masiva__boton--secundario" disabled={!archivo || ocupado} onClick={() => void procesar(false)}>Validar archivo</button>
+            <button type="button" className="carga-masiva__boton carga-masiva__boton--principal" disabled={!archivo || ocupado || !resultado || resultado.errores.length > 0 || resultado.guardados > 0} onClick={() => void procesar(true)}>Confirmar y guardar</button>
+          </div>
+
+          {ocupado && (
+            <div className="carga-masiva__progreso" role="status" aria-live="polite">
+              <span className="carga-masiva__spinner" aria-hidden="true" />
+              <span><strong>Procesando…</strong><small>Espera un momento y no cierres esta página.</small></span>
+            </div>
+          )}
+          {mensaje && <p className="carga-masiva__mensaje" role="status">{mensaje}</p>}
+          {!!resultado?.errores.length && (
+            <ul className="carga-masiva__errores">
+              {resultado.errores.map((e, i) => <li key={i}><strong>Fila {e.fila}:</strong> {e.mensaje}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
+  );
 }

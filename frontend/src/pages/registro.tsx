@@ -18,8 +18,13 @@ import {
 } from "../components/iconos";
 import { ErrorApi } from "../services/api";
 import { autenticacion } from "../services/autenticacion";
+import "../assets/style/validacion-registro.css";
 
+const NOMBRE_MIN = 2;
 const NOMBRE_MAX = 60;
+const DIRECCION_MAX = 255;
+const CORREO_MAX = 254;
+const PASSWORD_MAX_BYTES = 72;
 const DOCUMENTO_MIN = 6;
 const DOCUMENTO_MAX = 12;
 const TELEFONO_MIN = 7;
@@ -27,8 +32,7 @@ const TELEFONO_MAX = 10;
 const PASSWORD_MIN = 8;
 
 const SOLO_LETRAS_Y_ESPACIOS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
-const NO_PERMITIDO_EN_NOMBRE = /[^A-Za-zÁÉÍÓÚáéíóúÑñÜü ]/g;
-const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CORREO_VALIDO = /^[^\s@]+@(?:[^\s@.]+\.)+[^\s@.]+$/;
 const TIENE_LETRA = /[A-Za-zÁÉÍÓÚáéíóúÑñÜü]/;
 const TIENE_NUMERO = /\d/;
 const TIENE_ESPECIAL = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/;
@@ -53,6 +57,7 @@ const FORMULARIO_VACIO: Formulario = {
 function validarNombre(valor: string): string | null {
   const limpio = valor.trim();
   if (!limpio) return "El nombre es obligatorio.";
+  if (limpio.length < NOMBRE_MIN) return `Debe tener al menos ${NOMBRE_MIN} letras.`;
   if (!SOLO_LETRAS_Y_ESPACIOS.test(limpio)) return "Solo puede tener letras y espacios.";
   if (limpio.length > NOMBRE_MAX) return `Máximo ${NOMBRE_MAX} caracteres.`;
   return null;
@@ -60,6 +65,7 @@ function validarNombre(valor: string): string | null {
 
 function validarCorreo(valor: string): string | null {
   if (!valor.trim()) return "El correo es obligatorio.";
+  if (Array.from(valor.trim()).length > CORREO_MAX) return `Máximo ${CORREO_MAX} caracteres.`;
   if (!CORREO_VALIDO.test(valor.trim())) return "Escribe un correo válido.";
   return null;
 }
@@ -82,17 +88,24 @@ function validarTelefono(valor: string): string | null {
   return null;
 }
 
+function validarDireccion(valor: string): string | null {
+  if (Array.from(valor.trim()).length > DIRECCION_MAX) return `Máximo ${DIRECCION_MAX} caracteres.`;
+  return null;
+}
+
 function requisitosPassword(valor: string) {
   return [
-    { texto: `Mínimo ${PASSWORD_MIN} caracteres`, cumple: valor.length >= PASSWORD_MIN },
+    { texto: `Mínimo ${PASSWORD_MIN} caracteres`, cumple: Array.from(valor).length >= PASSWORD_MIN },
     { texto: "Una letra", cumple: TIENE_LETRA.test(valor) },
     { texto: "Un número", cumple: TIENE_NUMERO.test(valor) },
     { texto: "Un carácter especial", cumple: TIENE_ESPECIAL.test(valor) },
+    { texto: `Máximo ${PASSWORD_MAX_BYTES} bytes`, cumple: valor.length > 0 && new TextEncoder().encode(valor).length <= PASSWORD_MAX_BYTES },
   ];
 }
 
 function validarPassword(valor: string): string | null {
   if (!valor) return "La contraseña es obligatoria.";
+  if (new TextEncoder().encode(valor).length > PASSWORD_MAX_BYTES) return `La contraseña supera el máximo de ${PASSWORD_MAX_BYTES} bytes.`;
   const pendiente = requisitosPassword(valor).find((requisito) => !requisito.cumple);
   return pendiente ? `Falta: ${pendiente.texto.toLowerCase()}.` : null;
 }
@@ -108,28 +121,37 @@ function validarRepetida(valor: string, password: string): string | null {
 ========================================================= */
 
 interface CampoProps {
-  id: string;
+  id: Campo;
   etiqueta: string;
   icono: typeof Mail;
+  ayuda: string;
   error?: string;
+  tocado: boolean;
+  valor: string;
   requerido?: boolean;
   children: ReactNode;
 }
 
-function Campo({ id, etiqueta, icono: Icono, error, requerido, children }: CampoProps) {
+function Campo({ id, etiqueta, icono: Icono, ayuda, error, tocado, valor, requerido, children }: CampoProps) {
+  const mostrarError = tocado && Boolean(error);
+  const mostrarValido = tocado && !error && valor.trim().length > 0;
+  const mensaje = mostrarError ? error : mostrarValido
+    ? (id === "correo" ? "Formato válido. Se comprobará al registrar." : "Correcto")
+    : tocado && !requerido ? "Opcional: puedes dejarlo vacío." : "";
+
   return (
-    <div className={`registro-campo ${error ? "registro-campo-invalido" : ""}`}>
+    <div className={`registro-campo ${mostrarError ? "registro-campo-invalido" : mostrarValido ? "registro-campo-valido" : ""}`}>
       <label htmlFor={id} className="registro-etiqueta">
-        {etiqueta}
-        {requerido ? " *" : ""}
+        {etiqueta}{requerido ? " *" : <span className="registro-opcional"> (opcional)</span>}
       </label>
       <div className="registro-entrada">
-        <span className="registro-icono">
-          <Icono size={16} />
-        </span>
+        <span className="registro-icono"><Icono size={16} /></span>
         {children}
       </div>
-      {error && <small className="registro-error">{error}</small>}
+      <small id={`${id}-ayuda`} className="registro-ayuda">{ayuda}</small>
+      <small id={`${id}-estado`} className={mostrarError ? "registro-error" : "registro-validacion-correcta"} aria-live="polite">
+        {mensaje}
+      </small>
     </div>
   );
 }
@@ -140,45 +162,44 @@ function Campo({ id, etiqueta, icono: Icono, error, requerido, children }: Campo
 
 export default function Registro() {
   const [formulario, setFormulario] = useState<Formulario>(FORMULARIO_VACIO);
-  const [errores, setErrores] = useState<Partial<Record<Campo, string>>>({});
+  const [tocados, setTocados] = useState<Partial<Record<Campo, boolean>>>({});
   const [verPassword, setVerPassword] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [mensajeError, setMensajeError] = useState("");
   const [listo, setListo] = useState(false);
 
   const requisitos = requisitosPassword(formulario.password);
+  const errores: Partial<Record<Campo, string>> = {
+    nombre: validarNombre(formulario.nombre) ?? undefined,
+    correo: validarCorreo(formulario.correo) ?? undefined,
+    documento: validarDocumento(formulario.documento) ?? undefined,
+    telefono: validarTelefono(formulario.telefono) ?? undefined,
+    direccion: validarDireccion(formulario.direccion) ?? undefined,
+    password: validarPassword(formulario.password) ?? undefined,
+    repetida: validarRepetida(formulario.repetida, formulario.password) ?? undefined,
+  };
 
   function cambiar(campo: Campo, valor: string) {
-    let limpio = valor;
-
-    if (campo === "documento") limpio = valor.replace(/\D/g, "").slice(0, DOCUMENTO_MAX);
-    if (campo === "telefono") limpio = valor.replace(/\D/g, "").slice(0, TELEFONO_MAX);
-    if (campo === "nombre") limpio = valor.replace(NO_PERMITIDO_EN_NOMBRE, "").slice(0, NOMBRE_MAX);
-
-    setFormulario((anterior) => ({ ...anterior, [campo]: limpio }));
-    setErrores((anterior) => ({ ...anterior, [campo]: undefined }));
+    setFormulario((anterior) => ({ ...anterior, [campo]: valor }));
+    setTocados((anterior) => ({ ...anterior, [campo]: true }));
     setMensajeError("");
+  }
+
+  function atributosCampo(campo: Campo) {
+    return {
+      "aria-invalid": Boolean(tocados[campo] && errores[campo]),
+      "aria-describedby": `${campo}-ayuda ${campo}-estado${campo === "password" ? " password-requisitos" : ""}`,
+      onBlur: () => setTocados((anterior) => ({ ...anterior, [campo]: true })),
+    };
   }
 
   async function guardar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     const f = formulario;
 
-    const nuevosErrores: Partial<Record<Campo, string>> = {
-      nombre: validarNombre(f.nombre) ?? undefined,
-      correo: validarCorreo(f.correo) ?? undefined,
-      documento: validarDocumento(f.documento) ?? undefined,
-      telefono: validarTelefono(f.telefono) ?? undefined,
-      password: validarPassword(f.password) ?? undefined,
-      repetida: validarRepetida(f.repetida, f.password) ?? undefined,
-    };
+    setTocados({ nombre: true, correo: true, documento: true, telefono: true, direccion: true, password: true, repetida: true });
+    if (Object.values(errores).some(Boolean)) return;
 
-    if (Object.values(nuevosErrores).some(Boolean)) {
-      setErrores(nuevosErrores);
-      return;
-    }
-
-    setErrores({});
     setEnviando(true);
 
     try {
@@ -192,7 +213,7 @@ export default function Registro() {
       });
       setListo(true);
     } catch (error) {
-      if (error instanceof ErrorApi && error.estado === 400) {
+      if (error instanceof ErrorApi && error.estado === 409) {
         setMensajeError("Ese correo ya está registrado. Prueba iniciando sesión.");
       } else {
         setMensajeError(
@@ -239,9 +260,10 @@ export default function Registro() {
           <p className="registro-sub">Regístrate como cliente y empieza a pedir tus dotaciones.</p>
 
           <form className="registro-form" onSubmit={guardar} noValidate>
-            <Campo id="nombre" etiqueta="Nombre completo" icono={UserRound} requerido error={errores.nombre}>
+            <Campo id="nombre" etiqueta="Nombre completo" icono={UserRound} ayuda="Usa entre 2 y 60 letras y espacios." requerido error={errores.nombre} tocado={!!tocados.nombre} valor={formulario.nombre}>
               <input
                 id="nombre"
+                {...atributosCampo("nombre")}
                 name="nombre"
                 type="text"
                 placeholder="Tu nombre y apellido"
@@ -251,9 +273,10 @@ export default function Registro() {
               />
             </Campo>
 
-            <Campo id="correo" etiqueta="Correo electrónico" icono={Mail} requerido error={errores.correo}>
+            <Campo id="correo" etiqueta="Correo electrónico" icono={Mail} ayuda="Escribe un correo al que tengas acceso." requerido error={errores.correo} tocado={!!tocados.correo} valor={formulario.correo}>
               <input
                 id="correo"
+                {...atributosCampo("correo")}
                 name="correo"
                 type="email"
                 placeholder="tucorreo@empresa.com"
@@ -264,9 +287,10 @@ export default function Registro() {
             </Campo>
 
             <div className="registro-fila">
-              <Campo id="documento" etiqueta="Documento" icono={UserRound} error={errores.documento}>
+              <Campo id="documento" etiqueta="Documento" icono={UserRound} ayuda="Solo números; entre 6 y 12 dígitos." error={errores.documento} tocado={!!tocados.documento} valor={formulario.documento}>
                 <input
                   id="documento"
+                  {...atributosCampo("documento")}
                   name="documento"
                   type="text"
                   inputMode="numeric"
@@ -276,9 +300,10 @@ export default function Registro() {
                 />
               </Campo>
 
-              <Campo id="telefono" etiqueta="Teléfono" icono={Phone} error={errores.telefono}>
+              <Campo id="telefono" etiqueta="Teléfono" icono={Phone} ayuda="Solo números; entre 7 y 10 dígitos." error={errores.telefono} tocado={!!tocados.telefono} valor={formulario.telefono}>
                 <input
                   id="telefono"
+                  {...atributosCampo("telefono")}
                   name="telefono"
                   type="tel"
                   inputMode="numeric"
@@ -290,9 +315,10 @@ export default function Registro() {
               </Campo>
             </div>
 
-            <Campo id="direccion" etiqueta="Dirección de entrega" icono={MapPin}>
+            <Campo id="direccion" etiqueta="Dirección de entrega" icono={MapPin} ayuda="Hasta 255 caracteres." error={errores.direccion} tocado={!!tocados.direccion} valor={formulario.direccion}>
               <input
                 id="direccion"
+                {...atributosCampo("direccion")}
                 name="direccion"
                 type="text"
                 placeholder="Calle, carrera, barrio"
@@ -303,9 +329,10 @@ export default function Registro() {
             </Campo>
 
             <div className="registro-fila">
-              <Campo id="password" etiqueta="Contraseña" icono={Lock} requerido error={errores.password}>
+              <Campo id="password" etiqueta="Contraseña" icono={Lock} ayuda="Crea una contraseña que cumpla los requisitos." requerido error={errores.password} tocado={!!tocados.password} valor={formulario.password}>
                 <input
                   id="password"
+                  {...atributosCampo("password")}
                   name="password"
                   type={verPassword ? "text" : "password"}
                   className="registro-con-ojo"
@@ -324,9 +351,10 @@ export default function Registro() {
                 </button>
               </Campo>
 
-              <Campo id="repetida" etiqueta="Repetir contraseña" icono={Lock} requerido error={errores.repetida}>
+              <Campo id="repetida" etiqueta="Repetir contraseña" icono={Lock} ayuda="Debe coincidir con la contraseña anterior." requerido error={errores.repetida} tocado={!!tocados.repetida} valor={formulario.repetida}>
                 <input
                   id="repetida"
+                  {...atributosCampo("repetida")}
                   name="repetida"
                   type={verPassword ? "text" : "password"}
                   placeholder="••••••••"
@@ -337,7 +365,7 @@ export default function Registro() {
               </Campo>
             </div>
 
-            <ul className="registro-requisitos">
+            <ul className="registro-requisitos" id="password-requisitos" aria-label="Requisitos de contraseña">
               {requisitos.map((requisito) => (
                 <li key={requisito.texto} className={requisito.cumple ? "ok" : ""}>
                   {requisito.cumple ? <Check size={12} /> : <span className="registro-punto" />}

@@ -10,7 +10,7 @@ from app.schemas.usuario import (
     LoginEntrada,
     MisRolesRespuesta,
     TokenSalida,
-    UsuarioCrear,
+    UsuarioRegistro,
     UsuarioRespuesta,
 )
 from app.services import auth as servicio
@@ -21,7 +21,7 @@ router.include_router(recuperacion.router, prefix="/recuperacion", tags=["Recupe
 
 
 @router.post("/registro", response_model=UsuarioRespuesta, status_code=status.HTTP_201_CREATED)
-def registro(datos: UsuarioCrear, sesion: SesionBD):
+def registro(datos: UsuarioRegistro, sesion: SesionBD):
     """Registra un cliente nuevo."""
     return servicio.registrar(sesion, datos)
 

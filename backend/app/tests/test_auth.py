@@ -34,7 +34,7 @@ def test_raiz_responde(cliente):
 def test_registro_crea_usuario(cliente):
     respuesta = cliente.post(
         "/api/v1/auth/registro",
-        json={"nombre": "Ana", "correo": "ana@toronto.com", "password": "secreta123"},
+        json={"nombre": "Ana", "correo": "ana@toronto.com", "password": "secreta123!"},
     )
     assert respuesta.status_code == 201
     cuerpo = respuesta.json()
@@ -45,7 +45,7 @@ def test_registro_crea_usuario(cliente):
 def test_registro_no_devuelve_password(cliente):
     respuesta = cliente.post(
         "/api/v1/auth/registro",
-        json={"nombre": "Ana", "correo": "ana@toronto.com", "password": "secreta123"},
+        json={"nombre": "Ana", "correo": "ana@toronto.com", "password": "secreta123!"},
     )
     assert "password" not in respuesta.json()
 
@@ -56,7 +56,7 @@ def test_registro_correo_duplicado_da_409(cliente, usuario_registrado):
         json={
             "nombre": "Otro",
             "correo": usuario_registrado["correo"],
-            "password": "secreta123",
+            "password": "secreta123!",
         },
     )
     assert respuesta.status_code == 409
@@ -66,7 +66,7 @@ def test_registro_correo_duplicado_da_409(cliente, usuario_registrado):
 def test_registro_correo_invalido_da_422(cliente):
     respuesta = cliente.post(
         "/api/v1/auth/registro",
-        json={"nombre": "X", "correo": "no-es-correo", "password": "secreta123"},
+        json={"nombre": "X", "correo": "no-es-correo", "password": "secreta123!"},
     )
     assert respuesta.status_code == 422
 
