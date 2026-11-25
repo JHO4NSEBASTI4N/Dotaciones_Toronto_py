@@ -9,6 +9,7 @@ import { ClipboardList, Eye, FileText, PackageCheck, RefreshCw, Store, Truck, X 
 import logoNegro from "../../assets/images/logo negro.png";
 
 import { pedidos, pesos, traerTodo } from "../../services/api";
+import { abrirFacturaImprimible } from "../../utils/factura-imprimible";
 import { useSesion } from "../../context/sesion-contexto";
 import {
   Aviso,
@@ -79,108 +80,28 @@ export default function MisPedidosVista() {
   }, [lista, busqueda, filtroEstado]);
 
   const descargarFacturaPedido = (pedido: Pedido) => {
-    const total = Number(pedido.total ?? 0);
-    const subtotalLista = Number(pedido.subtotal_lista ?? total);
-    const descuento = Number(pedido.descuento_total ?? 0);
-    const itemsPedido = pedido.items ?? [];
-    const filas = itemsPedido.length
-      ? itemsPedido
-          .map(
-            (item) => `
-      <tr>
-        <td>${item.nombre_producto ?? `Producto #${item.id_producto ?? "—"}`}</td>
-        <td style="text-align:right">${item.cantidad}</td>
-        <td style="text-align:right">${pesos(item.precio_lista)}</td>
-        <td style="text-align:right">${pesos(item.descuento_unitario)}</td>
-        <td style="text-align:right">${pesos(item.precio_unitario)}</td>
-        <td style="text-align:right">${pesos(item.subtotal)}</td>
-      </tr>`
-          )
-          .join("")
-      : `<tr><td colspan="6">No se encontraron productos en el detalle de este pedido.</td></tr>`;
-    const ventana = window.open("", "_blank", "width=960,height=900");
-    if (!ventana) return;
-
-    ventana.document.write(`<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>Factura Pedido #${pedido.id_pedido}</title>
-  <style>
-    body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 36px; }
-    .cabecera { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 20px; }
-    .empresa p, .meta p { margin: 2px 0; font-size: 13px; color: #475569; }
-    .meta { text-align: right; }
-    .meta h2 { margin: 0 0 4px; font-size: 18px; color: #0f172a; }
-    .caja { border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 18px; }
-    .caja h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #64748b; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    th, td { border-bottom: 1px solid #e2e8f0; padding: 10px 8px; text-align: left; }
-    th { background: #f8fafc; color: #475569; font-weight: 600; }
-    .totales { margin-top: 18px; margin-left: auto; width: 280px; font-size: 14px; }
-    .totales div { display: flex; justify-content: space-between; padding: 5px 0; }
-    .totales .total { border-top: 2px solid #0f172a; margin-top: 6px; padding-top: 8px; font-size: 16px; font-weight: 700; }
-    .pie { margin-top: 28px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-    @media print { body { margin: 18px; } }
-  </style>
-</head>
-<body>
-  <div class="cabecera">
-    <div class="empresa" style="display:flex;align-items:center;gap:12px;">
-      <img src="${logoNegro}" alt="Dotaciones Toronto" style="width:48px;height:48px;object-fit:contain;border-radius:8px;flex-shrink:0;" />
-      <div>
-        <h1 style="margin:0 0 2px;font-size:20px;">DOTACIONES TORONTO S.A.S.</h1>
-        <p style="margin:2px 0;font-size:12.5px;color:#475569;">NIT: 900123456-8 · Régimen Común</p>
-        <p style="margin:2px 0;font-size:12.5px;color:#475569;">Dotaciones Empresariales e Industriales · Bogotá D.C.</p>
-      </div>
-    </div>
-    <div class="meta">
-      <h2>FACTURA DE VENTA · PEDIDO #${pedido.id_pedido}</h2>
-      <p>Fecha: ${fecha(pedido.fecha_pedido)}</p>
-      <p>Estado: <strong>${pedido.estado}</strong></p>
-    </div>
-  </div>
-
-  <div class="caja">
-    <h3>Datos del Cliente</h3>
-    <div class="grid">
-      <div><strong>Cliente:</strong> ${usuario?.nombre ?? "Cliente"}</div>
-      <div><strong>Correo:</strong> ${usuario?.correo ?? "—"}</div>
-      <div><strong>Pedido:</strong> #${pedido.id_pedido}</div>
-      <div><strong>Unidades totales:</strong> ${pedido.total_unidades}</div>
-    </div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Producto</th>
-        <th style="text-align:right">Cantidad</th>
-        <th style="text-align:right">Precio lista</th>
-        <th style="text-align:right">Descuento</th>
-        <th style="text-align:right">Precio final</th>
-        <th style="text-align:right">Subtotal</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${filas}
-    </tbody>
-  </table>
-
-  <div class="totales">
-    <div><span>Subtotal lista</span><span>${pesos(subtotalLista)}</span></div>
-    <div><span>Descuentos</span><span>−${pesos(descuento)}</span></div>
-    <div class="total"><span>Total del pedido</span><span>${pesos(total)}</span></div>
-  </div>
-
-  <div class="pie">
-    <p>Gracias por su compra · Dotaciones Toronto S.A.S.</p>
-  </div>
-  <script>window.onload = () => { window.print(); };</script>
-</body>
-</html>`);
-    ventana.document.close();
+    abrirFacturaImprimible({
+      logoUrl: logoNegro,
+      titulo: `FACTURA DE VENTA · PEDIDO #${pedido.id_pedido}`,
+      fecha: fecha(pedido.fecha_pedido),
+      estado: pedido.estado ?? "—",
+      cliente: usuario?.nombre ?? "Cliente",
+      correo: usuario?.correo ?? "—",
+      idPedido: pedido.id_pedido,
+      unidades: pedido.total_unidades,
+      subtotalLista: pedido.subtotal_lista ?? pedido.total,
+      descuentoTotal: pedido.descuento_total ?? 0,
+      total: pedido.total,
+      lineas: (pedido.items ?? []).map((item) => ({
+        nombre: item.nombre_producto,
+        idProducto: item.id_producto,
+        cantidad: item.cantidad,
+        precioLista: item.precio_lista,
+        descuentoUnitario: item.descuento_unitario,
+        precioUnitario: item.precio_unitario,
+        subtotal: item.subtotal,
+      })),
+    });
   };
 
   return (
