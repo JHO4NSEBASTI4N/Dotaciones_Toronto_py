@@ -80,22 +80,26 @@ export default function MisPedidosVista() {
 
   const descargarFacturaPedido = (pedido: Pedido) => {
     const total = Number(pedido.total ?? 0);
-    const iva = Math.round(total * 0.19);
-    const subtotal = Math.max(0, total - iva);
-    const ventana = window.open("", "_blank", "width=820,height=900");
-    if (!ventana) return;
-
-    const filas = (pedido.detalles ?? [])
-      .map(
-        (item) => `
+    const subtotalLista = Number(pedido.subtotal_lista ?? total);
+    const descuento = Number(pedido.descuento_total ?? 0);
+    const itemsPedido = pedido.items ?? [];
+    const filas = itemsPedido.length
+      ? itemsPedido
+          .map(
+            (item) => `
       <tr>
-        <td>${item.nombre_producto ?? `Producto #${item.id_producto_fk}`}</td>
+        <td>${item.nombre_producto ?? `Producto #${item.id_producto ?? "—"}`}</td>
         <td style="text-align:right">${item.cantidad}</td>
+        <td style="text-align:right">${pesos(item.precio_lista)}</td>
+        <td style="text-align:right">${pesos(item.descuento_unitario)}</td>
         <td style="text-align:right">${pesos(item.precio_unitario)}</td>
-        <td style="text-align:right">${pesos(Number(item.precio_unitario) * item.cantidad)}</td>
+        <td style="text-align:right">${pesos(item.subtotal)}</td>
       </tr>`
-      )
-      .join("");
+          )
+          .join("")
+      : `<tr><td colspan="6">No se encontraron productos en el detalle de este pedido.</td></tr>`;
+    const ventana = window.open("", "_blank", "width=960,height=900");
+    if (!ventana) return;
 
     ventana.document.write(`<!doctype html>
 <html lang="es">
@@ -153,7 +157,9 @@ export default function MisPedidosVista() {
       <tr>
         <th>Producto</th>
         <th style="text-align:right">Cantidad</th>
-        <th style="text-align:right">Precio unitario</th>
+        <th style="text-align:right">Precio lista</th>
+        <th style="text-align:right">Descuento</th>
+        <th style="text-align:right">Precio final</th>
         <th style="text-align:right">Subtotal</th>
       </tr>
     </thead>
@@ -163,9 +169,9 @@ export default function MisPedidosVista() {
   </table>
 
   <div class="totales">
-    <div><span>Subtotal</span><span>${pesos(subtotal)}</span></div>
-    <div><span>IVA (19%)</span><span>${pesos(iva)}</span></div>
-    <div class="total"><span>Total pagado</span><span>${pesos(total)}</span></div>
+    <div><span>Subtotal lista</span><span>${pesos(subtotalLista)}</span></div>
+    <div><span>Descuentos</span><span>−${pesos(descuento)}</span></div>
+    <div class="total"><span>Total del pedido</span><span>${pesos(total)}</span></div>
   </div>
 
   <div class="pie">

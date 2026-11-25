@@ -44,6 +44,7 @@ export default function FacturacionAdmin() {
   const [lista, setLista] = useState<FacturaElectronica[]>([]);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState<number | null>(null);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
@@ -183,12 +184,26 @@ export default function FacturacionAdmin() {
   const abrirDetalle = async (factura: FacturaElectronica) => {
     setDetalle(factura);
     setXml("");
+    setCargandoDetalle(true);
+
+    try {
+      const completa = await facturas.obtener(factura.id_factura);
+      setDetalle(completa);
+    } catch (fallo) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo cargar el detalle de los productos facturados."
+      );
+    }
 
     try {
       const respuesta = await facturas.xml(factura.id_factura);
       setXml(respuesta.xml);
     } catch {
       setXml("");
+    } finally {
+      setCargandoDetalle(false);
     }
   };
 
@@ -203,14 +218,35 @@ export default function FacturacionAdmin() {
     URL.revokeObjectURL(enlace.href);
   };
 
-  const descargarFacturaImprimible = (factura: Factura) => {
-    const total = Number(factura.total_factura ?? 0);
-    const iva = Number(factura.iva ?? 0);
-    const subtotal = Math.max(0, total - iva);
-    const ventana = window.open("", "_blank", "width=820,height=900");
+  const descargarFacturaImprimible = async (resumenFactura: FacturaElectronica) => {
+    // Abrir la ventana de forma síncrona para que el navegador no bloquee el popup;
+    // después se consulta el detalle completo, que incluye las líneas de productos.
+    const ventana = window.open("", "_blank", "width=980,height=900");
     if (!ventana) return;
 
-    ventana.document.write(`<!doctype html>
+    try {
+      ventana.document.write("<p style='font-family:Arial;padding:24px'>Cargando factura…</p>");
+      const factura = await facturas.obtener(resumenFactura.id_factura);
+      const lineas = factura.lineas ?? [];
+      const total = Number(factura.total_factura ?? 0);
+      const iva = Number(factura.total_iva ?? 0);
+      const subtotal = Number(factura.valor_bruto ?? Math.max(0, total - iva));
+      const filas = lineas.length
+        ? lineas.map((linea) => {
+            const totalLinea = Number(linea.total_linea ?? 0) + Number(linea.iva_valor ?? 0);
+            return `<tr>
+              <td>${linea.descripcion ?? `Producto ${linea.codigo_producto ?? ""}`}</td>
+              <td style="text-align:right">${Number(linea.cantidad ?? 0)}</td>
+              <td style="text-align:right">${pesos(linea.precio_unitario ?? 0)}</td>
+              <td style="text-align:right">${pesos(linea.descuento ?? 0)}</td>
+              <td style="text-align:right">${pesos(linea.iva_valor ?? 0)}</td>
+              <td style="text-align:right">${pesos(totalLinea)}</td>
+            </tr>`;
+          }).join("")
+        : `<tr><td colspan="6">Esta factura no tiene líneas de producto registradas.</td></tr>`;
+
+      ventana.document.open();
+      ventana.document.write(`<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -265,20 +301,21 @@ export default function FacturacionAdmin() {
   <table>
     <thead>
       <tr>
-        <th>Concepto</th>
-        <th style="text-align:right">Valor</th>
+        <th>Producto / concepto</th>
+        <th style="text-align:right">Cantidad</th>
+        <th style="text-align:right">Precio unitario</th>
+        <th style="text-align:right">Descuento</th>
+        <th style="text-align:right">IVA</th>
+        <th style="text-align:right">Total línea</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>Venta de dotaciones empresariales (Venta #${factura.id_venta_fk ?? "—"})</td>
-        <td style="text-align:right">${pesos(subtotal)}</td>
-      </tr>
+      ${filas}
     </tbody>
   </table>
 
   <div class="totales">
-    <div><span>Subtotal</span><span>${pesos(subtotal)}</span></div>
+    <div><span>Base gravable</span><span>${pesos(subtotal)}</span></div>
     <div><span>IVA</span><span>${pesos(iva)}</span></div>
     <div class="total"><span>Total a pagar</span><span>${pesos(total)}</span></div>
   </div>
@@ -290,7 +327,15 @@ export default function FacturacionAdmin() {
   <script>window.onload = () => { window.print(); };</script>
 </body>
 </html>`);
-    ventana.document.close();
+      ventana.document.close();
+    } catch (fallo) {
+      ventana.close();
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo cargar el detalle para imprimir la factura."
+      );
+    }
   };
 
   return (
@@ -447,7 +492,7 @@ export default function FacturacionAdmin() {
                           type="button"
                           className="dt-boton-icono"
                           title="Descargar / Imprimir factura"
-                          onClick={() => descargarFacturaImprimible(factura)}
+                          onClick={() => void descargarFacturaImprimible(factura)}
                         >
                           <FileText size={14} />
                         </button>
@@ -613,12 +658,12 @@ export default function FacturacionAdmin() {
                   <div>
                     <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>Subtotal</span>
                     <strong>
-                      {pesos(Math.max(0, Number(detalle.total_factura ?? 0) - Number(detalle.iva ?? 0)))}
+                      {pesos(detalle.valor_bruto ?? Math.max(0, Number(detalle.total_factura ?? 0) - Number(detalle.total_iva ?? 0)))}
                     </strong>
                   </div>
                   <div>
                     <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>IVA</span>
-                    <strong>{pesos(detalle.iva ?? 0)}</strong>
+                    <strong>{pesos(detalle.total_iva ?? 0)}</strong>
                   </div>
                   <div>
                     <span style={{ color: "#64748b", display: "block", fontSize: 11.5 }}>Total factura</span>
@@ -630,7 +675,58 @@ export default function FacturacionAdmin() {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 12, color: "#475569", borderTop: "1px solid #e2e8f0", paddingTop: 10 }}>
+                <div className="dt-formulario-seccion-titulo" style={{ margin: "16px 0 8px" }}>
+                  <span>Productos</span>
+                  <div>
+                    <strong>Detalle de la factura</strong>
+                    <p>
+                      {cargandoDetalle
+                        ? "Cargando líneas…"
+                        : `${detalle.lineas?.length ?? 0} producto(s)`}
+                    </p>
+                  </div>
+                </div>
+
+                {cargandoDetalle ? (
+                  <p style={{ color: "#64748b", fontSize: 13 }}>Consultando productos facturados…</p>
+                ) : detalle.lineas && detalle.lineas.length > 0 ? (
+                  <div className="dt-tabla-scroll">
+                    <table className="dt-tabla">
+                      <thead>
+                        <tr>
+                          <th>Producto</th>
+                          <th>Cant.</th>
+                          <th>Precio unit.</th>
+                          <th>Descuento</th>
+                          <th>IVA</th>
+                          <th>Total línea</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detalle.lineas.map((linea) => (
+                          <tr key={linea.id_detalle_factura}>
+                            <td>
+                              <strong>{linea.descripcion ?? `Producto ${linea.codigo_producto ?? ""}`}</strong>
+                            </td>
+                            <td>{Number(linea.cantidad ?? 0)}</td>
+                            <td>{pesos(linea.precio_unitario ?? 0)}</td>
+                            <td>{pesos(linea.descuento ?? 0)}</td>
+                            <td>{pesos(linea.iva_valor ?? 0)}</td>
+                            <td>
+                              {pesos(Number(linea.total_linea ?? 0) + Number(linea.iva_valor ?? 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: "#64748b", fontSize: 13 }}>
+                    Esta factura no tiene líneas de producto registradas.
+                  </p>
+                )}
+
+                <div style={{ fontSize: 12, color: "#475569", borderTop: "1px solid #e2e8f0", paddingTop: 10, marginTop: 12 }}>
                   <div style={{ wordBreak: "break-all", marginBottom: 4 }}>
                     <strong>CUFE:</strong> {detalle.cufe ?? "Sin CUFE (falta firmar)"}
                   </div>
@@ -685,7 +781,7 @@ export default function FacturacionAdmin() {
               <button
                 type="button"
                 className="dt-accion-principal"
-                onClick={() => descargarFacturaImprimible(detalle)}
+                onClick={() => void descargarFacturaImprimible(detalle)}
               >
                 <FileText size={15} />
                 Descargar / Imprimir PDF

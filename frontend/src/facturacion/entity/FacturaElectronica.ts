@@ -3,6 +3,8 @@
 // Modulo de facturacion electronica (DIAN).
 // Equivale a la clase FacturaElectronica.java del proyecto Java.
 
+import type { EventoFactura } from "./EventoFactura";
+
 export interface FacturaElectronica {
   id_factura: number;
   id_venta_fk: number | null;
@@ -34,6 +36,9 @@ export interface FacturaElectronica {
   firmado: boolean;
   simulado: boolean;
   creado_en: string | null;
+  /** El listado es resumido; detalle agrega estas líneas y eventos. */
+  lineas?: LineaFactura[];
+  eventos?: EventoFactura[];
 }
 
 export interface LineaFactura {
