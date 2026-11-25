@@ -10,7 +10,8 @@ BASE = {"nombre": "María Pérez", "correo": "maria@example.com", "password": "C
     ("nombre", ""), ("nombre", " A "), ("nombre", "Juan 3"), ("nombre", "A" * 61),
     ("correo", ""), ("correo", "no-correo"), ("correo", "ana@dominio..com"),
     ("documento", "12345"), ("documento", "1234567890123"), ("documento", "12345a"), ("documento", "１２３４５６"),
-    ("telefono", "123456"), ("telefono", "12345678901"), ("telefono", "3001234a"),
+    ("telefono", "123456"), ("telefono", "+1234567890123456"), ("telefono", "3001234a"),
+    ("telefono", "++1 (415) 555-2671"), ("telefono", "+1 (415 555-2671"),
     ("direccion", "x" * 256),
     ("password", ""), ("password", "Aa1!"), ("password", "12345678!"),
     ("password", "abcdefgh!"), ("password", "abcdefgh1"),
@@ -25,6 +26,7 @@ def test_peticion_directa_rechaza_campos_invalidos(cliente, sesion, campo, valor
 @pytest.mark.parametrize("documento,telefono,direccion", [
     (None, None, None), ("", "", ""), ("123456", "1234567", "Calle 123"),
     ("123456789012", "1234567890", "x" * 255),
+    (None, "+1 (415) 555-2671", None),
 ])
 def test_registro_valido_con_opcionales(cliente, documento, telefono, direccion):
     respuesta = cliente.post(URL, json={**BASE, 'documento': documento, 'telefono': telefono, 'direccion': direccion})

@@ -24,6 +24,8 @@ import {
   tonoDeEstado,
 } from "../../components/indicadores";
 import type { Devolucion, Venta } from "../../entity";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
+import { useCamposTocados } from "../../hooks/use-campos-tocados";
 
 export default function DevolucionesCliente() {
   const { usuario } = useSesion();
@@ -42,6 +44,7 @@ export default function DevolucionesCliente() {
   const [idDetalle, setIdDetalle] = useState("");
   const [cantidad, setCantidad] = useState("1");
   const [motivo, setMotivo] = useState("");
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
 
   const cargarDatos = useCallback(async () => {
     if (!usuario) return;
@@ -100,9 +103,44 @@ export default function DevolucionesCliente() {
   }, [lista, busqueda, filtroEstado]);
 
   const ventaElegida = misVentas.find((v) => String(v.id_venta) === idVenta) ?? null;
+  const detalleElegido = ventaElegida?.items.find(
+    (item) => String(item.id_detalle_venta) === idDetalle
+  ) ?? null;
+  const solicitudesPendientes = detalleElegido
+    ? lista
+        .filter((devolucion) => devolucion.id_detalle_venta_fk === detalleElegido.id_detalle_venta && devolucion.estado === "Pendiente")
+        .reduce((total, devolucion) => total + devolucion.cantidad, 0)
+    : 0;
+  const disponibleDevolver = detalleElegido
+    ? Math.max(0, detalleElegido.cantidad - detalleElegido.cantidad_devuelta - solicitudesPendientes)
+    : 0;
+  const erroresCampos = {
+    venta: misVentas.some((venta) => String(venta.id_venta) === idVenta && venta.estado === "Completada")
+      ? null
+      : "Selecciona una venta completada.",
+    producto: detalleElegido ? null : "Selecciona una línea de venta válida.",
+    cantidad: !detalleElegido
+      ? "Selecciona primero una línea de venta."
+      : !Number.isInteger(Number(cantidad)) || Number(cantidad) < 1
+        ? "La cantidad debe ser un número entero mayor que cero."
+        : Number(cantidad) > disponibleDevolver
+        ? `Solo puedes solicitar ${disponibleDevolver} unidad(es) de esta línea.`
+        : null,
+    motivo: motivo.trim().length < 5
+      ? "Describe el motivo con al menos 5 caracteres."
+      : motivo.trim().length > 255
+        ? "El motivo no puede superar 255 caracteres."
+        : null,
+  };
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    const validacion = Object.values(erroresCampos).find(Boolean);
+    if (validacion) {
+      tocarVarios(Object.keys(erroresCampos));
+      setError(validacion);
+      return;
+    }
     setGuardando(true);
     setError("");
 
@@ -110,7 +148,7 @@ export default function DevolucionesCliente() {
       await devoluciones.crear({
         id_detalle_venta: Number(idDetalle),
         cantidad: Number(cantidad),
-        motivo: motivo || null,
+        motivo: motivo.trim(),
       });
 
       setMensaje("Solicitud enviada. El vendedor la revisará.");
@@ -138,7 +176,7 @@ export default function DevolucionesCliente() {
             <button
               type="button"
               className="dt-accion-principal"
-              onClick={() => setModalAbierto(true)}
+              onClick={() => { reiniciar(); setModalAbierto(true); }}
             >
               <Plus size={15} /> Pedir devolución
             </button>
@@ -197,7 +235,7 @@ export default function DevolucionesCliente() {
               <button
                 type="button"
                 className="dt-accion-principal"
-                onClick={() => setModalAbierto(true)}
+                onClick={() => { reiniciar(); setModalAbierto(true); }}
               >
                 <Plus size={15} /> Pedir devolución
               </button>
@@ -278,7 +316,7 @@ export default function DevolucionesCliente() {
               </button>
             </header>
 
-            <form onSubmit={guardar}>
+            <form onSubmit={guardar} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid">
                   <label className="dt-campo-ancho">
@@ -288,7 +326,11 @@ export default function DevolucionesCliente() {
                       onChange={(e) => {
                         setIdVenta(e.target.value);
                         setIdDetalle("");
+                        tocar("venta");
                       }}
+                      onBlur={() => tocar("venta")}
+                      aria-invalid={mostrar("venta") && Boolean(erroresCampos.venta)}
+                      aria-describedby="devolucion-venta-feedback"
                       required
                     >
                       <option value="">Selecciona una de tus ventas</option>
@@ -301,13 +343,17 @@ export default function DevolucionesCliente() {
                           </option>
                         ))}
                     </select>
+                    <FeedbackValidacion id="devolucion-venta-feedback" error={erroresCampos.venta} mostrar={mostrar("venta")} valido="Venta completada seleccionada." />
                   </label>
 
                   <label className="dt-campo-ancho">
                     Producto <span>*</span>
                     <select
                       value={idDetalle}
-                      onChange={(e) => setIdDetalle(e.target.value)}
+                      onChange={(e) => { setIdDetalle(e.target.value); tocar("producto"); }}
+                      onBlur={() => tocar("producto")}
+                      aria-invalid={mostrar("producto") && Boolean(erroresCampos.producto)}
+                      aria-describedby="devolucion-producto-feedback"
                       disabled={!ventaElegida}
                       required
                     >
@@ -319,6 +365,7 @@ export default function DevolucionesCliente() {
                         </option>
                       ))}
                     </select>
+                    <FeedbackValidacion id="devolucion-producto-feedback" error={erroresCampos.producto} mostrar={mostrar("producto")} valido="Línea de venta válida." />
                   </label>
 
                   <label>
@@ -326,19 +373,32 @@ export default function DevolucionesCliente() {
                     <input
                       type="number"
                       min={1}
+                      max={disponibleDevolver}
+                      step={1}
+                      disabled={!detalleElegido}
                       value={cantidad}
-                      onChange={(e) => setCantidad(e.target.value)}
+                      onChange={(e) => { setCantidad(e.target.value); tocar("cantidad"); }}
+                      onBlur={() => tocar("cantidad")}
+                      aria-invalid={mostrar("cantidad") && Boolean(erroresCampos.cantidad)}
+                      aria-describedby="devolucion-cantidad-feedback"
                       required
                     />
+                    <FeedbackValidacion id="devolucion-cantidad-feedback" error={erroresCampos.cantidad} mostrar={mostrar("cantidad")} valido="Cantidad disponible." />
                   </label>
 
                   <label>
-                    Motivo
+                    Motivo <span>*</span>
                     <input
+                      minLength={5}
+                      maxLength={255}
                       value={motivo}
-                      onChange={(e) => setMotivo(e.target.value)}
+                      onChange={(e) => { setMotivo(e.target.value); tocar("motivo"); }}
+                      onBlur={() => tocar("motivo")}
+                      aria-invalid={mostrar("motivo") && Boolean(erroresCampos.motivo)}
+                      aria-describedby="devolucion-motivo-feedback"
                       placeholder="Talla equivocada, defecto…"
                     />
+                    <FeedbackValidacion id="devolucion-motivo-feedback" error={erroresCampos.motivo} mostrar={mostrar("motivo")} valido="Motivo válido." />
                   </label>
                 </div>
               </div>

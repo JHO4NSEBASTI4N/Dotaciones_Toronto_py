@@ -16,6 +16,8 @@ export interface Producto {
   categoria: string;
   estado: string | null;
   inhabilitado: boolean;
+  /** Stock agregado que incluye la respuesta de catálogo. */
+  stock?: number | null;
 }
 
 export interface ProductoCrear {

@@ -47,6 +47,8 @@ import type {
   Producto,
   StockPorProducto,
 } from "../../types";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
+import { useCamposTocados } from "../../hooks/use-campos-tocados";
 
 type Operacion = "entrada" | "salida" | "ajuste";
 
@@ -82,6 +84,7 @@ export default function InventarioVista() {
   const [cantidad, setCantidad] = useState("1");
   const [motivo, setMotivo] = useState("");
   const [idInventario, setIdInventario] = useState("");
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -267,8 +270,34 @@ export default function InventarioVista() {
       (item) => !item.inhabilitado && !idsRegistrados.has(item.id_producto)
     );
   }, [catalogoProductos, filas]);
+  const filaSeleccionadaOperacion = filas.find(
+    (fila) => fila.id_producto_fk === producto?.id_producto && String(fila.id_inventario) === idInventario && !fila.inhabilitado
+  );
+  const erroresNuevoInventario = {
+    producto: productosDisponibles.some((item) => item.id_producto === Number(idProductoNuevo))
+      ? null
+      : "Selecciona un producto activo sin inventario.",
+    cantidad: !cantidadInicial.trim() || !Number.isInteger(Number(cantidadInicial)) || Number(cantidadInicial) < 0 || Number(cantidadInicial) > 2147483647
+      ? "La cantidad inicial debe ser un entero entre 0 y 2.147.483.647."
+      : null,
+    minimo: !minimoInicial.trim() || !Number.isInteger(Number(minimoInicial)) || Number(minimoInicial) < 0 || Number(minimoInicial) > 2147483647
+      ? "El stock mínimo debe ser un entero entre 0 y 2.147.483.647."
+      : null,
+  };
+  const erroresOperacion = {
+    fila: filaSeleccionadaOperacion ? null : "Selecciona una fila activa de inventario.",
+    cantidadOperacion: !cantidad.trim() || !Number.isInteger(Number(cantidad)) || Number(cantidad) < (operacion === "ajuste" ? 0 : 1)
+      ? operacion === "ajuste" ? "El conteo debe ser un entero igual o mayor que cero." : "La cantidad debe ser un entero mayor que cero."
+      : Number(cantidad) > 2147483647
+        ? "La cantidad no puede superar 2.147.483.647 unidades."
+        : operacion === "salida" && filaSeleccionadaOperacion && Number(cantidad) > Number(filaSeleccionadaOperacion.cantidad_actual ?? 0)
+          ? "No puedes retirar más unidades de las que hay en esta fila."
+          : null,
+    motivo: motivo.trim().length > 255 ? "El motivo no puede superar 255 caracteres." : null,
+  };
 
   const abrirCrearInventario = () => {
+    reiniciar();
     setError("");
     setIdProductoNuevo(
       productosDisponibles[0] ? String(productosDisponibles[0].id_producto) : ""
@@ -280,18 +309,26 @@ export default function InventarioVista() {
 
   const guardarNuevoInventario = async (evento: FormEvent) => {
     evento.preventDefault();
-    if (!idProductoNuevo) return;
+    const idProducto = Number(idProductoNuevo);
+    const inicial = Number(cantidadInicial);
+    const minimo = Number(minimoInicial);
+    const validacion = Object.values(erroresNuevoInventario).find(Boolean);
+    if (validacion) {
+      tocarVarios(Object.keys(erroresNuevoInventario));
+      setError(validacion);
+      return;
+    }
 
     setGuardando(true);
     setError("");
     try {
       const seleccionado = productosDisponibles.find(
-        (item) => item.id_producto === Number(idProductoNuevo)
+        (item) => item.id_producto === idProducto
       );
       await inventario.crear({
-        id_producto_fk: Number(idProductoNuevo),
-        cantidad_actual: Number(cantidadInicial),
-        stock_minimo: Number(minimoInicial),
+        id_producto_fk: idProducto,
+        cantidad_actual: inicial,
+        stock_minimo: minimo,
       });
       setMensaje(`Inventario inicial de ${seleccionado?.nombre ?? "producto"} registrado.`);
       setModalCrearAbierto(false);
@@ -309,6 +346,7 @@ export default function InventarioVista() {
   const abrirOperacion = (fila: StockPorProducto, tipo: Operacion) => {
     const propias = filasDelProducto(fila.id_producto);
 
+    reiniciar();
     setProducto(fila);
     setOperacion(tipo);
     setCantidad(tipo === "ajuste" ? String(fila.stock_total) : "1");
@@ -320,8 +358,11 @@ export default function InventarioVista() {
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
-    if (!idInventario) {
-      setError("Selecciona la talla y el color del inventario que vas a modificar.");
+    const cantidadNumerica = Number(cantidad);
+    const validacion = Object.values(erroresOperacion).find(Boolean);
+    if (validacion) {
+      tocarVarios(Object.keys(erroresOperacion));
+      setError(validacion);
       return;
     }
     setGuardando(true);
@@ -331,11 +372,11 @@ export default function InventarioVista() {
       const id = Number(idInventario);
 
       if (operacion === "entrada") {
-        await inventario.entrada(id, Number(cantidad), motivo || "Ingreso a bodega");
+        await inventario.entrada(id, cantidadNumerica, motivo.trim() || "Ingreso a bodega");
       } else if (operacion === "salida") {
-        await inventario.salida(id, Number(cantidad), motivo || "Salida de bodega");
+        await inventario.salida(id, cantidadNumerica, motivo.trim() || "Salida de bodega");
       } else {
-        await inventario.ajuste(id, Number(cantidad), motivo || "Ajuste de conteo");
+        await inventario.ajuste(id, cantidadNumerica, motivo.trim() || "Ajuste de conteo");
       }
 
       setMensaje(
@@ -351,6 +392,9 @@ export default function InventarioVista() {
   };
 
   const filasModal = producto ? filasDelProducto(producto.id_producto) : [];
+  const stockFilaSeleccionada = filasModal.find(
+    (fila) => String(fila.id_inventario) === idInventario
+  )?.cantidad_actual;
 
   return (
     <section className="dt-modulo">
@@ -822,7 +866,7 @@ export default function InventarioVista() {
 
             {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
 
-            <form onSubmit={guardarNuevoInventario}>
+            <form onSubmit={guardarNuevoInventario} noValidate>
               <div className="dt-formulario-contenido">
                 {productosDisponibles.length === 0 ? (
                   <p className="dt-inventario-sin-productos">
@@ -835,7 +879,10 @@ export default function InventarioVista() {
                       Producto <span>*</span>
                       <select
                         value={idProductoNuevo}
-                        onChange={(evento) => setIdProductoNuevo(evento.target.value)}
+                        onChange={(evento) => { setIdProductoNuevo(evento.target.value); tocar("producto"); }}
+                        onBlur={() => tocar("producto")}
+                        aria-invalid={mostrar("producto") && Boolean(erroresNuevoInventario.producto)}
+                        aria-describedby="inventario-nuevo-producto-feedback"
                         required
                         disabled={guardando}
                       >
@@ -846,18 +893,24 @@ export default function InventarioVista() {
                           </option>
                         ))}
                       </select>
+                      <FeedbackValidacion id="inventario-nuevo-producto-feedback" error={erroresNuevoInventario.producto} mostrar={mostrar("producto")} valido="Producto activo seleccionado." />
                     </label>
                     <label className="dt-campo-ancho">
                       Cantidad inicial <span>*</span>
                       <input
                         type="number"
                         min={0}
+                        max={2147483647}
                         step={1}
                         value={cantidadInicial}
-                        onChange={(evento) => setCantidadInicial(evento.target.value)}
+                        onChange={(evento) => { setCantidadInicial(evento.target.value); tocar("cantidad"); }}
+                        onBlur={() => tocar("cantidad")}
+                        aria-invalid={mostrar("cantidad") && Boolean(erroresNuevoInventario.cantidad)}
+                        aria-describedby="inventario-cantidad-inicial-feedback"
                         required
                         disabled={guardando}
                       />
+                      <FeedbackValidacion id="inventario-cantidad-inicial-feedback" error={erroresNuevoInventario.cantidad} mostrar={mostrar("cantidad")} valido="Cantidad inicial válida." />
                     </label>
                     <label className="dt-campo-ancho">
                       Stock mínimo de reposición <span>*</span>
@@ -865,13 +918,17 @@ export default function InventarioVista() {
                         id="stock-minimo-inicial"
                         type="number"
                         min={0}
+                        max={2147483647}
                         step={1}
                         value={minimoInicial}
-                        onChange={(evento) => setMinimoInicial(evento.target.value)}
+                        onChange={(evento) => { setMinimoInicial(evento.target.value); tocar("minimo"); }}
+                        onBlur={() => tocar("minimo")}
+                        aria-invalid={mostrar("minimo") && Boolean(erroresNuevoInventario.minimo)}
                         required
                         disabled={guardando}
-                        aria-describedby="ayuda-stock-minimo-inicial"
+                        aria-describedby="ayuda-stock-minimo-inicial inventario-minimo-feedback"
                       />
+                      <FeedbackValidacion id="inventario-minimo-feedback" error={erroresNuevoInventario.minimo} mostrar={mostrar("minimo")} valido="Stock mínimo válido." />
                       <small id="ayuda-stock-minimo-inicial">
                         Si las existencias llegan a este número, el sistema marcará el stock como
                         bajo.
@@ -947,14 +1004,17 @@ export default function InventarioVista() {
 
             {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
 
-            <form onSubmit={guardar}>
+            <form onSubmit={guardar} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid">
                   <label className="dt-campo-ancho">
                     Fila de inventario <span>*</span>
                     <select
                       value={idInventario}
-                      onChange={(e) => setIdInventario(e.target.value)}
+                      onChange={(e) => { setIdInventario(e.target.value); tocar("fila"); }}
+                      onBlur={() => tocar("fila")}
+                      aria-invalid={mostrar("fila") && Boolean(erroresOperacion.fila)}
+                      aria-describedby="inventario-fila-feedback"
                       required
                     >
                       <option value="" disabled={filasModal.length === 0}>
@@ -969,6 +1029,7 @@ export default function InventarioVista() {
                         </option>
                       ))}
                     </select>
+                    <FeedbackValidacion id="inventario-fila-feedback" error={erroresOperacion.fila} mostrar={mostrar("fila")} valido="Fila seleccionada." />
                     {filasModal.length === 0 && (
                       <small>
                         Recarga el inventario. Si continúa vacío, verifica que el producto tenga
@@ -982,19 +1043,30 @@ export default function InventarioVista() {
                     <input
                       type="number"
                       min={operacion === "ajuste" ? 0 : 1}
+                      max={operacion === "salida" ? stockFilaSeleccionada ?? undefined : 2147483647}
+                      step={1}
                       value={cantidad}
-                      onChange={(e) => setCantidad(e.target.value)}
+                      onChange={(e) => { setCantidad(e.target.value); tocar("cantidadOperacion"); }}
+                      onBlur={() => tocar("cantidadOperacion")}
+                      aria-invalid={mostrar("cantidadOperacion") && Boolean(erroresOperacion.cantidadOperacion)}
+                      aria-describedby="inventario-cantidad-operacion-feedback"
                       required
                     />
+                    <FeedbackValidacion id="inventario-cantidad-operacion-feedback" error={erroresOperacion.cantidadOperacion} mostrar={mostrar("cantidadOperacion")} valido="Cantidad válida para la operación." />
                   </label>
 
                   <label>
                     Motivo
                     <input
+                      maxLength={255}
                       value={motivo}
-                      onChange={(e) => setMotivo(e.target.value)}
+                      onChange={(e) => { setMotivo(e.target.value); tocar("motivo"); }}
+                      onBlur={() => tocar("motivo")}
+                      aria-invalid={mostrar("motivo") && Boolean(erroresOperacion.motivo)}
+                      aria-describedby="inventario-motivo-feedback"
                       placeholder="Compra a proveedor, daño, conteo físico…"
                     />
+                    <FeedbackValidacion id="inventario-motivo-feedback" error={erroresOperacion.motivo} mostrar={mostrar("motivo")} valido="Motivo opcional válido." />
                   </label>
                 </div>
               </div>

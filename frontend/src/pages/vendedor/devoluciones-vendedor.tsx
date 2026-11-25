@@ -26,6 +26,8 @@ import {
   tonoDeEstado,
 } from "../../components/indicadores";
 import type { Devolucion, Venta } from "../../types";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
+import { useCamposTocados } from "../../hooks/use-campos-tocados";
 
 export default function DevolucionesVendedor() {
   const { usuario, esAdministrador } = useSesion();
@@ -45,6 +47,7 @@ export default function DevolucionesVendedor() {
   const [idDetalle, setIdDetalle] = useState("");
   const [cantidad, setCantidad] = useState("1");
   const [motivo, setMotivo] = useState("");
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -129,8 +132,36 @@ export default function DevolucionesVendedor() {
     () => ventasLista.find((venta) => String(venta.id_venta) === idVenta) ?? null,
     [ventasLista, idVenta]
   );
+  const detalleElegido = ventaElegida?.items.find(
+    (item) => String(item.id_detalle_venta) === idDetalle
+  ) ?? null;
+  const solicitudesPendientes = detalleElegido
+    ? lista
+        .filter((devolucion) => devolucion.id_detalle_venta_fk === detalleElegido.id_detalle_venta && devolucion.estado === "Pendiente")
+        .reduce((total, devolucion) => total + devolucion.cantidad, 0)
+    : 0;
+  const disponibleDevolver = detalleElegido
+    ? Math.max(0, detalleElegido.cantidad - detalleElegido.cantidad_devuelta - solicitudesPendientes)
+    : 0;
+  const erroresCampos = {
+    venta: ventaElegida ? null : "Selecciona una venta completada.",
+    producto: detalleElegido ? null : "Selecciona una línea de venta válida.",
+    cantidad: !detalleElegido
+      ? "Selecciona primero una línea de venta."
+      : !Number.isInteger(Number(cantidad)) || Number(cantidad) < 1
+        ? "La cantidad debe ser un número entero mayor que cero."
+        : Number(cantidad) > disponibleDevolver
+        ? `Solo puedes registrar ${disponibleDevolver} unidad(es) de esta línea.`
+        : null,
+    motivo: motivo.trim().length < 5
+      ? "Describe el motivo con al menos 5 caracteres."
+      : motivo.trim().length > 255
+        ? "El motivo no puede superar 255 caracteres."
+        : null,
+  };
 
   const abrirRegistro = async () => {
+    reiniciar();
     setModalAbierto(true);
     setError("");
     setMotivo("");
@@ -150,6 +181,12 @@ export default function DevolucionesVendedor() {
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    const validacion = Object.values(erroresCampos).find(Boolean);
+    if (validacion) {
+      tocarVarios(Object.keys(erroresCampos));
+      setError(validacion);
+      return;
+    }
     setGuardando(true);
     setError("");
 
@@ -157,7 +194,7 @@ export default function DevolucionesVendedor() {
       await devoluciones.crear({
         id_detalle_venta: Number(idDetalle),
         cantidad: Number(cantidad),
-        motivo: motivo || null,
+        motivo: motivo.trim(),
       });
 
       setMensaje("Devolución registrada como Pendiente.");
@@ -385,7 +422,7 @@ export default function DevolucionesVendedor() {
               </button>
             </header>
 
-            <form onSubmit={guardar}>
+            <form onSubmit={guardar} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid">
                   <label className="dt-campo-ancho">
@@ -395,7 +432,11 @@ export default function DevolucionesVendedor() {
                       onChange={(e) => {
                         setIdVenta(e.target.value);
                         setIdDetalle("");
+                        tocar("venta");
                       }}
+                      onBlur={() => tocar("venta")}
+                      aria-invalid={mostrar("venta") && Boolean(erroresCampos.venta)}
+                      aria-describedby="devolucion-vendedor-venta-feedback"
                       required
                     >
                       <option value="">Selecciona una venta completada</option>
@@ -406,13 +447,17 @@ export default function DevolucionesVendedor() {
                         </option>
                       ))}
                     </select>
+                    <FeedbackValidacion id="devolucion-vendedor-venta-feedback" error={erroresCampos.venta} mostrar={mostrar("venta")} valido="Venta completada seleccionada." />
                   </label>
 
                   <label className="dt-campo-ancho">
                     Producto <span>*</span>
                     <select
                       value={idDetalle}
-                      onChange={(e) => setIdDetalle(e.target.value)}
+                      onChange={(e) => { setIdDetalle(e.target.value); tocar("producto"); }}
+                      onBlur={() => tocar("producto")}
+                      aria-invalid={mostrar("producto") && Boolean(erroresCampos.producto)}
+                      aria-describedby="devolucion-vendedor-producto-feedback"
                       disabled={!ventaElegida}
                       required
                     >
@@ -423,6 +468,7 @@ export default function DevolucionesVendedor() {
                         </option>
                       ))}
                     </select>
+                    <FeedbackValidacion id="devolucion-vendedor-producto-feedback" error={erroresCampos.producto} mostrar={mostrar("producto")} valido="Línea de venta válida." />
                   </label>
 
                   <label>
@@ -430,19 +476,32 @@ export default function DevolucionesVendedor() {
                     <input
                       type="number"
                       min={1}
+                      max={disponibleDevolver}
+                      step={1}
+                      disabled={!detalleElegido}
                       value={cantidad}
-                      onChange={(e) => setCantidad(e.target.value)}
+                      onChange={(e) => { setCantidad(e.target.value); tocar("cantidad"); }}
+                      onBlur={() => tocar("cantidad")}
+                      aria-invalid={mostrar("cantidad") && Boolean(erroresCampos.cantidad)}
+                      aria-describedby="devolucion-vendedor-cantidad-feedback"
                       required
                     />
+                    <FeedbackValidacion id="devolucion-vendedor-cantidad-feedback" error={erroresCampos.cantidad} mostrar={mostrar("cantidad")} valido="Cantidad disponible." />
                   </label>
 
                   <label>
-                    Motivo
+                    Motivo <span>*</span>
                     <input
+                      minLength={5}
+                      maxLength={255}
                       value={motivo}
-                      onChange={(e) => setMotivo(e.target.value)}
+                      onChange={(e) => { setMotivo(e.target.value); tocar("motivo"); }}
+                      onBlur={() => tocar("motivo")}
+                      aria-invalid={mostrar("motivo") && Boolean(erroresCampos.motivo)}
+                      aria-describedby="devolucion-vendedor-motivo-feedback"
                       placeholder="Talla equivocada, defecto…"
                     />
+                    <FeedbackValidacion id="devolucion-vendedor-motivo-feedback" error={erroresCampos.motivo} mostrar={mostrar("motivo")} valido="Motivo válido." />
                   </label>
                 </div>
               </div>

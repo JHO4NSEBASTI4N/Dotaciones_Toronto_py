@@ -27,6 +27,7 @@ import {
   ventas,
 } from "../../services/api";
 import { useSesion } from "../../context/sesion-contexto";
+import { AccesoRolCliente } from "../../components/acceso-rol-cliente";
 import {
   Aviso,
   BarraListado,
@@ -230,6 +231,8 @@ export default function PanelVendedor() {
       {mensaje && (
         <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />
       )}
+
+      <AccesoRolCliente />
 
       <FilaIndicadores>
         <Indicador

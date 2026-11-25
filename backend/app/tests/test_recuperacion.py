@@ -39,7 +39,7 @@ def solicitar(cliente, correo='personal@ejemplo.com'):
 def verificar(cliente, codigo, correo='personal@ejemplo.com'):
     return cliente.post(BASE + '/verificar', json={'correo': correo, 'codigo': codigo})
 
-def cambiar(cliente, ticket, password='nuevaclave123', correo='personal@ejemplo.com'):
+def cambiar(cliente, ticket, password='NuevaClave123!', correo='personal@ejemplo.com'):
     return cliente.post(BASE + '/cambiar', json={'correo': correo, 'ticket': ticket, 'password_nueva': password})
 
 def test_flujo_completo_codigo_y_ticket_un_solo_uso(cliente, cuenta, mensajes, sesion):
@@ -55,9 +55,9 @@ def test_flujo_completo_codigo_y_ticket_un_solo_uso(cliente, cuenta, mensajes, s
     assert cambiar(cliente, ticket).status_code == 200
     assert cambiar(cliente, ticket).status_code == 400
     sesion.refresh(cuenta)
-    assert verificar_password('nuevaclave123', cuenta.password)
+    assert verificar_password('NuevaClave123!', cuenta.password)
     assert not verificar_password('original123', cuenta.password)
-    assert cliente.post('/api/v1/auth/login', json={'correo': cuenta.correo, 'password':'nuevaclave123'}).status_code == 200
+    assert cliente.post('/api/v1/auth/login', json={'correo': cuenta.correo, 'password':'NuevaClave123!'}).status_code == 200
 
 def test_mensaje_generico_correo_inexistente_y_no_habilitado(cliente, cuenta, mensajes, sesion):
     real = solicitar(cliente).json()
@@ -114,7 +114,7 @@ def test_contrasena_invalida_no_consume_ticket(cliente, cuenta, mensajes):
     solicitar(cliente); ticket = verificar(cliente, mensajes[0][1]).json()['ticket']
     assert cambiar(cliente, ticket, 'corta').status_code == 422
     assert cambiar(cliente, ticket, 'á' * 40).status_code == 422
-    assert cambiar(cliente, ticket, 'correcta123').status_code == 200
+    assert cambiar(cliente, ticket, 'Correcta123!').status_code == 200
 
 def test_limite_por_ip(cliente, mensajes):
     for _ in range(5): assert solicitar(cliente, 'nadie@ejemplo.com').status_code == 200

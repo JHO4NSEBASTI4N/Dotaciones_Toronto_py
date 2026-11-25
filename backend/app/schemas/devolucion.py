@@ -52,6 +52,13 @@ class DevolucionEstadoActualizar(BaseModel):
             return valor.strip().capitalize()
         return valor
 
+    @field_validator("observacion", mode="before")
+    @classmethod
+    def limpiar_observacion(cls, valor: object) -> object:
+        if isinstance(valor, str):
+            return " ".join(valor.split()) or None
+        return valor
+
     @field_validator("estado")
     @classmethod
     def estado_permitido(cls, valor: str) -> str:

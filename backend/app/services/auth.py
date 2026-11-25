@@ -14,7 +14,7 @@ Ese rol viaja firmado en el token y es el que autoriza.
 
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import NOMBRES_ROL, roles_asignados
+from app.core.dependencies import NOMBRES_ROL, roles_asignados, roles_de
 from app.core.exceptions import Conflicto, NoAutorizado, Prohibido, ReglaNegocio
 from app.core.security import (
     MINUTOS_EXPIRACION_TOKEN,
@@ -135,6 +135,40 @@ def mis_roles(sesion: Session, usuario: Usuario) -> dict:
         "rol_actual": getattr(usuario, "rol_activo", None),
         "roles": roles,
     }
+
+
+def activar_cliente(sesion: Session, usuario: Usuario) -> dict:
+    """Permite al personal habilitar su propio rol Cliente sin perder el actual.
+
+    Solo funciona mientras la petición esté autenticada con Administrador,
+    Vendedor o Bodeguero. La asignación es idempotente y conserva el rol
+    predeterminado; luego el usuario puede cambiar a Cliente con /cambiar-rol.
+    """
+    from app.core.dependencies import (
+        ROL_ADMINISTRADOR,
+        ROL_BODEGUERO,
+        ROL_CLIENTE,
+        ROL_VENDEDOR,
+    )
+    from app.schemas.rol import AsignacionRol
+    from app.services.rol import asignar_rol
+
+    roles_personal = {ROL_ADMINISTRADOR, ROL_VENDEDOR, ROL_BODEGUERO}
+    if not roles_de(usuario).intersection(roles_personal):
+        raise Prohibido(
+            "Solo Administrador, Vendedor o Bodeguero puede activar el rol Cliente"
+        )
+
+    if ROL_CLIENTE not in roles_asignados(usuario):
+        asignar_rol(
+            sesion,
+            usuario.id_usuario,
+            AsignacionRol(id_rol=ROL_CLIENTE),
+        )
+        # La relación pudo estar cargada antes de crear la asignación.
+        sesion.expire(usuario, ["usuario_roles"])
+
+    return mis_roles(sesion, usuario)
 
 
 def cambiar_rol(sesion: Session, usuario: Usuario, id_rol: int) -> dict:

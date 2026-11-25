@@ -227,6 +227,7 @@ export const auth = {
     api.get<MisRoles>("/auth/mis-roles", opciones),
   cambiarRol: (id_rol: number) =>
     api.post<TokenSalida>("/auth/cambiar-rol", { id_rol }),
+  activarCliente: () => api.post<MisRoles>("/auth/activar-cliente"),
   cambiarPassword: (password_actual: string, password_nueva: string) =>
     api.post<void>("/auth/cambiar-password", { password_actual, password_nueva }),
 };

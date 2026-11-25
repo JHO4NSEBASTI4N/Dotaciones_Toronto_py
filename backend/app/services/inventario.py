@@ -132,6 +132,8 @@ def registrar_entrada(
     fila = _obtener_fila_o_fallar(repo, id_inventario)
 
     anterior = fila.cantidad_actual or 0
+    if anterior + datos.cantidad > 2147483647:
+        raise ReglaNegocio("La cantidad final supera el máximo permitido para inventario")
     fila.cantidad_actual = anterior + datos.cantidad
 
     producto = ProductoRepositorio(sesion).buscar_por_id(fila.id_producto_fk)

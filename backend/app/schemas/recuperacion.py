@@ -1,7 +1,15 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.schemas.usuario import validar_password_segura
+
+
 class SolicitudRecuperacion(BaseModel):
-    correo: EmailStr
+    correo: EmailStr = Field(max_length=254)
+
+    @field_validator("correo", mode="before")
+    @classmethod
+    def normalizar_correo(cls, valor):
+        return valor.strip() if isinstance(valor, str) else valor
 
 class VerificacionRecuperacion(SolicitudRecuperacion):
     codigo: str = Field(pattern=r'^\d{6}$', min_length=6, max_length=6)
@@ -12,7 +20,5 @@ class NuevaPassword(SolicitudRecuperacion):
 
     @field_validator('password_nueva')
     @classmethod
-    def verificar_bytes(cls, valor: str) -> str:
-        if len(valor.encode('utf-8')) > 72:
-            raise ValueError('La contraseña no debe superar 72 bytes en UTF-8')
-        return valor
+    def validar_password(cls, valor: str) -> str:
+        return validar_password_segura(valor)

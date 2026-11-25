@@ -19,6 +19,9 @@ import {
   TablaVacia,
 } from "../../components/indicadores";
 import type { Rol } from "../../types";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
+import { useCamposTocados } from "../../hooks/use-campos-tocados";
+import { validarTextoObligatorio } from "../../utils/validaciones";
 
 export default function RolesVista() {
   const { usuario } = useSesion();
@@ -34,6 +37,11 @@ export default function RolesVista() {
   const [editando, setEditando] = useState<Rol | null>(null);
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
+  const errorNombre = validarTextoObligatorio(nombre, "El nombre del rol", 3, 50);
+  const errorDescripcion = descripcion.trim().length > 150
+    ? "La descripción del rol no puede superar 150 caracteres."
+    : null;
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -76,6 +84,7 @@ export default function RolesVista() {
     setEditando(null);
     setNombre("");
     setDescripcion("");
+    reiniciar();
     setError("");
     setModalAbierto(true);
   };
@@ -84,28 +93,35 @@ export default function RolesVista() {
     setEditando(rol);
     setNombre(rol.nombre_rol ?? "");
     setDescripcion(rol.descripcion_rol ?? "");
+    reiniciar();
     setError("");
     setModalAbierto(true);
   };
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    const validacion = errorNombre ?? errorDescripcion;
+    if (validacion) {
+      tocarVarios(["nombre", "descripcion"]);
+      setError(validacion);
+      return;
+    }
     setGuardando(true);
     setError("");
 
     try {
       if (editando) {
         await apiRoles.actualizar(editando.id_rol, {
-          nombre_rol: nombre,
-          descripcion_rol: descripcion || null,
+          nombre_rol: nombre.trim(),
+          descripcion_rol: descripcion.trim() || null,
         });
-        setMensaje(`Rol ${nombre} actualizado.`);
+        setMensaje(`Rol ${nombre.trim()} actualizado.`);
       } else {
         await apiRoles.crear({
-          nombre_rol: nombre,
-          descripcion_rol: descripcion || null,
+          nombre_rol: nombre.trim(),
+          descripcion_rol: descripcion.trim() || null,
         });
-        setMensaje(`Rol ${nombre} creado.`);
+        setMensaje(`Rol ${nombre.trim()} creado.`);
       }
 
       setModalAbierto(false);
@@ -278,21 +294,36 @@ export default function RolesVista() {
               </button>
             </header>
 
-            <form onSubmit={guardar}>
+            <form onSubmit={guardar} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid" style={{ gridTemplateColumns: "1fr" }}>
                   <label>
                     Nombre del rol <span>*</span>
-                    <input value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+                    <input
+                      minLength={3}
+                      maxLength={50}
+                      value={nombre}
+                      onChange={(e) => { setNombre(e.target.value); tocar("nombre"); }}
+                      onBlur={() => tocar("nombre")}
+                      aria-invalid={mostrar("nombre") && Boolean(errorNombre)}
+                      aria-describedby="rol-nombre-feedback"
+                      required
+                    />
+                    <FeedbackValidacion id="rol-nombre-feedback" error={errorNombre} mostrar={mostrar("nombre")} />
                   </label>
 
                   <label>
                     Descripción
                     <input
+                      maxLength={150}
                       value={descripcion}
-                      onChange={(e) => setDescripcion(e.target.value)}
+                      onChange={(e) => { setDescripcion(e.target.value); tocar("descripcion"); }}
+                      onBlur={() => tocar("descripcion")}
+                      aria-invalid={mostrar("descripcion") && Boolean(errorDescripcion)}
+                      aria-describedby="rol-descripcion-feedback"
                       placeholder="Qué puede hacer este rol"
                     />
+                    <FeedbackValidacion id="rol-descripcion-feedback" error={errorDescripcion} mostrar={mostrar("descripcion")} valido="Descripción opcional válida." />
                   </label>
                 </div>
               </div>

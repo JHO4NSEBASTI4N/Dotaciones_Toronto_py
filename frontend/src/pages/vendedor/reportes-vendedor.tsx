@@ -61,6 +61,10 @@ export default function ReportesVendedor() {
   const [mensaje, setMensaje] = useState("");
 
   const cargar = useCallback(async () => {
+    if (filtros.fecha_desde && filtros.fecha_hasta && filtros.fecha_desde > filtros.fecha_hasta) {
+      setError("La fecha inicial no puede ser posterior a la fecha final.");
+      return;
+    }
     setCargando(true);
     setError("");
 
@@ -388,6 +392,7 @@ export default function ReportesVendedor() {
                 Fecha desde
                 <input
                   type="date"
+                  max={filtros.fecha_hasta || undefined}
                   value={filtros.fecha_desde}
                   onChange={(e) =>
                     setFiltros({ ...filtros, fecha_desde: e.target.value })
@@ -399,6 +404,7 @@ export default function ReportesVendedor() {
                 Fecha hasta
                 <input
                   type="date"
+                  min={filtros.fecha_desde || undefined}
                   value={filtros.fecha_hasta}
                   onChange={(e) =>
                     setFiltros({ ...filtros, fecha_hasta: e.target.value })

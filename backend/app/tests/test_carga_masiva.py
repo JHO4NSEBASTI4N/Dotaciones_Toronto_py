@@ -67,15 +67,15 @@ def test_inventario_suma_y_registra_movimiento(cliente, sesion):
 
 def test_usuario_rol_y_password_privado(cliente, sesion):
     h = acceso(cliente, sesion)
-    archivo = xlsx(cliente, h, 'usuarios', [['Persona Prueba', 'persona@ejemplo.com', '001', None, None, 2]])
+    archivo = xlsx(cliente, h, 'usuarios', [['Persona Prueba', 'persona@ejemplo.com', '12345678', None, None, 2]])
     r = enviar(cliente, h, 'usuarios', archivo, True)
     assert r.json()['guardados'] == 1
     persona = sesion.scalar(select(Usuario).where(Usuario.correo == 'persona@ejemplo.com'))
     assert persona and persona.id_rol_fk == 2 and persona.password.startswith('$2')
     assert sesion.scalar(select(UsuarioRol).where(UsuarioRol.id_usuario_fk == persona.id_usuario)).activo
-    r = cliente.post(f'/api/v1/usuarios/{persona.id_usuario}/restablecer-password', headers=h, json={'password_nueva':'cambiala123'})
+    r = cliente.post(f'/api/v1/usuarios/{persona.id_usuario}/restablecer-password', headers=h, json={'password_nueva':'CambiA123!'})
     assert r.status_code == 200
-    assert cliente.post('/api/v1/auth/login', json={'correo':persona.correo, 'password':'cambiala123'}).status_code == 200
+    assert cliente.post('/api/v1/auth/login', json={'correo':persona.correo, 'password':'CambiA123!'}).status_code == 200
 
 def test_xlsx_formula_rechazada_y_columnas_invalidas(cliente, sesion):
     h = acceso(cliente, sesion)
@@ -127,8 +127,8 @@ def test_usuario_cargado_puede_recuperar_contrasena(cliente, sesion, monkeypatch
     assert len(enviados) == 1 and enviados[0][0] == correo
     respuesta = cliente.post(base + '/verificar', json={'correo': correo, 'codigo': enviados[0][1]})
     assert respuesta.status_code == 200
-    respuesta = cliente.post(base + '/cambiar', json={'correo': correo, 'ticket': respuesta.json()['ticket'], 'password_nueva': 'ClaveNueva123'})
+    respuesta = cliente.post(base + '/cambiar', json={'correo': correo, 'ticket': respuesta.json()['ticket'], 'password_nueva': 'ClaveNueva123!'})
     assert respuesta.status_code == 200
-    assert cliente.post('/api/v1/auth/login', json={'correo': correo, 'password': 'ClaveNueva123'}).status_code == 200
+    assert cliente.post('/api/v1/auth/login', json={'correo': correo, 'password': 'ClaveNueva123!'}).status_code == 200
     with endpoint_recuperacion._lock:
         endpoint_recuperacion._registros.clear()

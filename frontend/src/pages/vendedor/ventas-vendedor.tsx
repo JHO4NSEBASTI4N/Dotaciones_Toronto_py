@@ -208,7 +208,7 @@ export default function VentasVendedor() {
     <div class="grid">
       <div><strong>Pedido asociado:</strong> #${venta.id_pedido_fk}</div>
       <div><strong>Unidades:</strong> ${venta.total_unidades}</div>
-      <div><strong>Factura electrónica:</strong> ${venta.numero_factura ?? "Sin factura"}</div>
+      <div><strong>Factura electrónica:</strong> ${venta.factura?.id_factura ?? "Sin factura"}</div>
       <div><strong>Estado:</strong> ${venta.estado}</div>
     </div>
   </div>

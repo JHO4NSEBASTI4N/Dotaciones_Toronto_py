@@ -87,6 +87,16 @@ def mis_roles(sesion: SesionBD, usuario: UsuarioActual):
     return servicio.mis_roles(sesion, usuario)
 
 
+@router.post("/activar-cliente", response_model=MisRolesRespuesta)
+def activar_cliente(sesion: SesionBD, usuario: UsuarioActual):
+    """El propio Administrador, Vendedor o Bodeguero agrega su rol Cliente.
+
+    No cambia el rol activo ni la sesión; conserva los demás roles y permite
+    cambiar a Cliente usando el flujo existente de /auth/cambiar-rol.
+    """
+    return servicio.activar_cliente(sesion, usuario)
+
+
 @router.post("/cambiar-rol", response_model=TokenSalida)
 def cambiar_rol(datos: CambiarRolEntrada, sesion: SesionBD, usuario: UsuarioActual):
     """Emite un token nuevo con otro de los roles del usuario.

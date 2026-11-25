@@ -25,6 +25,9 @@ import { autenticacion, NOMBRE_ROL, RUTA_POR_ROL } from "../services/autenticaci
 import { ErrorApi } from "../services/api";
 import { hayCarritoPortadaPendiente } from "../services/carrito-portada";
 import { useSesion } from "../context/sesion-contexto";
+import { FeedbackValidacion } from "../components/feedback-validacion";
+import { useCamposTocados } from "../hooks/use-campos-tocados";
+import { validarCorreo } from "../utils/validaciones";
 import type { RolDisponible } from "../types";
 import "../assets/style/enlace-recuperacion.css";
 
@@ -79,6 +82,11 @@ export default function Login() {
   const [avisoAcceso, setAvisoAcceso] = useState<string>(mensajeInicial);
   const [claveRutaVista, setClaveRutaVista] = useState(ubicacion.key);
   const [roles, setRoles] = useState<RolDisponible[] | null>(null);
+  const { tocar, tocarVarios, mostrar } = useCamposTocados();
+  const erroresCampos = {
+    correo: validarCorreo(correo),
+    password: password ? null : "Escribe tu contraseña.",
+  };
 
   // Si se vuelve a redirigir a /login desde otra ruta protegida, reactiva el aviso.
   if (ubicacion.key !== claveRutaVista) {
@@ -118,6 +126,12 @@ export default function Login() {
   /** Entra con el correo y contraseña escritos. */
   const entrar = async (evento: FormEvent) => {
     evento.preventDefault();
+    const validacion = erroresCampos.correo ?? erroresCampos.password;
+    if (validacion) {
+      tocarVarios(["correo", "password"]);
+      setError(validacion);
+      return;
+    }
     setError("");
     setAvisoAcceso("");
     setEntrando(true);
@@ -316,19 +330,24 @@ export default function Login() {
                 <p>Ingresa con el correo que te registró la empresa.</p>
                 {new URLSearchParams(ubicacion.search).get("recuperada") === "1" && <p role="status" style={{ color: "#16805b" }}>Contraseña actualizada. Ya puedes iniciar sesión.</p>}
 
-                <form className="login-formulario" onSubmit={entrar}>
+                <form className="login-formulario" noValidate onSubmit={entrar}>
                   <label className="campo">
                     <span>Correo electrónico</span>
                     <div className="campo-caja">
                       <Mail size={16} />
                       <input
                         type="email"
+                        maxLength={254}
                         value={correo}
-                        onChange={(evento) => setCorreo(evento.target.value)}
+                        onChange={(evento) => { setCorreo(evento.target.value); tocar("correo"); }}
+                        onBlur={() => tocar("correo")}
+                        aria-invalid={mostrar("correo") && Boolean(erroresCampos.correo)}
+                        aria-describedby="login-correo-feedback"
                         placeholder="tu.correo@empresa.com"
                         autoComplete="email"
                         required
                       />
+                    <FeedbackValidacion id="login-correo-feedback" error={erroresCampos.correo} mostrar={mostrar("correo")} />
                     </div>
                   </label>
 
@@ -339,11 +358,15 @@ export default function Login() {
                       <input
                         type={verPassword ? "text" : "password"}
                         value={password}
-                        onChange={(evento) => setPassword(evento.target.value)}
+                        onChange={(evento) => { setPassword(evento.target.value); tocar("password"); }}
+                        onBlur={() => tocar("password")}
+                        aria-invalid={mostrar("password") && Boolean(erroresCampos.password)}
+                        aria-describedby="login-password-feedback"
                         placeholder="••••••••"
                         autoComplete="current-password"
                         required
                       />
+                    <FeedbackValidacion id="login-password-feedback" error={erroresCampos.password} mostrar={mostrar("password")} />
                       <button
                         type="button"
                         className="campo-ojo"

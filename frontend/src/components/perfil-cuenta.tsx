@@ -15,6 +15,13 @@ import {
   UserRound,
 } from "../components/iconos";
 import { auth, usuarios } from "../services/api";
+import { FeedbackValidacion } from "./feedback-validacion";
+import { useCamposTocados } from "../hooks/use-campos-tocados";
+import {
+  validarDireccion,
+  validarPasswordSegura,
+  validarTelefono,
+} from "../utils/validaciones";
 import { NOMBRE_ROL, CLASE_ROL, useSesion } from "../context/sesion-contexto";
 import {
   Aviso,
@@ -41,7 +48,22 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
 
   const [passwordActual, setPasswordActual] = useState("");
   const [passwordNueva, setPasswordNueva] = useState("");
+  const [passwordConfirmar, setPasswordConfirmar] = useState("");
   const [cambiando, setCambiando] = useState(false);
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
+  const errorConfirmacion = !passwordConfirmar
+    ? "Confirma la nueva contraseña."
+    : passwordNueva !== passwordConfirmar
+      ? "La confirmación no coincide con la nueva contraseña."
+      : null;
+  const erroresCampos = {
+    telefono: validarTelefono(formulario.telefono),
+    direccion: validarDireccion(formulario.direccion),
+    passwordActual: passwordActual ? null : "Escribe la contraseña actual.",
+    passwordNueva: validarPasswordSegura(passwordNueva) ??
+      (passwordNueva === passwordActual ? "La nueva contraseña debe ser distinta de la actual." : null),
+    passwordConfirmar: errorConfirmacion,
+  };
 
   useEffect(() => {
     if (!usuario) return;
@@ -58,13 +80,20 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
     evento.preventDefault();
     if (!usuario) return;
 
+    const validacion = erroresCampos.telefono ?? erroresCampos.direccion;
+    if (validacion) {
+      tocarVarios(["telefono", "direccion"]);
+      setError(validacion);
+      return;
+    }
+
     setGuardando(true);
     setError("");
 
     try {
       await usuarios.actualizar(usuario.id_usuario, {
-        telefono: formulario.telefono || null,
-        direccion: formulario.direccion || null,
+        telefono: formulario.telefono.trim() || null,
+        direccion: formulario.direccion.trim() || null,
       });
 
       await recargar();
@@ -78,6 +107,12 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
 
   const cambiarPassword = async (evento: FormEvent) => {
     evento.preventDefault();
+    const errorPassword = erroresCampos.passwordActual ?? erroresCampos.passwordNueva ?? erroresCampos.passwordConfirmar;
+    if (errorPassword) {
+      tocarVarios(["passwordActual", "passwordNueva", "passwordConfirmar"]);
+      setError(errorPassword);
+      return;
+    }
     setCambiando(true);
     setError("");
 
@@ -86,6 +121,8 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
       setMensaje("Contraseña actualizada.");
       setPasswordActual("");
       setPasswordNueva("");
+      setPasswordConfirmar("");
+      reiniciar();
     } catch (fallo) {
       setError(fallo instanceof Error ? fallo.message : "No se pudo cambiar la contraseña.");
     } finally {
@@ -152,7 +189,7 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
             <EtiquetaEstado tipo="neutro" texto={usuario.correo} />
           </BarraListado>
 
-          <form onSubmit={guardar}>
+          <form onSubmit={guardar} noValidate>
             <div className="dt-formulario-contenido">
               <div className="dt-formulario-grid">
                 <label className="dt-campo-ancho">
@@ -168,17 +205,32 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
                 <label>
                   Teléfono
                   <input
+                    type="tel"
+                    inputMode="tel"
+                    maxLength={32}
+                    autoComplete="tel"
+                    placeholder="+57 (300) 123 4567 o +1 (415) 555-2671"
                     value={formulario.telefono}
-                    onChange={(e) => setFormulario({ ...formulario, telefono: e.target.value })}
+                    onChange={(e) => { setFormulario({ ...formulario, telefono: e.target.value }); tocar("telefono"); }}
+                    onBlur={() => tocar("telefono")}
+                    aria-invalid={mostrar("telefono") && Boolean(erroresCampos.telefono)}
+                    aria-describedby="perfil-telefono-feedback"
                   />
+                  <FeedbackValidacion id="perfil-telefono-feedback" error={erroresCampos.telefono} mostrar={mostrar("telefono")} valido="Teléfono opcional válido." />
                 </label>
 
                 <label className="dt-campo-ancho">
                   Dirección
                   <input
+                    maxLength={255}
+                    autoComplete="street-address"
                     value={formulario.direccion}
-                    onChange={(e) => setFormulario({ ...formulario, direccion: e.target.value })}
+                    onChange={(e) => { setFormulario({ ...formulario, direccion: e.target.value }); tocar("direccion"); }}
+                    onBlur={() => tocar("direccion")}
+                    aria-invalid={mostrar("direccion") && Boolean(erroresCampos.direccion)}
+                    aria-describedby="perfil-direccion-feedback"
                   />
+                  <FeedbackValidacion id="perfil-direccion-feedback" error={erroresCampos.direccion} mostrar={mostrar("direccion")} valido="Dirección opcional válida." />
                 </label>
 
                 <label className="dt-campo-ancho">
@@ -213,32 +265,60 @@ export default function PerfilCuenta({ seccion }: { seccion: string }) {
           <section className="dt-listado">
             <BarraListado
               titulo="Contraseña"
-              descripcion="Cámbiala cada cierto tiempo"
+              descripcion="8+ caracteres, una letra, un número y un símbolo"
               Icono={KeyRound}
             />
 
-            <form onSubmit={cambiarPassword}>
+            <form onSubmit={cambiarPassword} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid" style={{ gridTemplateColumns: "1fr" }}>
                   <label>
                     Contraseña actual <span>*</span>
                     <input
                       type="password"
+                      autoComplete="current-password"
+                      maxLength={72}
                       value={passwordActual}
-                      onChange={(e) => setPasswordActual(e.target.value)}
+                      onChange={(e) => { setPasswordActual(e.target.value); tocar("passwordActual"); }}
+                      onBlur={() => tocar("passwordActual")}
+                      aria-invalid={mostrar("passwordActual") && Boolean(erroresCampos.passwordActual)}
+                      aria-describedby="perfil-password-actual-feedback"
                       required
                     />
+                    <FeedbackValidacion id="perfil-password-actual-feedback" error={erroresCampos.passwordActual} mostrar={mostrar("passwordActual")} />
                   </label>
 
                   <label>
                     Contraseña nueva <span>*</span>
                     <input
                       type="password"
+                      autoComplete="new-password"
                       minLength={8}
+                      maxLength={72}
                       value={passwordNueva}
-                      onChange={(e) => setPasswordNueva(e.target.value)}
+                      onChange={(e) => { setPasswordNueva(e.target.value); tocar("passwordNueva"); }}
+                      onBlur={() => tocar("passwordNueva")}
+                      aria-invalid={mostrar("passwordNueva") && Boolean(erroresCampos.passwordNueva)}
+                      aria-describedby="perfil-password-nueva-feedback"
                       required
                     />
+                    <FeedbackValidacion id="perfil-password-nueva-feedback" error={erroresCampos.passwordNueva} mostrar={mostrar("passwordNueva")} valido="Cumple la política de contraseña." />
+                  </label>
+                  <label>
+                    Confirmar contraseña nueva <span>*</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={8}
+                      maxLength={72}
+                      value={passwordConfirmar}
+                      onChange={(e) => { setPasswordConfirmar(e.target.value); tocar("passwordConfirmar"); }}
+                      onBlur={() => tocar("passwordConfirmar")}
+                      aria-invalid={mostrar("passwordConfirmar") && Boolean(erroresCampos.passwordConfirmar)}
+                      aria-describedby="perfil-password-confirmar-feedback"
+                      required
+                    />
+                    <FeedbackValidacion id="perfil-password-confirmar-feedback" error={erroresCampos.passwordConfirmar} mostrar={mostrar("passwordConfirmar")} />
                   </label>
                 </div>
               </div>

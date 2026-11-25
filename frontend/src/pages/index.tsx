@@ -20,6 +20,9 @@ import {
   Trash2,
 } from "../components/iconos";
 import { useSesion } from "../context/sesion-contexto";
+import { FeedbackValidacion } from "../components/feedback-validacion";
+import { useCamposTocados } from "../hooks/use-campos-tocados";
+import { validarCorreo, validarTextoObligatorio } from "../utils/validaciones";
 import {
   api,
   descuentos,
@@ -224,7 +227,7 @@ const FORMULARIO_CONTACTO_INICIAL = {
 const CLAVE_CARRITO_PORTADA = "carrito_portada";
 
 // La API de productos puede incluir disponibilidad y descripción en la portada.
-type ProductoPortada = Producto & { descripcion?: string | null; stock?: number };
+type ProductoPortada = Producto & { descripcion?: string | null };
 
 interface ItemCarritoPortada {
   producto: Producto;
@@ -244,6 +247,12 @@ export default function Portada() {
   const [enviado, setEnviado] = useState(false);
   const [enviandoContacto, setEnviandoContacto] = useState(false);
   const [errorContacto, setErrorContacto] = useState("");
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
+  const erroresContacto = {
+    nombre: validarTextoObligatorio(contacto.nombre, "El nombre", 2, 100),
+    correo: validarCorreo(contacto.correo),
+    mensaje: validarTextoObligatorio(contacto.mensaje, "El mensaje", 5, 3000),
+  };
 
   const [catalogo, setCatalogo] = useState<ProductoPortada[]>([]);
   const [descuentosPorProducto, setDescuentosPorProducto] = useState<Record<number, DescuentoVigente>>({});
@@ -417,6 +426,7 @@ export default function Portada() {
   function cambiarContacto(evento: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = evento.target;
     setContacto((anterior) => ({ ...anterior, [name]: value }));
+    tocar(name);
   }
 
   async function enviarContacto(evento: FormEvent<HTMLFormElement>) {
@@ -428,8 +438,10 @@ export default function Portada() {
       correo: contacto.correo.trim(),
       mensaje: contacto.mensaje.trim(),
     };
-    if (!datos.nombre || !datos.correo || !datos.mensaje) {
-      setErrorContacto("Completa todos los campos para enviar tu mensaje.");
+    const validacion = Object.values(erroresContacto).find(Boolean);
+    if (validacion) {
+      tocarVarios(Object.keys(erroresContacto));
+      setErrorContacto(validacion);
       return;
     }
 
@@ -438,6 +450,7 @@ export default function Portada() {
     try {
       await api.post<{ mensaje: string }>("/contacto", datos, { redirigirEnError: false });
       setContacto(FORMULARIO_CONTACTO_INICIAL);
+      reiniciar();
       setEnviado(true);
     } catch (fallo) {
       setErrorContacto(fallo instanceof Error ? fallo.message : "No se pudo enviar el mensaje. Inténtalo de nuevo.");
@@ -1039,7 +1052,7 @@ export default function Portada() {
                 </button>
               </div>
             ) : (
-              <form className="portada-tablero-form" onSubmit={enviarContacto}>
+              <form className="portada-tablero-form" noValidate onSubmit={enviarContacto}>
                 <label>
                   Nombre
                   <input
@@ -1048,10 +1061,15 @@ export default function Portada() {
                     placeholder="¿Cómo te llamas?"
                     value={contacto.nombre}
                     onChange={cambiarContacto}
+                    minLength={2}
                     maxLength={100}
                     disabled={enviandoContacto}
+                    onBlur={() => tocar("nombre")}
+                    aria-invalid={mostrar("nombre") && Boolean(erroresContacto.nombre)}
+                    aria-describedby="contacto-nombre-feedback"
                     required
                   />
+                  <FeedbackValidacion id="contacto-nombre-feedback" error={erroresContacto.nombre} mostrar={mostrar("nombre")} />
                 </label>
 
                 <label>
@@ -1064,8 +1082,12 @@ export default function Portada() {
                     onChange={cambiarContacto}
                     maxLength={254}
                     disabled={enviandoContacto}
+                    onBlur={() => tocar("correo")}
+                    aria-invalid={mostrar("correo") && Boolean(erroresContacto.correo)}
+                    aria-describedby="contacto-correo-feedback"
                     required
                   />
+                  <FeedbackValidacion id="contacto-correo-feedback" error={erroresContacto.correo} mostrar={mostrar("correo")} />
                 </label>
 
                 <label>
@@ -1077,8 +1099,12 @@ export default function Portada() {
                     onChange={cambiarContacto}
                     maxLength={3000}
                     disabled={enviandoContacto}
+                    onBlur={() => tocar("mensaje")}
+                    aria-invalid={mostrar("mensaje") && Boolean(erroresContacto.mensaje)}
+                    aria-describedby="contacto-mensaje-feedback"
                     required
                   />
+                  <FeedbackValidacion id="contacto-mensaje-feedback" error={erroresContacto.mensaje} mostrar={mostrar("mensaje")} valido="Mensaje válido." />
                 </label>
 
                 {errorContacto && (

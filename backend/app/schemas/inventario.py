@@ -57,18 +57,35 @@ class StockPorProducto(_BitABooleano):
 
 
 class InventarioCrear(BaseModel):
-    id_producto_fk: int
-    cantidad_actual: int = Field(default=0, ge=0)
-    stock_minimo: int = Field(default=0, ge=0)
+    id_producto_fk: int = Field(gt=0)
+    cantidad_actual: int = Field(default=0, ge=0, le=2147483647)
+    stock_minimo: int = Field(default=0, ge=0, le=2147483647)
 
 
 class InventarioActualizar(BaseModel):
-    stock_minimo: Optional[int] = Field(default=None, ge=0)
+    stock_minimo: Optional[int] = Field(default=None, ge=0, le=2147483647)
+
+    @field_validator("stock_minimo")
+    @classmethod
+    def no_nulo_explicito(cls, valor: Optional[int]) -> Optional[int]:
+        if valor is None:
+            raise ValueError("El stock mínimo debe ser un número igual o mayor que cero.")
+        return valor
 
 
-class _MovimientoBase(BaseModel):
-    cantidad: int = Field(gt=0, description="Cantidad positiva; el tipo define el signo")
+class _MotivoNormalizado(BaseModel):
     motivo: Optional[str] = Field(default=None, max_length=255)
+
+    @field_validator("motivo", mode="before")
+    @classmethod
+    def limpiar_motivo(cls, valor: object) -> object:
+        if isinstance(valor, str):
+            return valor.strip() or None
+        return valor
+
+
+class _MovimientoBase(_MotivoNormalizado):
+    cantidad: int = Field(gt=0, le=2147483647, description="Cantidad positiva; el tipo define el signo")
 
 
 class EntradaStock(_MovimientoBase):
@@ -79,11 +96,10 @@ class SalidaStock(_MovimientoBase):
     """Resta stock; falla si no alcanza."""
 
 
-class AjusteStock(BaseModel):
+class AjusteStock(_MotivoNormalizado):
     """Fija el stock en un valor absoluto (conteo fisico)."""
 
-    cantidad_actual: int = Field(ge=0)
-    motivo: Optional[str] = Field(default=None, max_length=255)
+    cantidad_actual: int = Field(ge=0, le=2147483647)
 
 
 class MovimientoRespuesta(BaseModel):

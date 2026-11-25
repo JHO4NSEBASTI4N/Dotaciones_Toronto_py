@@ -121,7 +121,9 @@ def validar(tipo, contenido, sesion, bloquear=False):
             elif tipo == 'usuarios':
                 clave = str(fila.get('correo') or '').strip().lower()
                 rol = _entero(fila.pop('id_rol'), 'id_rol', 1)
-                dto = UsuarioCrear(**fila, password=token_urlsafe(32))
+                # El usuario configura su contraseña después; aun así el secreto
+                # temporal debe cumplir las mismas reglas del esquema.
+                dto = UsuarioCrear(**fila, password=token_urlsafe(32) + "A1!")
                 dto.correo = str(dto.correo).lower()
                 rol_db = sesion.get(Rol, rol)
                 if not rol_db or not rol_db.activo:

@@ -12,6 +12,23 @@ export function CargaMasiva({ tipo, alGuardar }: { tipo: Tipo; alGuardar: () => 
   const [ocupado, setOcupado] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const entrada = useRef<HTMLInputElement>(null);
+  const seleccionarArchivo = (archivoSeleccionado: File | null) => {
+    setResultado(null);
+    setArchivo(null);
+    setMensaje("");
+    if (!archivoSeleccionado) return;
+    if (!archivoSeleccionado.name.toLowerCase().endsWith(".xlsx")) {
+      setMensaje("Selecciona un archivo con formato .xlsx.");
+      if (entrada.current) entrada.current.value = "";
+      return;
+    }
+    if (archivoSeleccionado.size === 0 || archivoSeleccionado.size > 2 * 1024 * 1024) {
+      setMensaje("El archivo debe tener contenido y no superar 2 MB.");
+      if (entrada.current) entrada.current.value = "";
+      return;
+    }
+    setArchivo(archivoSeleccionado);
+  };
   const descripcion = {
     productos: "Cada fila crea un producto nuevo; no actualiza productos existentes.",
     inventario: "Las cantidades se SUMAN al stock. No vuelvas a cargar el mismo archivo o se sumarán otra vez.",
@@ -86,7 +103,7 @@ export function CargaMasiva({ tipo, alGuardar }: { tipo: Tipo; alGuardar: () => 
             </button>
             <label className="carga-masiva__archivo">
               <span>Selecciona tu archivo Excel</span>
-              <input ref={entrada} type="file" accept=".xlsx" disabled={ocupado} onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setResultado(null); setMensaje(""); }} />
+              <input ref={entrada} type="file" accept=".xlsx" disabled={ocupado} onChange={(e) => seleccionarArchivo(e.target.files?.[0] ?? null)} />
             </label>
           </div>
 

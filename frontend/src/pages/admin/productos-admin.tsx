@@ -24,6 +24,9 @@ import {
   TablaVacia,
 } from "../../components/indicadores";
 import type { Producto } from "../../types";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
+import { useCamposTocados } from "../../hooks/use-campos-tocados";
+import { validarMontoPositivo, validarTextoObligatorio } from "../../utils/validaciones";
 
 interface Formulario {
   nombre: string;
@@ -61,6 +64,15 @@ export default function ProductosAdmin() {
   const [formulario, setFormulario] = useState<Formulario>(FORMULARIO_VACIO);
   const [archivoImagen, setArchivoImagen] = useState<File | null>(null);
   const [vistaPrevia, setVistaPrevia] = useState("");
+  const [errorImagen, setErrorImagen] = useState("");
+  const { tocar, tocarVarios, mostrar, reiniciar } = useCamposTocados();
+  const erroresCampos = {
+    nombre: validarTextoObligatorio(formulario.nombre, "El nombre", 2, 255),
+    categoria: validarTextoObligatorio(formulario.categoria, "La categoría", 1, 100),
+    precio: validarMontoPositivo(formulario.precio, "El precio"),
+    talla: formulario.talla.length > 255 ? "La talla no puede superar 255 caracteres." : null,
+    color: formulario.color.length > 255 ? "El color no puede superar 255 caracteres." : null,
+  };
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -158,8 +170,10 @@ export default function ProductosAdmin() {
   const abrirNuevo = () => {
     setEditando(null);
     setFormulario(FORMULARIO_VACIO);
+    reiniciar();
     setArchivoImagen(null);
     setVistaPrevia("");
+    setErrorImagen("");
     setError("");
     setModalAbierto(true);
   };
@@ -175,6 +189,8 @@ export default function ProductosAdmin() {
       imagen: producto.imagen ?? "",
     });
     setArchivoImagen(null);
+    setErrorImagen("");
+    reiniciar();
     setVistaPrevia(urlImagenProducto(producto.imagen));
     setError("");
     setModalAbierto(true);
@@ -182,16 +198,23 @@ export default function ProductosAdmin() {
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    const validacion = Object.values(erroresCampos).find(Boolean);
+    if (validacion) {
+      tocarVarios(Object.keys(erroresCampos));
+      setError(validacion);
+      return;
+    }
+
     setGuardando(true);
     setError("");
 
     const datos = {
-      nombre: formulario.nombre,
+      nombre: formulario.nombre.trim(),
       precio: Number(formulario.precio),
-      categoria: formulario.categoria,
-      talla: formulario.talla || null,
-      color: formulario.color || null,
-      imagen: formulario.imagen || null,
+      categoria: formulario.categoria.trim(),
+      talla: formulario.talla.trim() || null,
+      color: formulario.color.trim() || null,
+      imagen: formulario.imagen.trim() || null,
     };
 
     try {
@@ -249,17 +272,21 @@ export default function ProductosAdmin() {
     if (!tiposPermitidos.includes(archivo.type)) {
       setArchivoImagen(null);
       setVistaPrevia(editando ? urlImagenProducto(editando.imagen) : "");
-      setError("Selecciona una imagen JPG, PNG o WebP.");
+      tocar("imagen");
+      setErrorImagen("Selecciona una imagen JPG, PNG o WebP.");
       return;
     }
     if (archivo.size > 5 * 1024 * 1024) {
       setArchivoImagen(null);
       setVistaPrevia(editando ? urlImagenProducto(editando.imagen) : "");
-      setError("La imagen no puede superar 5 MB.");
+      tocar("imagen");
+      setErrorImagen("La imagen no puede superar 5 MB.");
       return;
     }
 
     setError("");
+    setErrorImagen("");
+    tocar("imagen");
     setArchivoImagen(archivo);
     const lector = new FileReader();
     lector.onload = () => setVistaPrevia(String(lector.result ?? ""));
@@ -268,6 +295,7 @@ export default function ProductosAdmin() {
 
   const quitarImagen = () => {
     setArchivoImagen(null);
+    setErrorImagen("");
     setVistaPrevia("");
     setFormulario((previo) => ({ ...previo, imagen: "" }));
   };
@@ -470,26 +498,38 @@ export default function ProductosAdmin() {
 
             {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
 
-            <form onSubmit={guardar}>
+            <form onSubmit={guardar} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-grid">
                   <label className="dt-campo-ancho">
                     Nombre <span>*</span>
                     <input
+                      minLength={2}
+                      maxLength={255}
                       value={formulario.nombre}
-                      onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, nombre: e.target.value }); tocar("nombre"); }}
+                      onBlur={() => tocar("nombre")}
+                      aria-invalid={mostrar("nombre") && Boolean(erroresCampos.nombre)}
+                      aria-describedby="producto-nombre-feedback"
                       required
                     />
+                    <FeedbackValidacion id="producto-nombre-feedback" error={erroresCampos.nombre} mostrar={mostrar("nombre")} />
                   </label>
 
                   <label>
                     Categoría <span>*</span>
                     <input
                       list="categorias-producto"
+                      minLength={1}
+                      maxLength={100}
                       value={formulario.categoria}
-                      onChange={(e) => setFormulario({ ...formulario, categoria: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, categoria: e.target.value }); tocar("categoria"); }}
+                      onBlur={() => tocar("categoria")}
+                      aria-invalid={mostrar("categoria") && Boolean(erroresCampos.categoria)}
+                      aria-describedby="producto-categoria-feedback"
                       required
                     />
+                    <FeedbackValidacion id="producto-categoria-feedback" error={erroresCampos.categoria} mostrar={mostrar("categoria")} />
                     <datalist id="categorias-producto">
                       {categorias.map((categoria) => (
                         <option key={categoria} value={categoria} />
@@ -501,29 +541,43 @@ export default function ProductosAdmin() {
                     Precio (COP) <span>*</span>
                     <input
                       type="number"
-                      min={0}
-                      step={100}
+                      min={0.01}
+                      step={0.01}
                       value={formulario.precio}
-                      onChange={(e) => setFormulario({ ...formulario, precio: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, precio: e.target.value }); tocar("precio"); }}
+                      onBlur={() => tocar("precio")}
+                      aria-invalid={mostrar("precio") && Boolean(erroresCampos.precio)}
+                      aria-describedby="producto-precio-feedback"
                       required
                     />
+                    <FeedbackValidacion id="producto-precio-feedback" error={erroresCampos.precio} mostrar={mostrar("precio")} />
                   </label>
 
                   <label>
                     Talla
                     <input
+                      maxLength={255}
                       value={formulario.talla}
-                      onChange={(e) => setFormulario({ ...formulario, talla: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, talla: e.target.value }); tocar("talla"); }}
+                      onBlur={() => tocar("talla")}
+                      aria-invalid={mostrar("talla") && Boolean(erroresCampos.talla)}
+                      aria-describedby="producto-talla-feedback"
                       placeholder="S, M, L, XL…"
                     />
+                    <FeedbackValidacion id="producto-talla-feedback" error={erroresCampos.talla} mostrar={mostrar("talla")} valido="Talla opcional válida." />
                   </label>
 
                   <label>
                     Color
                     <input
+                      maxLength={255}
                       value={formulario.color}
-                      onChange={(e) => setFormulario({ ...formulario, color: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, color: e.target.value }); tocar("color"); }}
+                      onBlur={() => tocar("color")}
+                      aria-invalid={mostrar("color") && Boolean(erroresCampos.color)}
+                      aria-describedby="producto-color-feedback"
                     />
+                    <FeedbackValidacion id="producto-color-feedback" error={erroresCampos.color} mostrar={mostrar("color")} valido="Color opcional válido." />
                   </label>
 
                   <div className="dt-campo-ancho dt-imagen-producto-campo">
@@ -535,8 +589,11 @@ export default function ProductosAdmin() {
                       onChange={seleccionarImagen}
                       disabled={guardando}
                       aria-label="Elegir imagen del producto"
+                      aria-invalid={mostrar("imagen") && Boolean(errorImagen)}
+                      aria-describedby="producto-imagen-feedback"
                     />
                     <small>JPG, PNG o WebP · máximo 5 MB</small>
+                    <FeedbackValidacion id="producto-imagen-feedback" error={errorImagen || null} mostrar={mostrar("imagen")} valido={archivoImagen ? "Imagen compatible seleccionada." : "La imagen es opcional."} />
                     {vistaPrevia && (
                       <div className="dt-imagen-producto-previa">
                         <img src={vistaPrevia} alt="Vista previa del producto" />

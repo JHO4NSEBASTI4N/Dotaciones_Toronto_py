@@ -9,6 +9,7 @@ import { AlertTriangle, Boxes, ClipboardList, CreditCard, ExternalLink, Package,
 
 import { inventario, numero, pedidos, pesos, traerTodo, usuarios, ventas } from "../../services/api";
 import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
+import { AccesoRolCliente } from "../../components/acceso-rol-cliente";
 import { resumirVentasPorMes } from "../../services/analitica-reportes";
 import type { ReporteAdmin } from "../../services/reportes";
 import { dashboard, type ResumenDashboard } from "../../services/dashboard";
@@ -139,6 +140,8 @@ export default function PanelAdministrador() {
       />
 
       {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
+
+      <AccesoRolCliente />
 
       <FilaIndicadores>
         <Indicador

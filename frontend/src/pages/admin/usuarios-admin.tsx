@@ -1,4 +1,5 @@
 import { CargaMasiva } from "../../components/carga-masiva";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
 // src/pages/admin/usuarios.tsx
 //
 // Cuentas del sistema: crear (POST /auth/registro), editar (PATCH), habilitar
@@ -26,6 +27,14 @@ import {
   iniciales,
 } from "../../components/indicadores";
 import type { Rol, UsuarioDetalle } from "../../types";
+import {
+  validarCorreo,
+  validarDireccion,
+  validarDocumento,
+  validarNombrePersona,
+  validarPasswordSegura,
+  validarTelefono,
+} from "../../utils/validaciones";
 
 interface Formulario {
   nombre: string;
@@ -63,6 +72,7 @@ export default function UsuariosVista() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<UsuarioDetalle | null>(null);
   const [formulario, setFormulario] = useState<Formulario>(FORMULARIO_VACIO);
+  const [camposTocados, setCamposTocados] = useState<Record<string, boolean>>({});
   const [modalRoles, setModalRoles] = useState<UsuarioDetalle | null>(null);
   const [rolesMarcados, setRolesMarcados] = useState<number[]>([]);
 
@@ -168,11 +178,30 @@ export default function UsuariosVista() {
     ),
   });
 
+  const idRolActual = Number(formulario.id_rol);
+  const errorRol = !Number.isInteger(idRolActual) ||
+    !roles.some((rol) => rol.id_rol === idRolActual && rol.activo)
+    ? "Selecciona un rol activo válido."
+    : null;
+  const erroresCampos = {
+    nombre: editando ? null : validarNombrePersona(formulario.nombre, 60),
+    correo: editando ? null : validarCorreo(formulario.correo),
+    documento: editando ? null : validarDocumento(formulario.documento),
+    telefono: validarTelefono(formulario.telefono),
+    direccion: validarDireccion(formulario.direccion),
+    password: editando ? null : validarPasswordSegura(formulario.password),
+    rol: errorRol,
+  };
+  const tocarCampo = (campo: string) =>
+    setCamposTocados((actual) => ({ ...actual, [campo]: true }));
+  const mostrarCampo = (campo: string) => Boolean(camposTocados[campo]);
+
   /* ---------- acciones ---------- */
 
   const abrirRegistro = () => {
     setEditando(null);
     setFormulario(FORMULARIO_VACIO);
+    setCamposTocados({});
     setError("");
     setModalAbierto(true);
   };
@@ -188,39 +217,63 @@ export default function UsuariosVista() {
       password: "",
       id_rol: String(elegido.id_rol_fk ?? 2),
     });
+    setCamposTocados({});
     setError("");
     setModalAbierto(true);
   };
 
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
+    const errores = editando
+      ? [validarTelefono(formulario.telefono), validarDireccion(formulario.direccion)]
+      : [
+          validarNombrePersona(formulario.nombre, 60),
+          validarCorreo(formulario.correo),
+          validarDocumento(formulario.documento),
+          validarTelefono(formulario.telefono),
+          validarDireccion(formulario.direccion),
+          validarPasswordSegura(formulario.password),
+        ];
+    const primerError = errores.find(Boolean);
+    const idRol = Number(formulario.id_rol);
+    if (primerError) {
+      setCamposTocados({ nombre: true, correo: true, documento: true, telefono: true, direccion: true, password: true, rol: true });
+      setError(primerError);
+      return;
+    }
+    if (erroresCampos.rol) {
+      tocarCampo("rol");
+      setError(erroresCampos.rol);
+      return;
+    }
+
     setGuardando(true);
     setError("");
 
     try {
       if (editando) {
         await usuarios.actualizar(editando.id_usuario, {
-          telefono: formulario.telefono || null,
-          direccion: formulario.direccion || null,
+          telefono: formulario.telefono.trim() || null,
+          direccion: formulario.direccion.trim() || null,
         });
 
-        if (Number(formulario.id_rol) !== (editando.id_rol_fk ?? 0)) {
-          await apiRoles.asignar(editando.id_usuario, Number(formulario.id_rol));
+        if (idRol !== (editando.id_rol_fk ?? 0)) {
+          await apiRoles.asignar(editando.id_usuario, idRol);
         }
 
         setMensaje(`Se actualizó la cuenta de ${formulario.nombre}.`);
       } else {
         const creado = await auth.registro({
-          nombre: formulario.nombre,
-          correo: formulario.correo,
-          documento: formulario.documento || null,
-          telefono: formulario.telefono || null,
-          direccion: formulario.direccion || null,
+          nombre: formulario.nombre.trim(),
+          correo: formulario.correo.trim(),
+          documento: formulario.documento.trim() || null,
+          telefono: formulario.telefono.trim() || null,
+          direccion: formulario.direccion.trim() || null,
           password: formulario.password,
         });
 
-        if (Number(formulario.id_rol) !== 2) {
-          await apiRoles.asignar(creado.id_usuario, Number(formulario.id_rol));
+        if (idRol !== 2) {
+          await apiRoles.asignar(creado.id_usuario, idRol);
         }
 
         setMensaje(`Se creó la cuenta de ${formulario.nombre}.`);
@@ -289,9 +342,14 @@ export default function UsuariosVista() {
 
   const restablecerPassword = async (elegido: UsuarioDetalle) => {
     const nueva = window.prompt(
-      `Nueva contraseña para ${elegido.nombre} (mínimo 8 caracteres):`
+      `Nueva contraseña para ${elegido.nombre}. Debe tener 8 caracteres o más, una letra, un número y un símbolo:`
     );
     if (!nueva) return;
+    const validacionPassword = validarPasswordSegura(nueva);
+    if (validacionPassword) {
+      setError(validacionPassword);
+      return;
+    }
 
     try {
       await usuarios.restablecerPassword(elegido.id_usuario, nueva);
@@ -507,7 +565,7 @@ export default function UsuariosVista() {
                 <p>
                   {editando
                     ? "Cambia los datos de contacto y el rol principal."
-                    : "La contraseña se entrega a la persona; puede cambiarla después."}
+                    : "La clave inicial debe tener 8+ caracteres, una letra, un número y un símbolo."}
                 </p>
               </div>
 
@@ -521,7 +579,7 @@ export default function UsuariosVista() {
               </button>
             </header>
 
-            <form onSubmit={guardar}>
+            <form onSubmit={guardar} noValidate>
               <div className="dt-formulario-contenido">
                 <div className="dt-formulario-seccion-titulo">
                   <span>1</span>
@@ -535,36 +593,64 @@ export default function UsuariosVista() {
                   <label>
                     Nombre completo {editando ? "(no se puede cambiar)" : <span>*</span>}
                     <input
+                      maxLength={60}
+                      autoComplete="name"
                       value={formulario.nombre}
                       disabled={!!editando}
-                      onChange={(e) => setFormulario({ ...formulario, nombre: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, nombre: e.target.value }); tocarCampo("nombre"); }}
+                      onBlur={() => tocarCampo("nombre")}
+                      aria-invalid={mostrarCampo("nombre") && Boolean(erroresCampos.nombre)}
+                      aria-describedby="usuario-nombre-feedback"
                       required={!editando}
                     />
+                    <FeedbackValidacion id="usuario-nombre-feedback" error={erroresCampos.nombre} mostrar={mostrarCampo("nombre")} />
                   </label>
 
                   <label>
                     {editando ? "Documento (no se puede cambiar)" : "Documento"}
                     <input
+                      inputMode="numeric"
+                      maxLength={12}
+                      pattern="[0-9]{6,12}"
                       value={formulario.documento}
                       disabled={!!editando}
-                      onChange={(e) => setFormulario({ ...formulario, documento: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, documento: e.target.value }); tocarCampo("documento"); }}
+                      onBlur={() => tocarCampo("documento")}
+                      aria-invalid={mostrarCampo("documento") && Boolean(erroresCampos.documento)}
+                      aria-describedby="usuario-documento-feedback"
                     />
+                    <FeedbackValidacion id="usuario-documento-feedback" error={erroresCampos.documento} mostrar={mostrarCampo("documento")} valido="Documento opcional válido." />
                   </label>
 
                   <label>
                     Teléfono
                     <input
+                      type="tel"
+                      inputMode="tel"
+                      maxLength={32}
+                      autoComplete="tel"
+                      placeholder="+57 (300) 123 4567 o +1 (415) 555-2671"
                       value={formulario.telefono}
-                      onChange={(e) => setFormulario({ ...formulario, telefono: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, telefono: e.target.value }); tocarCampo("telefono"); }}
+                      onBlur={() => tocarCampo("telefono")}
+                      aria-invalid={mostrarCampo("telefono") && Boolean(erroresCampos.telefono)}
+                      aria-describedby="usuario-telefono-feedback"
                     />
+                    <FeedbackValidacion id="usuario-telefono-feedback" error={erroresCampos.telefono} mostrar={mostrarCampo("telefono")} valido="Teléfono opcional válido." />
                   </label>
 
                   <label>
                     Dirección
                     <input
+                      maxLength={255}
+                      autoComplete="street-address"
                       value={formulario.direccion}
-                      onChange={(e) => setFormulario({ ...formulario, direccion: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, direccion: e.target.value }); tocarCampo("direccion"); }}
+                      onBlur={() => tocarCampo("direccion")}
+                      aria-invalid={mostrarCampo("direccion") && Boolean(erroresCampos.direccion)}
+                      aria-describedby="usuario-direccion-feedback"
                     />
+                    <FeedbackValidacion id="usuario-direccion-feedback" error={erroresCampos.direccion} mostrar={mostrarCampo("direccion")} valido="Dirección opcional válida." />
                   </label>
                 </div>
 
@@ -581,11 +667,17 @@ export default function UsuariosVista() {
                     Correo electrónico <span>*</span>
                     <input
                       type="email"
+                      maxLength={254}
+                      autoComplete="email"
                       value={formulario.correo}
-                      onChange={(e) => setFormulario({ ...formulario, correo: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, correo: e.target.value }); tocarCampo("correo"); }}
+                      onBlur={() => tocarCampo("correo")}
+                      aria-invalid={mostrarCampo("correo") && Boolean(erroresCampos.correo)}
+                      aria-describedby="usuario-correo-feedback"
                       disabled={Boolean(editando)}
                       required
                     />
+                    <FeedbackValidacion id="usuario-correo-feedback" error={erroresCampos.correo} mostrar={mostrarCampo("correo")} />
                   </label>
 
                   {!editando && (
@@ -593,19 +685,29 @@ export default function UsuariosVista() {
                       Contraseña inicial <span>*</span>
                       <input
                         type="password"
+                        autoComplete="new-password"
                         minLength={8}
+                        maxLength={72}
                         value={formulario.password}
-                        onChange={(e) => setFormulario({ ...formulario, password: e.target.value })}
+                        onChange={(e) => { setFormulario({ ...formulario, password: e.target.value }); tocarCampo("password"); }}
+                        onBlur={() => tocarCampo("password")}
+                        aria-invalid={mostrarCampo("password") && Boolean(erroresCampos.password)}
+                        aria-describedby="usuario-password-feedback"
                         required
                       />
+                      <FeedbackValidacion id="usuario-password-feedback" error={erroresCampos.password} mostrar={mostrarCampo("password")} valido="Cumple la política de contraseña." />
                     </label>
                   )}
 
                   <label className={editando ? "" : "dt-campo-ancho"}>
                     Rol principal <span>*</span>
                     <select
+                      required
                       value={formulario.id_rol}
-                      onChange={(e) => setFormulario({ ...formulario, id_rol: e.target.value })}
+                      onChange={(e) => { setFormulario({ ...formulario, id_rol: e.target.value }); tocarCampo("rol"); }}
+                      onBlur={() => tocarCampo("rol")}
+                      aria-invalid={mostrarCampo("rol") && Boolean(erroresCampos.rol)}
+                      aria-describedby="usuario-rol-feedback"
                     >
                       {roles
                         .filter((rol) => rol.activo)
@@ -615,6 +717,7 @@ export default function UsuariosVista() {
                           </option>
                         ))}
                     </select>
+                    <FeedbackValidacion id="usuario-rol-feedback" error={erroresCampos.rol} mostrar={mostrarCampo("rol")} valido="Rol activo seleccionado." />
                   </label>
                 </div>
               </div>

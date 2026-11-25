@@ -17,6 +17,13 @@ class PedidoEstadoActualizar(BaseModel):
     # como "Sin especificar").
     metodo_pago: Optional[str] = Field(default=None, max_length=50)
 
+    @field_validator("metodo_pago", mode="before")
+    @classmethod
+    def limpiar_metodo_pago(cls, valor: object) -> object:
+        if isinstance(valor, str):
+            return " ".join(valor.split()) or None
+        return valor
+
 class ItemPedidoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id_detalle_pedido: int

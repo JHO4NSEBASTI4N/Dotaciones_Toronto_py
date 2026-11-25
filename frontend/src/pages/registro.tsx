@@ -18,6 +18,7 @@ import {
 } from "../components/iconos";
 import { ErrorApi } from "../services/api";
 import { autenticacion } from "../services/autenticacion";
+import { validarTelefono } from "../utils/validaciones";
 import "../assets/style/validacion-registro.css";
 
 const NOMBRE_MIN = 2;
@@ -27,11 +28,10 @@ const CORREO_MAX = 254;
 const PASSWORD_MAX_BYTES = 72;
 const DOCUMENTO_MIN = 6;
 const DOCUMENTO_MAX = 12;
-const TELEFONO_MIN = 7;
-const TELEFONO_MAX = 10;
+const TELEFONO_MAX_CARACTERES = 32;
 const PASSWORD_MIN = 8;
 
-const SOLO_LETRAS_Y_ESPACIOS = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]+$/;
+const SOLO_LETRAS_Y_ESPACIOS = /^[\p{L}\p{M}]+(?:[ '\u2019.-][\p{L}\p{M}]+)*$/u;
 const CORREO_VALIDO = /^[^\s@]+@(?:[^\s@.]+\.)+[^\s@.]+$/;
 const TIENE_LETRA = /[A-Za-zÁÉÍÓÚáéíóúÑñÜü]/;
 const TIENE_NUMERO = /\d/;
@@ -75,15 +75,6 @@ function validarDocumento(valor: string): string | null {
   if (!/^\d+$/.test(valor)) return "Solo puede tener números.";
   if (valor.length < DOCUMENTO_MIN || valor.length > DOCUMENTO_MAX) {
     return `Debe tener entre ${DOCUMENTO_MIN} y ${DOCUMENTO_MAX} dígitos.`;
-  }
-  return null;
-}
-
-function validarTelefono(valor: string): string | null {
-  if (!valor) return null;
-  if (!/^\d+$/.test(valor)) return "Solo puede tener números.";
-  if (valor.length < TELEFONO_MIN || valor.length > TELEFONO_MAX) {
-    return `Debe tener entre ${TELEFONO_MIN} y ${TELEFONO_MAX} dígitos.`;
   }
   return null;
 }
@@ -266,6 +257,8 @@ export default function Registro() {
                 {...atributosCampo("nombre")}
                 name="nombre"
                 type="text"
+                minLength={NOMBRE_MIN}
+                maxLength={NOMBRE_MAX}
                 placeholder="Tu nombre y apellido"
                 value={formulario.nombre}
                 onChange={(e) => cambiar("nombre", e.target.value)}
@@ -279,6 +272,7 @@ export default function Registro() {
                 {...atributosCampo("correo")}
                 name="correo"
                 type="email"
+                maxLength={CORREO_MAX}
                 placeholder="tucorreo@empresa.com"
                 value={formulario.correo}
                 onChange={(e) => cambiar("correo", e.target.value)}
@@ -294,20 +288,22 @@ export default function Registro() {
                   name="documento"
                   type="text"
                   inputMode="numeric"
+                  maxLength={DOCUMENTO_MAX}
                   placeholder="Solo números"
                   value={formulario.documento}
                   onChange={(e) => cambiar("documento", e.target.value)}
                 />
               </Campo>
 
-              <Campo id="telefono" etiqueta="Teléfono" icono={Phone} ayuda="Solo números; entre 7 y 10 dígitos." error={errores.telefono} tocado={!!tocados.telefono} valor={formulario.telefono}>
+              <Campo id="telefono" etiqueta="Teléfono" icono={Phone} ayuda="Admite código de país (+), espacios, paréntesis y guiones; máximo 15 dígitos." error={errores.telefono} tocado={!!tocados.telefono} valor={formulario.telefono}>
                 <input
                   id="telefono"
                   {...atributosCampo("telefono")}
                   name="telefono"
                   type="tel"
-                  inputMode="numeric"
-                  placeholder="Solo números"
+                  inputMode="tel"
+                  maxLength={TELEFONO_MAX_CARACTERES}
+                  placeholder="Ej. +57 (300) 123 4567"
                   value={formulario.telefono}
                   onChange={(e) => cambiar("telefono", e.target.value)}
                   autoComplete="tel"
@@ -321,6 +317,7 @@ export default function Registro() {
                 {...atributosCampo("direccion")}
                 name="direccion"
                 type="text"
+                maxLength={DIRECCION_MAX}
                 placeholder="Calle, carrera, barrio"
                 value={formulario.direccion}
                 onChange={(e) => cambiar("direccion", e.target.value)}
@@ -335,6 +332,8 @@ export default function Registro() {
                   {...atributosCampo("password")}
                   name="password"
                   type={verPassword ? "text" : "password"}
+                  minLength={PASSWORD_MIN}
+                  maxLength={PASSWORD_MAX_BYTES}
                   className="registro-con-ojo"
                   placeholder="••••••••"
                   value={formulario.password}
@@ -357,6 +356,8 @@ export default function Registro() {
                   {...atributosCampo("repetida")}
                   name="repetida"
                   type={verPassword ? "text" : "password"}
+                  minLength={PASSWORD_MIN}
+                  maxLength={PASSWORD_MAX_BYTES}
                   placeholder="••••••••"
                   value={formulario.repetida}
                   onChange={(e) => cambiar("repetida", e.target.value)}

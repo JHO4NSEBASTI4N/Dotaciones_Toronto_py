@@ -4,13 +4,41 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+def _limpiar_texto(valor: object) -> object:
+    if isinstance(valor, str):
+        return " ".join(valor.split())
+    return valor
+
+
+def _limpiar_opcional(valor: object) -> object:
+    valor = _limpiar_texto(valor)
+    return valor or None if isinstance(valor, str) else valor
+
+
 class ProductoBase(BaseModel):
     nombre: str = Field(min_length=2, max_length=255)
     precio: Decimal = Field(gt=0, max_digits=38, decimal_places=2)
     talla: Optional[str] = Field(default=None, max_length=255)
     color: Optional[str] = Field(default=None, max_length=255)
     imagen: Optional[str] = Field(default=None, max_length=255)
-    categoria: str = Field(default="General", max_length=100)
+    categoria: str = Field(default="General", min_length=1, max_length=100)
+
+    @field_validator("nombre", "categoria", mode="before")
+    @classmethod
+    def limpiar_requeridos(cls, valor: object) -> object:
+        return _limpiar_texto(valor)
+
+    @field_validator("nombre", "categoria")
+    @classmethod
+    def no_vacio(cls, valor: str) -> str:
+        if not isinstance(valor, str) or not valor.strip():
+            raise ValueError("Este campo no puede quedar vacío.")
+        return valor
+
+    @field_validator("talla", "color", "imagen", mode="before")
+    @classmethod
+    def limpiar_opcionales(cls, valor: object) -> object:
+        return _limpiar_opcional(valor)
 
 
 class ProductoCrear(ProductoBase):
@@ -25,7 +53,31 @@ class ProductoActualizar(BaseModel):
     talla: Optional[str] = Field(default=None, max_length=255)
     color: Optional[str] = Field(default=None, max_length=255)
     imagen: Optional[str] = Field(default=None, max_length=255)
-    categoria: Optional[str] = Field(default=None, max_length=100)
+    categoria: Optional[str] = Field(default=None, min_length=1, max_length=100)
+
+    @field_validator("nombre", "categoria", mode="before")
+    @classmethod
+    def limpiar_requeridos(cls, valor: object) -> object:
+        return _limpiar_texto(valor)
+
+    @field_validator("nombre", "categoria")
+    @classmethod
+    def no_vacio(cls, valor: Optional[str]) -> Optional[str]:
+        if valor is None or not valor.strip():
+            raise ValueError("Este campo no puede quedar vacío.")
+        return valor
+
+    @field_validator("precio")
+    @classmethod
+    def precio_no_nulo(cls, valor: Optional[Decimal]) -> Optional[Decimal]:
+        if valor is None:
+            raise ValueError("El precio debe ser mayor que cero.")
+        return valor
+
+    @field_validator("talla", "color", "imagen", mode="before")
+    @classmethod
+    def limpiar_opcionales(cls, valor: object) -> object:
+        return _limpiar_opcional(valor)
 
 
 class ProductoRespuesta(ProductoBase):

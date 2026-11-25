@@ -137,7 +137,7 @@ def test_listar_no_expone_campos_internos(cliente, producto_creado):
     campos = set(cliente.get("/api/v1/productos").json()["items"][0])
     assert campos == {
         "id_producto", "nombre", "precio", "talla", "color", "imagen",
-        "categoria", "estado", "inhabilitado",
+        "categoria", "estado", "inhabilitado", "stock",
     }
 
 

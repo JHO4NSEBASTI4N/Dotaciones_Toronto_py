@@ -189,14 +189,15 @@ def test_cada_uno_edita_sus_datos(cliente, cliente_pepe, pepe):
     assert respuesta.json()["telefono"] == "3001234567"
 
 
-def test_admin_edita_a_cualquiera(cliente, admin, pepe):
+def test_admin_no_modifica_nombre_por_patch(cliente, admin, pepe):
+    """El nombre es identificador y el PATCH solo admite datos de contacto."""
     respuesta = cliente.patch(
         f"/api/v1/usuarios/{pepe.id_usuario}",
         json={"nombre": "Jose Perez"},
         headers=admin,
     )
     assert respuesta.status_code == 200
-    assert respuesta.json()["nombre"] == "Jose Perez"
+    assert respuesta.json()["nombre"] == "Pepe"
 
 
 def test_no_puede_editar_a_otro(cliente, sesion, cliente_pepe):
@@ -339,21 +340,22 @@ def test_un_cliente_no_puede_inhabilitar_a_nadie(
 def test_admin_restablece_la_contrasena(cliente, admin, pepe):
     respuesta = cliente.post(
         f"/api/v1/usuarios/{pepe.id_usuario}/restablecer-password",
-        json={"password_nueva": "nuevaClave123"},
+        json={"password_nueva": "NuevaClave123!"},
         headers=admin,
     )
     assert respuesta.status_code == 200, respuesta.text
 
     # Entra con la nueva...
-    assert login(cliente, "pepe@toronto.com", "nuevaClave123").status_code == 200
+    assert login(cliente, "pepe@toronto.com", "NuevaClave123!").status_code == 200
     # ...y ya no con la vieja.
     assert login(cliente, "pepe@toronto.com", "secreta123").status_code == 401
 
 
 def test_restablecer_con_la_misma_contrasena_da_409(cliente, admin, pepe):
+    pepe.password = hashear_password("Fuerte123!")
     respuesta = cliente.post(
         f"/api/v1/usuarios/{pepe.id_usuario}/restablecer-password",
-        json={"password_nueva": "secreta123"},
+        json={"password_nueva": "Fuerte123!"},
         headers=admin,
     )
     assert respuesta.status_code == 409
@@ -374,7 +376,7 @@ def test_un_cliente_no_puede_restablecer_contrasenas(
     otro = crear_usuario(sesion, "otro@toronto.com", id_rol=2)
     respuesta = cliente.post(
         f"/api/v1/usuarios/{otro.id_usuario}/restablecer-password",
-        json={"password_nueva": "nuevaClave123"},
+        json={"password_nueva": "NuevaClave123!"},
         headers=cliente_pepe,
     )
     assert respuesta.status_code == 403
@@ -383,28 +385,29 @@ def test_un_cliente_no_puede_restablecer_contrasenas(
 def test_cada_uno_cambia_su_contrasena(cliente, cliente_pepe):
     respuesta = cliente.post(
         "/api/v1/auth/cambiar-password",
-        json={"password_actual": "secreta123", "password_nueva": "otraClave456"},
+        json={"password_actual": "secreta123", "password_nueva": "OtraClave456!"},
         headers=cliente_pepe,
     )
     assert respuesta.status_code == 200, respuesta.text
-    assert login(cliente, "pepe@toronto.com", "otraClave456").status_code == 200
+    assert login(cliente, "pepe@toronto.com", "OtraClave456!").status_code == 200
 
 
 def test_cambiar_contrasena_con_la_actual_mal_da_400(cliente, cliente_pepe):
     """400, NO 401: un 401 haria que el frontend cerrara la sesion."""
     respuesta = cliente.post(
         "/api/v1/auth/cambiar-password",
-        json={"password_actual": "noEsEsta", "password_nueva": "otraClave456"},
+        json={"password_actual": "noEsEsta", "password_nueva": "OtraClave456!"},
         headers=cliente_pepe,
     )
     assert respuesta.status_code == 400
     assert "no es correcta" in respuesta.json()["detalle"]
 
 
-def test_cambiar_contrasena_por_la_misma_da_409(cliente, cliente_pepe):
+def test_cambiar_contrasena_por_la_misma_da_409(cliente, cliente_pepe, pepe):
+    pepe.password = hashear_password("Fuerte123!")
     respuesta = cliente.post(
         "/api/v1/auth/cambiar-password",
-        json={"password_actual": "secreta123", "password_nueva": "secreta123"},
+        json={"password_actual": "Fuerte123!", "password_nueva": "Fuerte123!"},
         headers=cliente_pepe,
     )
     assert respuesta.status_code == 409
@@ -413,7 +416,7 @@ def test_cambiar_contrasena_por_la_misma_da_409(cliente, cliente_pepe):
 def test_cambiar_contrasena_sin_token_da_401(cliente):
     respuesta = cliente.post(
         "/api/v1/auth/cambiar-password",
-        json={"password_actual": "secreta123", "password_nueva": "otraClave456"},
+        json={"password_actual": "secreta123", "password_nueva": "OtraClave456!"},
     )
     assert respuesta.status_code == 401
 

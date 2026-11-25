@@ -21,6 +21,7 @@ import {
 
 import { inventario, traerTodo } from "../../services/api";
 import { useSesion } from "../../context/sesion-contexto";
+import { AccesoRolCliente } from "../../components/acceso-rol-cliente";
 import {
   Aviso,
   BarraListado,
@@ -194,6 +195,8 @@ export default function PanelBodeguero() {
       />
 
       {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
+
+      <AccesoRolCliente />
 
       <div style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

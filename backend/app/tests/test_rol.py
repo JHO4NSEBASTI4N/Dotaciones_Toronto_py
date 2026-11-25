@@ -330,6 +330,46 @@ def test_mis_roles_muestra_los_dos_roles(cliente, multi):
     assert datos["rol_actual"] == 1
 
 
+@pytest.mark.parametrize("id_rol", [1, 3, 4])
+def test_personal_activa_rol_cliente_sin_perder_rol_actual(
+    cliente, sesion, catalogo, id_rol
+):
+    usuario = crear_usuario(
+        sesion, f"personal{id_rol}@toronto.com", [id_rol], por_defecto=id_rol
+    )
+    cab = cabeceras(login(cliente, usuario.correo, id_rol=id_rol).json()["access_token"])
+
+    respuesta = cliente.post("/api/v1/auth/activar-cliente", headers=cab)
+
+    assert respuesta.status_code == 200, respuesta.text
+    assert {rol["id_rol"] for rol in respuesta.json()["roles"]} == {id_rol, 2}
+    sesion.refresh(usuario)
+    assert usuario.id_rol_fk == id_rol
+    assert sorted(
+        __import__("app.core.dependencies", fromlist=["roles_asignados"])
+        .roles_asignados(usuario)
+    ) == sorted([id_rol, 2])
+
+
+def test_activar_cliente_es_idempotente(cliente, sesion, catalogo):
+    usuario = crear_usuario(sesion, "concliente@toronto.com", [3, 2], por_defecto=3)
+    cab = cabeceras(login(cliente, usuario.correo, id_rol=3).json()["access_token"])
+
+    primera = cliente.post("/api/v1/auth/activar-cliente", headers=cab)
+    segunda = cliente.post("/api/v1/auth/activar-cliente", headers=cab)
+
+    assert primera.status_code == segunda.status_code == 200
+    assert {rol["id_rol"] for rol in segunda.json()["roles"]} == {2, 3}
+    sesion.refresh(usuario)
+    assert usuario.id_rol_fk == 3
+
+
+def test_cliente_no_puede_usar_activar_cliente(cliente, cliente_simple):
+    cab = cabeceras(login(cliente, cliente_simple).json()["access_token"])
+    respuesta = cliente.post("/api/v1/auth/activar-cliente", headers=cab)
+    assert respuesta.status_code == 403
+
+
 def test_login_sin_rol_usa_el_de_por_defecto(cliente, multi):
     respuesta = login(cliente, multi)
     assert respuesta.status_code == 200

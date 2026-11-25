@@ -13,7 +13,7 @@ from app.core.dependencies import (
     requiere_rol,
     roles_de,
 )
-from app.core.exceptions import NoEncontrado
+from app.core.exceptions import NoEncontrado, ReglaNegocio
 from app.core.pagination import PaginaRespuesta, ParametrosPaginacion
 from app.schemas.venta import FacturaRespuesta, IngresoPorMes, VentaRespuesta
 from app.services import venta as servicio
@@ -25,6 +25,11 @@ router = APIRouter()
 PuedeGestionar = Depends(requiere_rol(ROL_ADMINISTRADOR, ROL_VENDEDOR))
 
 ROLES_QUE_VEN_TODO = {ROL_ADMINISTRADOR, ROL_VENDEDOR}
+
+
+def _validar_periodo(fecha_desde: date | None, fecha_hasta: date | None) -> None:
+    if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+        raise ReglaNegocio("La fecha inicial no puede ser posterior a la fecha final")
 
 
 def _es_staff(usuario) -> bool:
@@ -46,6 +51,7 @@ def listar(
 
     El cliente ve solo las suyas; administrador y vendedor ven todas.
     """
+    _validar_periodo(fecha_desde, fecha_hasta)
     staff = _es_staff(usuario)
     items, total = servicio.listar_ventas(
         sesion,
@@ -102,6 +108,7 @@ def reporte_vendedor(
 ):
     """Reporte del vendedor: resumen, metodos de pago e historial de ventas."""
     _reporte_restringido_vendedor(usuario)
+    _validar_periodo(fecha_desde, fecha_hasta)
 
     reporte = servicio.reporte_vendedor(
         sesion,
@@ -138,6 +145,7 @@ def reporte_vendedor_excel(
     """Descarga del reporte del vendedor en Excel (.xlsx) con datos de la
     empresa, logo, resumen, metodos de pago e historial."""
     _reporte_restringido_vendedor(usuario)
+    _validar_periodo(fecha_desde, fecha_hasta)
 
     reporte = servicio.reporte_vendedor(
         sesion,

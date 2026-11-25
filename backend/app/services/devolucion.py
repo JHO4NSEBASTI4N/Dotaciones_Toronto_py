@@ -98,9 +98,14 @@ def crear_devolucion(
     if venta is None:
         raise NoEncontrado("La linea de venta no pertenece a ninguna venta")
 
-    if (venta.estado or ESTADO_VENTA_COMPLETADA) == ESTADO_VENTA_ANULADA:
+    estado_venta = venta.estado or ESTADO_VENTA_COMPLETADA
+    if estado_venta == ESTADO_VENTA_ANULADA:
         raise Conflicto(
             f"La venta {venta.id_venta} esta anulada: no admite devoluciones"
+        )
+    if estado_venta != ESTADO_VENTA_COMPLETADA:
+        raise Conflicto(
+            f"La venta {venta.id_venta} debe estar completada para admitir devoluciones"
         )
 
     vendidas = detalle.cantidad or 0

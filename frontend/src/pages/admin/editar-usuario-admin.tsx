@@ -16,6 +16,8 @@ import {
   EtiquetaActivo,
 } from "../../components/indicadores";
 import type { Rol, UsuarioDetalle } from "../../entity";
+import { FeedbackValidacion } from "../../components/feedback-validacion";
+import { validarDireccion, validarTelefono } from "../../utils/validaciones";
 
 export default function EditarUsuarioAdmin() {
   const { id } = useParams();
@@ -28,6 +30,7 @@ export default function EditarUsuarioAdmin() {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
+  const [camposTocados, setCamposTocados] = useState<Record<string, boolean>>({});
   const [formulario, setFormulario] = useState({
     nombre: "",
     documento: "",
@@ -76,21 +79,46 @@ export default function EditarUsuarioAdmin() {
     void cargarDatos();
   }, [cargarDatos]);
 
+  const idRolSeleccionado = Number(formulario.id_rol);
+  const errorRol = !Number.isInteger(idRolSeleccionado) ||
+    !roles.some((rol) => rol.id_rol === idRolSeleccionado && rol.activo)
+    ? "Selecciona un rol activo válido."
+    : null;
+  const erroresCampos = {
+    telefono: validarTelefono(formulario.telefono),
+    direccion: validarDireccion(formulario.direccion),
+    rol: errorRol,
+  };
+  const mostrarCampo = (campo: string) => Boolean(camposTocados[campo]);
+
   const guardar = async (evento: FormEvent) => {
     evento.preventDefault();
     if (!cuenta) return;
+
+    const validacion = erroresCampos.telefono ?? erroresCampos.direccion;
+    if (validacion) {
+      setCamposTocados({ telefono: true, direccion: true, rol: true });
+      setError(validacion);
+      return;
+    }
+    if (erroresCampos.rol) {
+      setCamposTocados({ telefono: true, direccion: true, rol: true });
+      setError(erroresCampos.rol);
+      return;
+    }
+    const idRol = idRolSeleccionado;
 
     setGuardando(true);
     setError("");
 
     try {
       await usuarios.actualizar(cuenta.id_usuario, {
-        telefono: formulario.telefono || null,
-        direccion: formulario.direccion || null,
+        telefono: formulario.telefono.trim() || null,
+        direccion: formulario.direccion.trim() || null,
       });
 
-      if (Number(formulario.id_rol) !== (cuenta.id_rol_fk ?? 0)) {
-        await apiRoles.asignar(cuenta.id_usuario, Number(formulario.id_rol));
+      if (idRol !== (cuenta.id_rol_fk ?? 0)) {
+        await apiRoles.asignar(cuenta.id_usuario, idRol);
       }
 
       setMensaje("Cuenta actualizada.");
@@ -144,7 +172,7 @@ export default function EditarUsuarioAdmin() {
             />
           </BarraListado>
 
-          <form onSubmit={guardar}>
+          <form onSubmit={guardar} noValidate>
             <div className="dt-formulario-contenido">
               <div className="dt-formulario-grid">
                 <label>
@@ -160,17 +188,38 @@ export default function EditarUsuarioAdmin() {
                 <label>
                   Teléfono
                   <input
+                    type="tel"
+                    inputMode="tel"
+                    maxLength={32}
+                    autoComplete="tel"
+                    placeholder="+57 (300) 123 4567 o +1 (415) 555-2671"
                     value={formulario.telefono}
-                    onChange={(e) => setFormulario({ ...formulario, telefono: e.target.value })}
+                    onChange={(e) => {
+                      setFormulario({ ...formulario, telefono: e.target.value });
+                      setCamposTocados((actual) => ({ ...actual, telefono: true }));
+                    }}
+                    onBlur={() => setCamposTocados((actual) => ({ ...actual, telefono: true }))}
+                    aria-invalid={mostrarCampo("telefono") && Boolean(erroresCampos.telefono)}
+                    aria-describedby="editar-telefono-feedback"
                   />
+                  <FeedbackValidacion id="editar-telefono-feedback" error={erroresCampos.telefono} mostrar={mostrarCampo("telefono")} valido="Teléfono opcional válido." />
                 </label>
 
                 <label>
                   Dirección
                   <input
+                    maxLength={255}
+                    autoComplete="street-address"
                     value={formulario.direccion}
-                    onChange={(e) => setFormulario({ ...formulario, direccion: e.target.value })}
+                    onChange={(e) => {
+                      setFormulario({ ...formulario, direccion: e.target.value });
+                      setCamposTocados((actual) => ({ ...actual, direccion: true }));
+                    }}
+                    onBlur={() => setCamposTocados((actual) => ({ ...actual, direccion: true }))}
+                    aria-invalid={mostrarCampo("direccion") && Boolean(erroresCampos.direccion)}
+                    aria-describedby="editar-direccion-feedback"
                   />
+                  <FeedbackValidacion id="editar-direccion-feedback" error={erroresCampos.direccion} mostrar={mostrarCampo("direccion")} valido="Dirección opcional válida." />
                 </label>
 
                 <label>
@@ -181,8 +230,15 @@ export default function EditarUsuarioAdmin() {
                 <label>
                   Rol principal <span>*</span>
                   <select
+                    required
                     value={formulario.id_rol}
-                    onChange={(e) => setFormulario({ ...formulario, id_rol: e.target.value })}
+                    onChange={(e) => {
+                      setFormulario({ ...formulario, id_rol: e.target.value });
+                      setCamposTocados((actual) => ({ ...actual, rol: true }));
+                    }}
+                    onBlur={() => setCamposTocados((actual) => ({ ...actual, rol: true }))}
+                    aria-invalid={mostrarCampo("rol") && Boolean(erroresCampos.rol)}
+                    aria-describedby="editar-rol-feedback"
                   >
                     {roles
                       .filter((rol) => rol.activo)
@@ -192,6 +248,7 @@ export default function EditarUsuarioAdmin() {
                         </option>
                       ))}
                   </select>
+                  <FeedbackValidacion id="editar-rol-feedback" error={erroresCampos.rol} mostrar={mostrarCampo("rol")} valido="Rol activo seleccionado." />
                 </label>
               </div>
             </div>

@@ -29,15 +29,43 @@ class RolCrear(BaseModel):
     nombre_rol: str = Field(min_length=3, max_length=50)
     descripcion_rol: Optional[str] = Field(default=None, max_length=150)
 
-    @field_validator("nombre_rol")
+    @field_validator("nombre_rol", mode="before")
     @classmethod
-    def nombre_limpio(cls, valor: str) -> str:
-        return " ".join(valor.split())
+    def nombre_normalizado(cls, valor: object) -> object:
+        return " ".join(valor.split()) if isinstance(valor, str) else valor
+
+    @field_validator("descripcion_rol", mode="before")
+    @classmethod
+    def descripcion_normalizada(cls, valor: object) -> object:
+        if isinstance(valor, str):
+            return " ".join(valor.split()) or None
+        return valor
 
 
 class RolActualizar(BaseModel):
     nombre_rol: Optional[str] = Field(default=None, min_length=3, max_length=50)
     descripcion_rol: Optional[str] = Field(default=None, max_length=150)
+
+    @field_validator("nombre_rol", mode="before")
+    @classmethod
+    def nombre_normalizado(cls, valor: object) -> object:
+        if valor is None:
+            return None
+        return " ".join(valor.split()) if isinstance(valor, str) else valor
+
+    @field_validator("nombre_rol")
+    @classmethod
+    def nombre_no_vacio(cls, valor: Optional[str]) -> Optional[str]:
+        if valor is None or len(valor) < 3:
+            raise ValueError("El nombre del rol debe tener entre 3 y 50 caracteres.")
+        return valor
+
+    @field_validator("descripcion_rol", mode="before")
+    @classmethod
+    def descripcion_normalizada(cls, valor: object) -> object:
+        if valor is None:
+            return None
+        return " ".join(valor.split()) or None if isinstance(valor, str) else valor
 
 
 class AsignacionRol(BaseModel):
