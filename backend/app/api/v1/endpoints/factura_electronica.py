@@ -201,6 +201,29 @@ def detalle(id_factura: int, sesion: SesionBD, usuario: UsuarioActual):
     return factura
 
 
+@router.get("/{id_factura}/pdf")
+def pdf_representacion(id_factura: int, sesion: SesionBD, usuario: UsuarioActual):
+    """Descarga la representación gráfica PDF de esta misma factura DIAN."""
+    factura = servicio.obtener_factura(sesion, id_factura)
+
+    es_gestor = bool(roles_de(usuario) & {ROL_ADMINISTRADOR, ROL_VENDEDOR})
+    if not es_gestor and factura["id_cliente_fk"] != usuario.id_usuario:
+        raise Prohibido("Solo puede consultar sus propias facturas")
+
+    from app.services.pdf_factura_electronica import generar_pdf_representacion
+
+    contenido = generar_pdf_representacion(factura)
+    return Response(
+        content=contenido,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{factura["numero_factura"]}-DIAN.pdf"'
+            )
+        },
+    )
+
+
 @router.get("/{id_factura}/xml")
 def xml(id_factura: int, sesion: SesionBD, usuario: UsuarioActual):
     """Devuelve el XML UBL 2.1 como archivo descargable."""

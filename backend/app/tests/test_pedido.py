@@ -237,6 +237,25 @@ def test_vendedor_puede_cambiar_estado(cliente, cabeceras_vendedor, pedido):
     respuesta = cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': 'Enviado'}, headers=cabeceras_vendedor)
     assert respuesta.status_code == 200
 
+def test_fallo_de_emision_dian_no_revierte_la_entrega(
+    cliente, cabeceras_vendedor, pedido, sesion, monkeypatch
+):
+    from app.models.venta import Venta
+    import app.services.pedido as servicio_pedido
+
+    def fallar(*args, **kwargs):
+        raise RuntimeError("DIAN no disponible")
+
+    monkeypatch.setattr(servicio_pedido, "generar_factura_al_entregar", fallar)
+    respuesta = cliente.patch(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
+        json={"estado": "Entregado"},
+        headers=cabeceras_vendedor,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["estado"] == "Entregado"
+    assert sesion.query(Venta).filter_by(id_pedido_fk=pedido["id_pedido"]).count() == 1
+
 def test_entregar_descuenta_inventario(cliente, cabeceras_vendedor, cabeceras_cliente, producto, pedido, sesion):
     fila = sesion.query(Inventario).filter(Inventario.id_producto_fk == producto['id_producto']).first()
     assert fila.cantidad_actual == 10

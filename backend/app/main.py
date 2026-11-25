@@ -9,6 +9,7 @@ from app.api.v1.api import api_router
 from app.core.config import configuracion
 from app.core.exceptions import registrar_manejadores
 from app.database.inicializador import crear_admin_al_arrancar
+from app.database.inicializador_dian import crear_resolucion_simulada_al_arrancar
 
 
 @asynccontextmanager
@@ -20,6 +21,7 @@ async def ciclo_de_vida(app: FastAPI):
     que el AdminInitializer.java del proyecto en Spring Boot).
     """
     crear_admin_al_arrancar()
+    crear_resolucion_simulada_al_arrancar()
     yield
 
 

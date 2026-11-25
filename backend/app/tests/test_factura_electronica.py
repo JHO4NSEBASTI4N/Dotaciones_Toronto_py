@@ -113,6 +113,7 @@ def _crear_venta(
     precio: str = "119000.00",
     cantidad: int = 1,
     nombre: str = "Camisa",
+    entregar: bool = True,
 ):
     """Arma una venta por el camino normal: producto -> carrito -> pedido -> venta.
 
@@ -146,6 +147,9 @@ def _crear_venta(
 
     pedido = cliente.post("/api/v1/pedidos", headers=cliente_pepe).json()
 
+    if not entregar:
+        return pedido
+
     for estado in ("Enviado", "Entregado"):
         respuesta = cliente.patch(
             f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
@@ -165,6 +169,12 @@ def venta(cliente, admin, vendedor, cliente_pepe, sesion, resolucion):
 
 
 def generar(cliente, cabeceras, id_venta: int):
+    """Recupera la factura que ahora se genera al entregar; permite ventas antiguas."""
+    existente = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{id_venta}", headers=cabeceras
+    )
+    if existente.status_code == 200:
+        return existente
     return cliente.post(
         "/api/v1/facturas-electronicas",
         json={"id_venta": id_venta},
@@ -224,9 +234,27 @@ def test_el_cufe_cambia_si_cambia_un_solo_peso():
 
 # --- generar ------------------------------------------------------------------
 
-def test_vendedor_genera_la_factura(cliente, vendedor, venta):
-    respuesta = generar(cliente, vendedor, venta["id_venta"])
-    assert respuesta.status_code == 201, respuesta.text
+def test_descargar_representacion_pdf_dian(cliente, vendedor, venta):
+    factura = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",
+        headers=vendedor,
+    ).json()
+    respuesta = cliente.get(
+        f"/api/v1/facturas-electronicas/{factura['id_factura']}/pdf",
+        headers=vendedor,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.headers["content-type"].startswith("application/pdf")
+    assert respuesta.content.startswith(b"%PDF")
+    assert factura["numero_factura"] in respuesta.headers["content-disposition"]
+
+
+def test_entregar_genera_automaticamente_la_factura(cliente, vendedor, venta):
+    respuesta = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",
+        headers=vendedor,
+    )
+    assert respuesta.status_code == 200, respuesta.text
 
     datos = respuesta.json()
     assert datos["numero_factura"] == "DT0001"
@@ -234,6 +262,38 @@ def test_vendedor_genera_la_factura(cliente, vendedor, venta):
     assert datos["simulado"] is True
     assert len(datos["cufe"]) == 96
     assert len(datos["lineas"]) == 1
+    assert len(datos["eventos"]) == 1
+    assert datos["eventos"][0]["tipo"] == "GENERACION"
+
+
+def test_reentrega_anula_el_borrador_anterior_y_genera_otro(cliente, vendedor, venta):
+    original = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",
+        headers=vendedor,
+    ).json()
+    id_pedido = venta["id_pedido_fk"]
+
+    revertida = cliente.patch(
+        f"/api/v1/pedidos/{id_pedido}/estado",
+        json={"estado": "Enviado"}, headers=vendedor,
+    )
+    assert revertida.status_code == 200, revertida.text
+    assert cliente.get(
+        f"/api/v1/facturas-electronicas/{original['id_factura']}", headers=vendedor,
+    ).json()["estado"] == "ANULADA"
+
+    reentregada = cliente.patch(
+        f"/api/v1/pedidos/{id_pedido}/estado",
+        json={"estado": "Entregado"}, headers=vendedor,
+    )
+    assert reentregada.status_code == 200, reentregada.text
+    nueva = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",
+        headers=vendedor,
+    ).json()
+    assert nueva["id_factura"] != original["id_factura"]
+    assert nueva["numero_factura"] == "DT0002"
+    assert nueva["estado"] == "BORRADOR"
 
 
 def test_la_factura_cuadra_con_lo_que_pago_el_cliente(cliente, vendedor, venta):
@@ -279,30 +339,77 @@ def test_el_segundo_documento_lleva_el_siguiente_numero(
 
 
 def test_no_se_puede_facturar_dos_veces_la_misma_venta(cliente, vendedor, venta):
-    generar(cliente, vendedor, venta["id_venta"])
-    respuesta = generar(cliente, vendedor, venta["id_venta"])
+    respuesta = cliente.post(
+        "/api/v1/facturas-electronicas",
+        json={"id_venta": venta["id_venta"]},
+        headers=vendedor,
+    )
     assert respuesta.status_code == 409
 
 
 def test_sin_resolucion_vigente_no_se_factura(
-    cliente, sesion, admin, vendedor, cliente_pepe
+    cliente, sesion, admin, vendedor, cliente_pepe, monkeypatch
 ):
-    """Se crea la venta ANTES de la resolucion."""
+    """El proveedor real no debe inventar numeración si falta resolución."""
+    monkeypatch.setattr(configuracion, "dian_proveedor", "real")
     venta = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion)
     respuesta = generar(cliente, vendedor, venta["id_venta"])
     assert respuesta.status_code == 400
     assert "resolucion" in respuesta.json()["detalle"].lower()
 
 
-def test_resolucion_agotada_da_400(cliente, sesion, admin, vendedor, cliente_pepe):
+def test_entrega_sin_resolucion_crea_borrador_simulado_automaticamente(
+    cliente, sesion, admin, vendedor, cliente_pepe
+):
+    assert sesion.query(ResolucionFacturacion).count() == 0
+    venta = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion)
+    respuesta = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",
+        headers=vendedor,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    factura = respuesta.json()
+    assert factura["numero_factura"].startswith("SIM")
+    assert factura["simulado"] is True
+    assert factura["estado"] == "BORRADOR"
+    assert sesion.query(ResolucionFacturacion).count() == 1
+    assert sesion.query(ResolucionFacturacion).first().prefijo == "SIM"
+
+
+def test_resolucion_agotada_conserva_entrega_y_venta_para_reintento(cliente, sesion, admin, vendedor, cliente_pepe):
     crear_resolucion(sesion, rango_hasta=1)
     venta = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion)
-    generar(cliente, vendedor, venta["id_venta"])  # usa el 1
+    factura = generar(cliente, vendedor, venta["id_venta"])
+    assert factura.status_code == 200  # el consecutivo 1 se consumió automáticamente
 
-    otra = _crear_venta(cliente, admin, vendedor, cliente_pepe, sesion, nombre="Pantalon")
-    respuesta = generar(cliente, vendedor, otra["id_venta"])
-    assert respuesta.status_code == 400
-    assert "agoto su rango" in respuesta.json()["detalle"]
+    pedido = _crear_venta(
+        cliente, admin, vendedor, cliente_pepe, sesion,
+        nombre="Pantalon", entregar=False,
+    )
+    enviada = cliente.patch(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
+        json={"estado": "Enviado"}, headers=vendedor,
+    )
+    assert enviada.status_code == 200
+    respuesta = cliente.patch(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
+        json={"estado": "Entregado"}, headers=vendedor,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.json()["estado"] == "Entregado"
+    ventas = cliente.get(
+        f"/api/v1/ventas?id_pedido={pedido['id_pedido']}", headers=vendedor,
+    ).json()
+    assert ventas["total"] == 1
+    assert ventas["items"][0]["estado"] == "Completada"
+    pendientes = cliente.get(
+        "/api/v1/facturas-electronicas",
+        headers=admin,
+    ).json()
+    assert all(
+        factura["id_venta_fk"] != ventas["items"][0]["id_venta"]
+        for factura in pendientes["items"]
+    )
 
 
 def test_venta_inexistente_da_404(cliente, vendedor, resolucion):
@@ -582,9 +689,9 @@ def test_por_venta(cliente, vendedor, venta):
     assert respuesta.json()["id_factura"] == generada["id_factura"]
 
 
-def test_por_venta_sin_factura_da_404(cliente, vendedor, venta):
+def test_por_venta_inexistente_da_404(cliente, vendedor):
     respuesta = cliente.get(
-        f"/api/v1/facturas-electronicas/por-venta/{venta["id_venta"]}", headers=vendedor
+        "/api/v1/facturas-electronicas/por-venta/9999", headers=vendedor
     )
     assert respuesta.status_code == 404
 

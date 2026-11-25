@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -14,8 +15,11 @@ from app.repositories.producto import ProductoRepositorio
 from app.schemas.pedido import TRANSICIONES
 from app.services.carrito import cerrar_carrito
 from app.services.venta import crear_desde_pedido, revertir_por_pedido
+from app.services.factura_electronica import generar_factura_al_entregar
 from app.services.descuento import calcular_precio_final
 
+
+logger = logging.getLogger(__name__)
 
 CERO = Decimal("0.00")
 ESTADO_INICIAL = "Pendiente"
@@ -359,7 +363,21 @@ def cambiar_estado(
                 usuario_responsable=usuario_responsable,
             )
 
-        crear_desde_pedido(sesion, pedido, metodo_pago)
+        venta = crear_desde_pedido(sesion, pedido, metodo_pago)
+        try:
+            # Aislar la emisión: la venta, el pedido y el inventario se confirman
+            # aunque un error DIAN impida crear el documento. El savepoint evita
+            # dejar la sesión SQLAlchemy en estado fallido y permite reintentar
+            # después desde Facturación DIAN.
+            with sesion.begin_nested():
+                generar_factura_al_entregar(sesion, venta.id_venta)
+        except Exception:
+            logger.exception(
+                "No se pudo generar la factura DIAN al entregar el pedido #%s "
+                "(venta #%s). La entrega se conserva; reintente desde Facturación DIAN.",
+                pedido.id_pedido,
+                venta.id_venta,
+            )
         repo.ocultar(pedido)
 
     repo.actualizar_estado(pedido, nuevo_estado)

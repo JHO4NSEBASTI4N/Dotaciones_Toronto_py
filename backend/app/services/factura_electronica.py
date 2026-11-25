@@ -32,6 +32,7 @@ factura: se avisa para que se pida una resolucion nueva.
 """
 
 import json
+import logging
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
@@ -58,6 +59,7 @@ from app.services.dian.cufe import calcular_cufe, construir_cadena_cufe
 from app.services.dian.xml_ubl import generar_xml
 
 CENTAVO = Decimal("0.01")
+logger = logging.getLogger(__name__)
 
 # Estados del documento
 BORRADOR = "BORRADOR"
@@ -322,8 +324,15 @@ def _siguiente_numero(resolucion: ResolucionFacturacion) -> tuple[int, str]:
     return siguiente, numero
 
 
-def generar_factura(sesion: Session, datos: GenerarFacturaEntrada) -> dict:
-    """Crea el documento en BORRADOR a partir de una venta."""
+def generar_factura(
+    sesion: Session, datos: GenerarFacturaEntrada, *, confirmar: bool = True
+) -> dict:
+    """Crea el documento en BORRADOR a partir de una venta.
+
+    `confirmar=False` permite incluir la generación en una transacción mayor,
+    como la entrega del pedido, para que venta, inventario y documento DIAN
+    queden confirmados o revertidos juntos.
+    """
     repo_venta = VentaRepositorio(sesion)
     venta = repo_venta.buscar_por_id(datos.id_venta)
     if venta is None:
@@ -456,9 +465,49 @@ def generar_factura(sesion: Session, datos: GenerarFacturaEntrada) -> dict:
         payload={"cufe": cufe, "total": str(total_factura), "simulado": True},
     )
 
-    sesion.commit()
-    sesion.refresh(factura)
+    if confirmar:
+        sesion.commit()
+        sesion.refresh(factura)
+    else:
+        sesion.flush()
     return armar_detalle(sesion, factura)
+
+
+def generar_factura_al_entregar(sesion: Session, id_venta: int) -> dict | None:
+    """Genera automáticamente el documento DIAN cuando se entrega la venta.
+
+    Si la venta ya tiene un documento electrónico activo, lo devuelve para
+    mantener la operación idempotente. En modo simulado, crea una numeración
+    identificada como SIM si no existe resolución vigente. En modo real nunca
+    inventa numeración: conserva la venta y deja el error en el log para que se
+    configure la resolución oficial y se reintente desde el panel.
+    """
+    repo = FacturaElectronicaRepositorio(sesion)
+    existente = repo.buscar_por_venta(id_venta)
+    if existente is not None:
+        return armar_detalle(sesion, existente)
+
+    if ResolucionRepositorio(sesion).buscar_vigente() is None:
+        # A diferencia del modo real, en simulación se puede crear una
+        # numeración marcada SIM para no dejar la entrega sin borrador. Nunca
+        # se inventa una resolución oficial ni se usa este fallback al transmitir.
+        if (configuracion.dian_proveedor or "").strip().lower() == "simulado":
+            from app.database.inicializador_dian import asegurar_resolucion_simulada
+
+            asegurar_resolucion_simulada(sesion, confirmar=False)
+        else:
+            logger.error(
+                "No se creó la factura DIAN de la venta #%s: falta una resolución "
+                "oficial vigente. La entrega quedó conservada.",
+                id_venta,
+            )
+            return None
+
+    return generar_factura(
+        sesion,
+        GenerarFacturaEntrada(id_venta=id_venta),
+        confirmar=False,
+    )
 
 
 # --- FIRMA Y ENVIO ------------------------------------------------------------
@@ -631,7 +680,9 @@ def consultar_estado(sesion: Session, id_factura: int) -> dict:
     return armar_detalle(sesion, factura)
 
 
-def anular_factura(sesion: Session, id_factura: int, motivo: str = "") -> dict:
+def anular_factura(
+    sesion: Session, id_factura: int, motivo: str = "", *, confirmar: bool = True
+) -> dict:
     """Baja logica. El documento NO se borra: queda en ANULADA."""
     factura = _buscar(sesion, id_factura)
 
@@ -649,8 +700,11 @@ def anular_factura(sesion: Session, id_factura: int, motivo: str = "") -> dict:
         mensaje=motivo or "Factura anulada por el usuario",
     )
 
-    sesion.commit()
-    sesion.refresh(factura)
+    if confirmar:
+        sesion.commit()
+        sesion.refresh(factura)
+    else:
+        sesion.flush()
     return armar_detalle(sesion, factura)
 
 
@@ -663,8 +717,15 @@ def _respuesta(factura: FacturaElectronica) -> dict:
         "tipo_documento", "numero_factura", "prefijo", "consecutivo",
         "fecha_emision", "estado", "cufe", "valor_bruto", "descuento_total",
         "total_iva", "total_impuestos", "total_factura", "moneda",
-        "nit_emisor", "razon_social_emisor", "nit_adquirente",
-        "razon_social_adquirente", "estado_dian", "mensaje_dian", "track_id",
+        "nit_emisor", "dv_emisor", "razon_social_emisor", "nombre_comercial_emisor",
+        "direccion_emisor", "ciudad_emisor", "departamento_emisor", "telefono_emisor",
+        "correo_emisor", "regimen_emisor", "responsabilidades_emisor",
+        "actividad_economica_emisor", "tipo_doc_adquirente", "nit_adquirente",
+        "dv_adquirente", "razon_social_adquirente", "correo_adquirente",
+        "direccion_adquirente", "telefono_adquirente", "ciudad_adquirente",
+        "resolucion_numero", "resolucion_desde", "resolucion_hasta",
+        "resolucion_vigencia_desde", "resolucion_vigencia_hasta", "ambiente",
+        "forma_pago", "medio_pago", "qr_url", "estado_dian", "mensaje_dian", "track_id",
         "fecha_envio", "fecha_respuesta", "intentos", "firmado", "simulado",
         "creado_en",
     ]

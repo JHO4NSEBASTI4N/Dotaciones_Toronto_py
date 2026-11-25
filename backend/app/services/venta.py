@@ -127,17 +127,32 @@ def revertir_por_pedido(sesion: Session, id_pedido: int) -> None:
                 "devoluciones aprobadas"
             )
 
-    factura_dian = sesion.scalar(
-        select(FacturaElectronica).where(
-            FacturaElectronica.id_venta_fk == venta.id_venta,
-            FacturaElectronica.estado.in_(("ENVIADA", "ACEPTADA")),
+    facturas_dian = list(
+        sesion.scalars(
+            select(FacturaElectronica).where(
+                FacturaElectronica.id_venta_fk == venta.id_venta,
+                FacturaElectronica.estado != "ANULADA",
+            )
         )
     )
-    if factura_dian is not None:
+    if any(f.estado in ("ENVIADA", "ACEPTADA") for f in facturas_dian):
         raise ReglaNegocio(
             "No se puede revertir la entrega porque el pedido ya tiene una "
             "factura electronica enviada a la DIAN"
         )
+
+    # Los borradores o documentos solo firmados aún no se enviaron: se anulan
+    # dentro de esta misma transacción y se emitirá uno nuevo al reentregar.
+    if facturas_dian:
+        from app.services.factura_electronica import anular_factura
+
+        for documento in facturas_dian:
+            anular_factura(
+                sesion,
+                documento.id_factura,
+                motivo=f"Factura anulada al revertir la entrega del pedido #{id_pedido}",
+                confirmar=False,
+            )
 
     repo.anular(venta)
     factura = repo.buscar_factura_de_venta(venta.id_venta)
