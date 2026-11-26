@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 EstadoPedido = Literal['Pendiente', 'Enviado', 'Entregado', 'Cancelado']
 TRANSICIONES: dict[str, set[str]] = {
     'Pendiente': {'Enviado', 'Entregado', 'Cancelado'},
@@ -23,6 +23,24 @@ class PedidoEstadoActualizar(BaseModel):
         if isinstance(valor, str):
             return " ".join(valor.split()) or None
         return valor
+
+class ItemPedidoActualizar(BaseModel):
+    id_producto: int = Field(gt=0)
+    cantidad: int = Field(gt=0, le=10000)
+
+
+class PedidoItemsActualizar(BaseModel):
+    """Lista final de productos/cantidades de un pedido pendiente."""
+
+    items: list[ItemPedidoActualizar] = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def validar_productos_unicos(self):
+        ids = [item.id_producto for item in self.items]
+        if len(ids) != len(set(ids)):
+            raise ValueError("No se puede repetir un producto en el pedido")
+        return self
+
 
 class ItemPedidoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)

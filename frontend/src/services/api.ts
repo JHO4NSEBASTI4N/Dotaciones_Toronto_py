@@ -400,6 +400,8 @@ export const pedidos = {
   listar: (filtros: FiltrosPedido = {}) =>
     api.get<Pagina<Pedido>>(`/pedidos${aQuery(filtros)}`),
   obtener: (id: number) => api.get<Pedido>(`/pedidos/${id}`),
+  actualizarItems: (id: number, items: { id_producto: number; cantidad: number }[]) =>
+    api.put<Pedido>(`/pedidos/${id}/items`, { items }),
   crear: (datos: { id_usuario?: number } = {}) =>
     api.post<Pedido>("/pedidos", datos),
   cambiarEstado: (id: number, estado: string, metodoPago?: string) =>

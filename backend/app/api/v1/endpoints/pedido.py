@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.core.dependencies import ROL_ADMINISTRADOR, ROL_VENDEDOR, SesionBD, UsuarioActual, requiere_rol, roles_de
 from app.core.exceptions import NoEncontrado, Prohibido
 from app.core.pagination import PaginaRespuesta, ParametrosPaginacion
-from app.schemas.pedido import PedidoEstadoActualizar, PedidoRespuesta
+from app.schemas.pedido import PedidoEstadoActualizar, PedidoItemsActualizar, PedidoRespuesta
 from app.services import pedido as servicio
 router = APIRouter()
 PuedeCambiarEstado = Depends(requiere_rol(ROL_VENDEDOR))
@@ -29,6 +29,16 @@ def detalle(id_pedido: int, sesion: SesionBD, usuario: UsuarioActual):
     if not _es_staff(usuario) and (not servicio.es_del_usuario(sesion, id_pedido, usuario.id_usuario)):
         raise NoEncontrado(f'No existe el pedido con id {id_pedido}')
     return servicio.obtener_pedido(sesion, id_pedido)
+
+@router.put('/{id_pedido}/items', response_model=PedidoRespuesta)
+def actualizar_items(id_pedido: int, datos: PedidoItemsActualizar, sesion: SesionBD, usuario: UsuarioActual):
+    """Edita productos y cantidades de un pedido propio todavía Pendiente."""
+    return servicio.actualizar_items_pendiente(
+        sesion,
+        id_pedido,
+        usuario.id_usuario,
+        [item.model_dump() for item in datos.items],
+    )
 
 @router.post('', response_model=PedidoRespuesta, status_code=status.HTTP_201_CREATED)
 def crear(sesion: SesionBD, usuario: UsuarioActual):

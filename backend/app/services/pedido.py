@@ -1,6 +1,7 @@
 import logging
 from decimal import Decimal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import Conflicto, NoEncontrado, ReglaNegocio
@@ -303,6 +304,102 @@ def obtener_pedido(sesion: Session, id_pedido: int) -> dict:
             id_pedido
         )
     )
+
+
+def actualizar_items_pendiente(
+    sesion: Session,
+    id_pedido: int,
+    id_usuario: int,
+    items: list[dict],
+) -> dict:
+    """Reemplaza el detalle de un pedido propio mientras siga Pendiente.
+
+    Las líneas existentes conservan su precio congelado; los productos nuevos
+    toman el precio/descuento vigente al agregarlos. Las líneas retiradas se
+    inhabilitan (no se borran) para conservar historial.
+    """
+    pedido = sesion.scalar(
+        select(Pedido)
+        .where(Pedido.id_pedido == id_pedido)
+        .with_for_update()
+    )
+    if pedido is None or pedido.id_usuario_fk != id_usuario:
+        raise NoEncontrado(f"No existe el pedido con id {id_pedido}")
+    if (pedido.estado or ESTADO_INICIAL) != ESTADO_INICIAL:
+        raise Conflicto("Solo puedes editar un pedido mientras esté Pendiente")
+    if not items:
+        raise ReglaNegocio(
+            "El pedido debe conservar al menos un producto. Si no lo necesitas, cancélalo."
+        )
+
+    ids = [int(item["id_producto"]) for item in items]
+    if len(ids) != len(set(ids)):
+        raise ReglaNegocio("No se puede repetir un producto en el pedido")
+
+    repo_pedido = PedidoRepositorio(sesion)
+    repo_producto = ProductoRepositorio(sesion)
+    repo_carrito = CarritoRepositorio(sesion)
+    actuales = repo_pedido.listar_detalles(id_pedido)
+    por_producto = {detalle.id_producto_fk: detalle for detalle in actuales}
+    preparados: list[dict] = []
+
+    for item in items:
+        id_producto = int(item["id_producto"])
+        cantidad = int(item["cantidad"])
+        if cantidad <= 0:
+            raise ReglaNegocio("La cantidad de cada producto debe ser mayor que cero")
+
+        producto = repo_producto.buscar_por_id(id_producto)
+        if producto is None or producto.inhabilitado:
+            raise ReglaNegocio(
+                f"El producto {id_producto} no existe o ya no está disponible"
+            )
+
+        detalle = por_producto.get(id_producto)
+        disponible = repo_carrito.stock_disponible(id_producto)
+        if disponible is not None and cantidad > disponible:
+            raise ReglaNegocio(
+                f"Stock insuficiente de '{producto.nombre}': hay {disponible} "
+                f"unidades disponibles y el pedido solicita {cantidad}"
+            )
+
+        precios = None if detalle else _precio_congelado(sesion, producto)
+        preparados.append({
+            "id_producto": id_producto,
+            "cantidad": cantidad,
+            "detalle": detalle,
+            "precios": precios,
+        })
+
+    try:
+        ids_nuevos = set(ids)
+        for detalle in actuales:
+            if detalle.id_producto_fk not in ids_nuevos:
+                detalle.inhabilitado = True
+
+        for item in preparados:
+            detalle = item["detalle"]
+            if detalle is not None:
+                detalle.cantidad = item["cantidad"]
+                continue
+
+            precio_lista, descuento_unitario, precio_unitario = item["precios"]
+            repo_pedido.crear_detalle(
+                id_pedido=id_pedido,
+                id_producto=item["id_producto"],
+                cantidad=item["cantidad"],
+                precio_lista=precio_lista,
+                descuento_unitario=descuento_unitario,
+                precio_unitario=precio_unitario,
+            )
+
+        sesion.commit()
+        sesion.refresh(pedido)
+    except Exception:
+        sesion.rollback()
+        raise
+
+    return _armar_respuesta(sesion, pedido)
 
 
 def cambiar_estado(

@@ -1,11 +1,11 @@
 // src/pages/cliente/pedidos.tsx
 //
-// Historial de pedidos del cliente. Solo lectura: el cliente sigue el estado,
-// quien lo mueve es el vendedor.
+// Historial de pedidos del cliente. Los pedidos Pendientes se editan desde el
+// catálogo visual; los estados posteriores los gestiona el vendedor.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ClipboardList, Eye, FileText, PackageCheck, RefreshCw, Store, Truck, X } from "../../components/iconos";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ClipboardList, Eye, FileText, PackageCheck, Pencil, RefreshCw, Store, Truck, X } from "../../components/iconos";
 import logoNegro from "../../assets/images/logo negro.png";
 
 import { pedidos, pesos, traerTodo } from "../../services/api";
@@ -29,10 +29,14 @@ import type { Pedido } from "../../types";
 
 export default function MisPedidosVista() {
   const { usuario } = useSesion();
+  const navegar = useNavigate();
+  const location = useLocation();
+  const mensajeInicial = (location.state as { mensaje?: string } | null)?.mensaje ?? "";
 
   const [lista, setLista] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState(mensajeInicial);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [detalle, setDetalle] = useState<Pedido | null>(null);
@@ -104,6 +108,27 @@ export default function MisPedidosVista() {
     });
   };
 
+  const abrirEditor = (pedido: Pedido) => {
+    if (pedido.estado !== "Pendiente") return;
+    navegar("/cliente/productos", {
+      state: {
+        editarPedido: {
+          id_pedido: pedido.id_pedido,
+          items: (pedido.items ?? [])
+            .filter((item) => item.id_producto !== null)
+            .map((item) => ({
+              id_producto: item.id_producto as number,
+              nombre_producto: item.nombre_producto,
+              cantidad: item.cantidad,
+              precio_lista: item.precio_lista,
+              descuento_unitario: item.descuento_unitario,
+              precio_unitario: item.precio_unitario,
+            })),
+        },
+      },
+    });
+  };
+
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
@@ -120,6 +145,7 @@ export default function MisPedidosVista() {
       />
 
       {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
+      {mensaje && <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />}
 
       <FilaIndicadores>
         <Indicador etiqueta="Pedidos" valor={resumen.total} descripcion="En tu historial" icono={ClipboardList} tono="azul" cargando={cargando} />
@@ -221,6 +247,17 @@ export default function MisPedidosVista() {
                           <Eye size={14} />
                         </button>
 
+                        {pedido.estado === "Pendiente" && (
+                          <button
+                            type="button"
+                            className="dt-boton-icono"
+                            onClick={() => abrirEditor(pedido)}
+                            title="Editar pedido pendiente"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+
                         {pedido.estado === "Entregado" && (
                           <button
                             type="button"
@@ -315,6 +352,17 @@ export default function MisPedidosVista() {
                 Cerrar
               </button>
 
+              {detalle.estado === "Pendiente" && (
+                <button
+                  type="button"
+                  className="dt-accion-principal"
+                  onClick={() => abrirEditor(detalle)}
+                >
+                  <Pencil size={15} />
+                  Editar pedido
+                </button>
+              )}
+
               {detalle.estado === "Entregado" && (
                 <button
                   type="button"
@@ -329,6 +377,7 @@ export default function MisPedidosVista() {
           </section>
         </div>
       )}
+
     </section>
   );
 }

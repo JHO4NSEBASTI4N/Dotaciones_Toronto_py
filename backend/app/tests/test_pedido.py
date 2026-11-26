@@ -161,6 +161,73 @@ def test_detalle_ajeno_da_404(cliente, cabeceras_otro, pedido):
     respuesta = cliente.get(f"/api/v1/pedidos/{pedido['id_pedido']}", headers=cabeceras_otro)
     assert respuesta.status_code == 404
 
+def test_cliente_edita_cantidad_en_pedido_pendiente(cliente, cabeceras_cliente, pedido):
+    id_producto = pedido['items'][0]['id_producto']
+    respuesta = cliente.put(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/items",
+        json={'items': [{'id_producto': id_producto, 'cantidad': 1}]},
+        headers=cabeceras_cliente,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    datos = respuesta.json()
+    assert datos['estado'] == 'Pendiente'
+    assert datos['total_unidades'] == 1
+    assert datos['items'][0]['cantidad'] == 1
+    assert datos['total'] == '30000.00'
+
+def test_cliente_agrega_producto_al_pedido_pendiente(
+    cliente, cabeceras_admin, cabeceras_cliente, pedido
+):
+    creado = cliente.post(
+        '/api/v1/productos',
+        json={'nombre': 'Pantalón', 'precio': '45000.00'},
+        headers=cabeceras_admin,
+    )
+    assert creado.status_code == 201, creado.text
+    id_nuevo = creado.json()['id_producto']
+    respuesta = cliente.put(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/items",
+        json={'items': [
+            {'id_producto': pedido['items'][0]['id_producto'], 'cantidad': 1},
+            {'id_producto': id_nuevo, 'cantidad': 2},
+        ]},
+        headers=cabeceras_cliente,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    datos = respuesta.json()
+    assert datos['total_unidades'] == 3
+    assert len(datos['items']) == 2
+    assert datos['total'] == '120000.00'
+
+def test_cliente_no_edita_pedido_ajeno(cliente, cabeceras_otro, pedido):
+    respuesta = cliente.put(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/items",
+        json={'items': [{'id_producto': pedido['items'][0]['id_producto'], 'cantidad': 1}]},
+        headers=cabeceras_otro,
+    )
+    assert respuesta.status_code == 404
+
+def test_cliente_no_edita_pedido_ya_enviado(cliente, cabeceras_vendedor, cabeceras_cliente, pedido):
+    enviado = cliente.patch(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/estado",
+        json={'estado': 'Enviado'}, headers=cabeceras_vendedor,
+    )
+    assert enviado.status_code == 200
+    respuesta = cliente.put(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/items",
+        json={'items': [{'id_producto': pedido['items'][0]['id_producto'], 'cantidad': 1}]},
+        headers=cabeceras_cliente,
+    )
+    assert respuesta.status_code == 409
+
+def test_no_se_puede_quitar_todos_los_productos(cliente, cabeceras_cliente, pedido):
+    respuesta = cliente.put(
+        f"/api/v1/pedidos/{pedido['id_pedido']}/items",
+        json={'items': []},
+        headers=cabeceras_cliente,
+    )
+    assert respuesta.status_code == 422
+
 def test_detalle_inexistente_da_404(cliente, cabeceras_admin):
     assert cliente.get('/api/v1/pedidos/9999', headers=cabeceras_admin).status_code == 404
 

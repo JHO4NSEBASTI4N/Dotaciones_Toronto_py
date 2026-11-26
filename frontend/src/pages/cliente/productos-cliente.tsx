@@ -4,13 +4,14 @@
 // ya puede venir con descuento (GET /descuentos/producto/{id}).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Minus, Plus, RefreshCw, Search, Shirt, ShoppingCart, Store, Tag } from "../../components/iconos";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, Check, Minus, Plus, RefreshCw, Save, Search, Shirt, ShoppingCart, Store, Tag, Trash2 } from "../../components/iconos";
 
 import {
   carrito as apiCarrito,
   descuentos,
   ErrorApi,
+  pedidos,
   pesos,
   productos,
   traerTodo,
@@ -37,8 +38,24 @@ interface PrecioProducto {
   texto_descuento?: string;
 }
 
+type ItemEdicionPedido = {
+  id_producto: number;
+  nombre_producto: string | null;
+  cantidad: number;
+  precio_lista: string | number;
+  descuento_unitario: string | number;
+  precio_unitario: string | number;
+};
+
+type EstadoEdicionCatalogo = {
+  editarPedido?: { id_pedido: number; items: ItemEdicionPedido[] };
+} | null;
+
 export default function CatalogoVista() {
   const { usuario } = useSesion();
+  const navegar = useNavigate();
+  const location = useLocation();
+  const entradaEdicion = (location.state as EstadoEdicionCatalogo)?.editarPedido;
 
   const [lista, setLista] = useState<Producto[]>([]);
   const [precios, setPrecios] = useState<Record<number, PrecioProducto>>({});
@@ -50,6 +67,10 @@ export default function CatalogoVista() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
+  const [pedidoEditandoId] = useState<number | null>(entradaEdicion?.id_pedido ?? null);
+  const [itemsPedido, setItemsPedido] = useState<ItemEdicionPedido[]>(() => entradaEdicion?.items ?? []);
+  const [guardandoPedido, setGuardandoPedido] = useState(false);
+  const [errorEdicion, setErrorEdicion] = useState("");
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -150,23 +171,116 @@ export default function CatalogoVista() {
     }
   };
 
+  const cambiarCantidadPedido = (idProducto: number, delta: number) => {
+    setItemsPedido((actuales) => actuales.map((item) =>
+      item.id_producto === idProducto
+        ? { ...item, cantidad: Math.max(1, item.cantidad + delta) }
+        : item
+    ));
+  };
+
+  const agregarAlPedido = (producto: Producto) => {
+    setItemsPedido((actuales) => {
+      const existente = actuales.find((item) => item.id_producto === producto.id_producto);
+      if (existente) {
+        return actuales.map((item) => item.id_producto === producto.id_producto
+          ? { ...item, cantidad: item.cantidad + 1 }
+          : item);
+      }
+      const precio = precios[producto.id_producto];
+      return [...actuales, {
+        id_producto: producto.id_producto,
+        nombre_producto: producto.nombre,
+        cantidad: 1,
+        precio_lista: precio?.precio_lista ?? Number(producto.precio),
+        descuento_unitario: precio ? precio.precio_lista - precio.precio_final : 0,
+        precio_unitario: precio?.precio_final ?? Number(producto.precio),
+      }];
+    });
+    setErrorEdicion("");
+  };
+
+  const quitarDelPedido = (idProducto: number) => {
+    setItemsPedido((actuales) => actuales.filter((item) => item.id_producto !== idProducto));
+    setErrorEdicion("");
+  };
+
+  const guardarPedidoEditado = async () => {
+    if (!pedidoEditandoId) return;
+    if (itemsPedido.length === 0) {
+      setErrorEdicion("Agrega por lo menos un producto. Si ya no necesitas este pedido, puedes cancelarlo desde Mis pedidos.");
+      return;
+    }
+    setGuardandoPedido(true);
+    setErrorEdicion("");
+    try {
+      await pedidos.actualizarItems(
+        pedidoEditandoId,
+        itemsPedido.map(({ id_producto, cantidad }) => ({ id_producto, cantidad }))
+      );
+      navegar("/cliente/pedidos", {
+        state: { mensaje: `El pedido #${pedidoEditandoId} se actualizó correctamente.` },
+      });
+    } catch (fallo) {
+      setErrorEdicion(fallo instanceof Error ? fallo.message : "No se pudo guardar el pedido.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setGuardandoPedido(false);
+    }
+  };
+
+  const totalEstimadoPedido = itemsPedido.reduce(
+    (total, item) => total + Number(item.precio_unitario) * item.cantidad,
+    0
+  );
+  const unidadesPedido = itemsPedido.reduce((total, item) => total + item.cantidad, 0);
+
   return (
     <section className="dt-modulo">
       <EncabezadoModulo
         seccion="Mi cuenta"
-        titulo="Catálogo"
-        descripcion="Dotaciones disponibles para pedir. Los precios están en pesos colombianos con IVA incluido."
+        titulo={pedidoEditandoId ? `Editar pedido #${pedidoEditandoId}` : "Catálogo"}
+        descripcion={pedidoEditandoId
+          ? "Explora las dotaciones y actualiza tu pedido pendiente con controles visuales y precios claros."
+          : "Dotaciones disponibles para pedir. Los precios están en pesos colombianos con IVA incluido."}
         rol={usuario ? { nombre: usuario.nombre_rol, clase: "cliente" } : undefined}
-        accion={
+        accion={pedidoEditandoId ? (
+          <button type="button" className="dt-boton-secundario" onClick={() => navegar("/cliente/pedidos")}>
+            <ArrowLeft size={15} /> Volver a mis pedidos
+          </button>
+        ) : (
           <Link to="/cliente/carrito" className="dt-accion-principal">
             <ShoppingCart size={15} />
             Mi carrito
           </Link>
-        }
+        )}
       />
 
       {error && <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />}
       {mensaje && <Aviso tipo="exito" mensaje={mensaje} onCerrar={() => setMensaje("")} />}
+      {errorEdicion && <Aviso tipo="error" mensaje={errorEdicion} onCerrar={() => setErrorEdicion("")} />}
+
+      {pedidoEditandoId && (
+        <section style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+          flexWrap: "wrap", padding: "18px 20px", marginBottom: 18, borderRadius: 16,
+          border: "1px solid #c7d2fe", background: "linear-gradient(120deg, #eef2ff, #f8fafc)",
+        }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#3730a3", fontWeight: 750 }}>
+              <Check size={17} /> Estás personalizando el pedido #{pedidoEditandoId}
+            </div>
+            <p style={{ margin: "5px 0 0", color: "#475569", fontSize: 13 }}>
+              En las tarjetas puedes ajustar unidades, quitar artículos o sumar productos del catálogo.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 18, alignItems: "center", color: "#334155", fontSize: 13 }}>
+            <span><strong>{itemsPedido.length}</strong> productos</span>
+            <span><strong>{unidadesPedido}</strong> unidades</span>
+            <strong style={{ color: "#111827", fontSize: 17 }}>{pesos(totalEstimadoPedido)}</strong>
+          </div>
+        </section>
+      )}
 
       <FilaIndicadores>
         <Indicador etiqueta="Productos" valor={lista.length} descripcion="Disponibles para pedir" icono={Store} tono="azul" cargando={cargando} />
@@ -215,6 +329,7 @@ export default function CatalogoVista() {
             {filtrados.map((producto) => {
               const precio = precios[producto.id_producto];
               const cantidad = cantidades[producto.id_producto] ?? 1;
+              const itemPedido = itemsPedido.find((item) => item.id_producto === producto.id_producto);
 
               return (
                 <article className="dt-producto-card" key={producto.id_producto}>
@@ -233,7 +348,10 @@ export default function CatalogoVista() {
                     <span className="dt-producto-categoria">
                       {producto.categoria || "Dotación"}
                     </span>
-                    {precio?.tiene_descuento && (
+                    {pedidoEditandoId && itemPedido && (
+                      <span className="dt-producto-descuento">En el pedido · {itemPedido.cantidad}</span>
+                    )}
+                    {!pedidoEditandoId && precio?.tiene_descuento && (
                       <span className="dt-producto-descuento">{precio.texto_descuento || "Oferta"}</span>
                     )}
                   </div>
@@ -251,51 +369,95 @@ export default function CatalogoVista() {
 
                     <div className="dt-producto-precio">
                       <div>
-                        <span className="dt-producto-precio-etiqueta">Precio unitario</span>
-                        {precio?.tiene_descuento && (
+                        <span className="dt-producto-precio-etiqueta">
+                          {pedidoEditandoId && itemPedido ? "Precio congelado del pedido" : "Precio unitario"}
+                        </span>
+                        {(!pedidoEditandoId || !itemPedido) && precio?.tiene_descuento && (
                           <s>{pesos(precio.precio_lista)}</s>
                         )}
-                        <strong>{pesos(precio?.precio_final ?? producto.precio)}</strong>
+                        <strong>{pedidoEditandoId && itemPedido
+                          ? pesos(itemPedido.precio_unitario)
+                          : pesos(precio?.precio_final ?? producto.precio)}</strong>
                       </div>
-                      {precio?.tiene_descuento && (
+                      {(!pedidoEditandoId || !itemPedido) && precio?.tiene_descuento && (
                         <Tag size={17} aria-label="Precio con descuento" />
                       )}
                     </div>
 
-                    <div className="dt-producto-compra">
-                      <div className="dt-producto-cantidad" aria-label="Cantidad a agregar">
+                    {pedidoEditandoId ? (
+                      <div className="dt-producto-compra">
+                        {itemPedido ? (
+                          <>
+                            <div className="dt-producto-cantidad" aria-label={`Cantidad de ${producto.nombre} en el pedido`}>
+                              <button
+                                type="button"
+                                className="dt-boton-icono"
+                                onClick={() => cambiarCantidadPedido(producto.id_producto, -1)}
+                                disabled={guardandoPedido}
+                                aria-label={`Quitar una unidad de ${producto.nombre}`}
+                              ><Minus size={13} /></button>
+                              <span>{itemPedido.cantidad}</span>
+                              <button
+                                type="button"
+                                className="dt-boton-icono"
+                                onClick={() => cambiarCantidadPedido(producto.id_producto, 1)}
+                                disabled={guardandoPedido}
+                                aria-label={`Agregar una unidad de ${producto.nombre}`}
+                              ><Plus size={13} /></button>
+                            </div>
+                            <button
+                              type="button"
+                              className="dt-boton-secundario"
+                              onClick={() => quitarDelPedido(producto.id_producto)}
+                              disabled={guardandoPedido}
+                              title={`Quitar ${producto.nombre} del pedido`}
+                            ><Trash2 size={14} /> Quitar</button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="dt-producto-agregar"
+                            onClick={() => agregarAlPedido(producto)}
+                            disabled={guardandoPedido}
+                          ><Plus size={15} /> Sumar al pedido</button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="dt-producto-compra">
+                        <div className="dt-producto-cantidad" aria-label="Cantidad a agregar">
+                          <button
+                            type="button"
+                            className="dt-boton-icono"
+                            onClick={() => cambiarCantidad(producto.id_producto, -1)}
+                            aria-label={`Quitar una unidad de ${producto.nombre}`}
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span>{cantidad}</span>
+                          <button
+                            type="button"
+                            className="dt-boton-icono"
+                            onClick={() => cambiarCantidad(producto.id_producto, 1)}
+                            aria-label={`Agregar una unidad de ${producto.nombre}`}
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          className="dt-boton-icono"
-                          onClick={() => cambiarCantidad(producto.id_producto, -1)}
-                          aria-label={`Quitar una unidad de ${producto.nombre}`}
+                          className="dt-producto-agregar"
+                          disabled={agregando === producto.id_producto}
+                          onClick={() => void agregar(producto)}
                         >
-                          <Minus size={13} />
-                        </button>
-                        <span>{cantidad}</span>
-                        <button
-                          type="button"
-                          className="dt-boton-icono"
-                          onClick={() => cambiarCantidad(producto.id_producto, 1)}
-                          aria-label={`Agregar una unidad de ${producto.nombre}`}
-                        >
-                          <Plus size={13} />
+                          {agregando === producto.id_producto ? (
+                            <span className="dt-spinner" />
+                          ) : (
+                            <ShoppingCart size={15} />
+                          )}
+                          Agregar
                         </button>
                       </div>
-                      <button
-                        type="button"
-                        className="dt-producto-agregar"
-                        disabled={agregando === producto.id_producto}
-                        onClick={() => void agregar(producto)}
-                      >
-                        {agregando === producto.id_producto ? (
-                          <span className="dt-spinner" />
-                        ) : (
-                          <ShoppingCart size={15} />
-                        )}
-                        Agregar
-                      </button>
-                    </div>
+                    )}
                   </div>
                 </article>
               );
@@ -312,6 +474,33 @@ export default function CatalogoVista() {
             Stock sujeto a disponibilidad de bodega
           </span>
         </div>
+
+        {pedidoEditandoId && (
+          <div style={{
+            position: "sticky", bottom: 12, zIndex: 5, marginTop: 18,
+            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14,
+            flexWrap: "wrap", padding: "14px 18px", borderRadius: 16,
+            background: "rgba(15, 23, 42, .96)", color: "white",
+            boxShadow: "0 12px 30px rgba(15, 23, 42, .24)", backdropFilter: "blur(12px)",
+          }}>
+            <div>
+              <div style={{ fontWeight: 750 }}>{itemsPedido.length} productos · {unidadesPedido} unidades</div>
+              <div style={{ color: "#cbd5e1", fontSize: 12, marginTop: 3 }}>Total estimado: {pesos(totalEstimadoPedido)}</div>
+            </div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <span style={{ color: "#cbd5e1", fontSize: 12 }}>El inventario se verifica al guardar.</span>
+              <button
+                type="button"
+                className="dt-accion-principal"
+                onClick={() => void guardarPedidoEditado()}
+                disabled={guardandoPedido || itemsPedido.length === 0}
+              >
+                {guardandoPedido ? <span className="dt-spinner" /> : <Save size={15} />}
+                {guardandoPedido ? "Guardando…" : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </section>
   );
