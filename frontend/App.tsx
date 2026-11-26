@@ -25,6 +25,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   Package,
   ShieldCheck,
@@ -34,7 +35,7 @@ import {
   UserRound,
   Users,
   X,
-} from "./components/iconos";
+} from "./src/components/iconos";
 
 import {
   CLASE_ROL,
@@ -42,59 +43,60 @@ import {
   NOMBRE_ROL,
   ProveedorSesion,
   useSesion,
-} from "./context/sesion-contexto";
+} from "./src/context/sesion-contexto";
 
-import { LimiteErrores } from "./components/limite-errores";
-import { EVENTO_ERROR_HTTP, type EventoPaginaError } from "./services/api";
-import { autenticacion } from "./services/autenticacion";
+import { LimiteErrores } from "./src/components/limite-errores";
+import { EVENTO_ERROR_HTTP, type EventoPaginaError } from "./src/services/api";
+import { autenticacion } from "./src/services/autenticacion";
 
 // Pantallas fuera de los roles
-import Portada from "./pages/index";
-import Login from "./pages/login";
-import RecuperarPassword from "./pages/recuperar-password";
-import Registro from "./pages/registro";
-import SeleccionarRol from "./pages/seleccionar-rol";
-import Error403 from "./pages/error/403";
-import Error404 from "./pages/error/404";
-import Error500 from "./pages/error/500";
-import ErrorGeneral from "./pages/error/general";
+import Portada from "./src/pages/index";
+import Login from "./src/pages/login";
+import RecuperarPassword from "./src/pages/recuperar-password";
+import Registro from "./src/pages/registro";
+import SeleccionarRol from "./src/pages/seleccionar-rol";
+import Error403 from "./src/pages/error/403";
+import Error404 from "./src/pages/error/404";
+import Error500 from "./src/pages/error/500";
+import ErrorGeneral from "./src/pages/error/general";
 
 // Administrador
-import PanelAdmin from "./pages/admin/panel-admin";
-import UsuariosAdmin from "./pages/admin/usuarios-admin";
-import EditarUsuarioAdmin from "./pages/admin/editar-usuario-admin";
-import RolesAdmin from "./pages/admin/roles-admin";
-import ProductosAdmin from "./pages/admin/productos-admin";
-import PromocionesAdmin from "./pages/admin/promociones-admin";
-import InventarioAdmin from "./pages/admin/inventario-admin";
-import PedidosAdmin from "./pages/admin/pedidos-admin";
-import VentasAdmin from "./pages/admin/ventas-admin";
-import DevolucionesAdmin from "./pages/admin/devoluciones-admin";
-import FacturacionAdmin from "./pages/admin/facturacion-admin";
-import FacturacionConfigAdmin from "./pages/admin/facturacion-config-admin";
-import PerfilAdmin from "./pages/admin/perfil-admin";
+import PanelAdmin from "./src/pages/admin/panel-admin";
+import UsuariosAdmin from "./src/pages/admin/usuarios-admin";
+import EditarUsuarioAdmin from "./src/pages/admin/editar-usuario-admin";
+import RolesAdmin from "./src/pages/admin/roles-admin";
+import ProductosAdmin from "./src/pages/admin/productos-admin";
+import PromocionesAdmin from "./src/pages/admin/promociones-admin";
+import InventarioAdmin from "./src/pages/admin/inventario-admin";
+import PedidosAdmin from "./src/pages/admin/pedidos-admin";
+import VentasAdmin from "./src/pages/admin/ventas-admin";
+import DevolucionesAdmin from "./src/pages/admin/devoluciones-admin";
+import FacturacionAdmin from "./src/pages/admin/facturacion-admin";
+import FacturacionConfigAdmin from "./src/pages/admin/facturacion-config-admin";
+import PerfilAdmin from "./src/pages/admin/perfil-admin";
+import CorreosAdmin from "./src/pages/admin/correos-admin";
 
 // Vendedor
-import PanelVendedor from "./pages/vendedor/panel-vendedor";
-import PedidosVendedor from "./pages/vendedor/pedidos-vendedor";
-import ReportesVendedor from "./pages/vendedor/reportes-vendedor";
-import VentasVendedor from "./pages/vendedor/ventas-vendedor";
-import DevolucionesVendedor from "./pages/vendedor/devoluciones-vendedor";
-import PerfilVendedor from "./pages/vendedor/perfil-vendedor";
+import PanelVendedor from "./src/pages/vendedor/panel-vendedor";
+import PedidosVendedor from "./src/pages/vendedor/pedidos-vendedor";
+import ReportesVendedor from "./src/pages/vendedor/reportes-vendedor";
+import VentasVendedor from "./src/pages/vendedor/ventas-vendedor";
+import DevolucionesVendedor from "./src/pages/vendedor/devoluciones-vendedor";
+import PerfilVendedor from "./src/pages/vendedor/perfil-vendedor";
 
 // Bodeguero
-import PanelBodeguero from "./pages/bodeguero/panel-bodeguero";
-import InventarioBodeguero from "./pages/bodeguero/inventario-bodeguero";
-import AlertasBodeguero from "./pages/bodeguero/alertas-bodeguero";
-import PerfilBodeguero from "./pages/bodeguero/perfil-bodeguero";
+import PanelBodeguero from "./src/pages/bodeguero/panel-bodeguero";
+import InventarioBodeguero from "./src/pages/bodeguero/inventario-bodeguero";
+import AlertasBodeguero from "./src/pages/bodeguero/alertas-bodeguero";
+import PerfilBodeguero from "./src/pages/bodeguero/perfil-bodeguero";
 
 // Cliente
-import PanelCliente from "./pages/cliente/panel-cliente";
-import ProductosCliente from "./pages/cliente/productos-cliente";
-import CarritoCliente from "./pages/cliente/carrito-cliente";
-import PedidosCliente from "./pages/cliente/pedidos-cliente";
-import DevolucionesCliente from "./pages/cliente/devoluciones-cliente";
-import PerfilCliente from "./pages/cliente/perfil-cliente";
+import PanelCliente from "./src/pages/cliente/panel-cliente";
+import ProductosCliente from "./src/pages/cliente/productos-cliente";
+import CarritoCliente from "./src/pages/cliente/carrito-cliente";
+import PedidosCliente from "./src/pages/cliente/pedidos-cliente";
+import DevolucionesCliente from "./src/pages/cliente/devoluciones-cliente";
+import PerfilCliente from "./src/pages/cliente/perfil-cliente";
 
 /* =========================================================
    MENÚ
@@ -119,6 +121,7 @@ const MENU: Record<number, EnlaceMenu[]> = {
     { modulo: "devoluciones", texto: "Devoluciones", ruta: "/admin/devoluciones", Icono: ArrowLeftRight },
     { modulo: "inventario", texto: "Inventario", ruta: "/admin/inventario", Icono: Boxes },
     { modulo: "facturacion", texto: "Facturación DIAN", ruta: "/admin/facturacion", Icono: FileText },
+    { modulo: "correos", texto: "Correos de contacto", ruta: "/admin/correos", Icono: Mail },
     { modulo: "perfil", texto: "Mi perfil", ruta: "/admin/perfil", Icono: UserRound },
   ],
   2: [
@@ -163,6 +166,7 @@ const DESCRIPCION_MODULO: Record<string, string> = {
   inventario: "existencias por bodega y movimientos",
   alertas: "productos por debajo del mínimo",
   facturacion: "firma, envío a la DIAN y anulación",
+  correos: "mensajes del formulario y respuestas",
   catalogo: "dotaciones disponibles para pedir",
   carrito: "lo que vas a solicitar",
   "mis-pedidos": "el estado de tus solicitudes",
@@ -669,6 +673,9 @@ function RutasConManejoErrores() {
               <Route element={<RutaConModulo modulo="facturacion" />}>
                 <Route path="/admin/facturacion" element={<FacturacionAdmin />} />
                 <Route path="/admin/facturacion/config" element={<FacturacionConfigAdmin />} />
+              </Route>
+              <Route element={<RutaConModulo modulo="correos" />}>
+                <Route path="/admin/correos" element={<CorreosAdmin />} />
               </Route>
               <Route element={<RutaConModulo modulo="perfil" />}>
                 <Route path="/admin/perfil" element={<PerfilAdmin />} />

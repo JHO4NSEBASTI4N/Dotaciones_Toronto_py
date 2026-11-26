@@ -1,0 +1,12 @@
+.dt-correos .dt-correo-aviso{background:#edf7f4;border:1px solid #c7e6da;color:#174d3b;border-radius:12px;padding:14px 18px;margin:18px 0;line-height:1.5}
+.dt-correos-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:20px;align-items:start}
+.dt-correo-panel{background:white;border:1px solid #dbe5e0;border-radius:16px;padding:22px;box-shadow:0 8px 24px #1435260a;min-width:0}
+.dt-correo-panel h2{font-size:1.12rem;margin:0 0 8px;color:#183f30}.dt-correo-panel p{color:#52665d;line-height:1.5}.dt-correo-titulo{display:flex;justify-content:space-between;gap:12px;align-items:start}.dt-correo-titulo p{margin:0 0 15px;font-size:.9rem}
+.dt-correo-panel button:not(.dt-accion-principal){padding:8px 12px;background:#f3f8f5;border:1px solid #c6d9cf;color:#174d3b;border-radius:8px;cursor:pointer}.dt-correo-panel button:disabled{opacity:.55;cursor:not-allowed}
+.dt-correo-lista{display:grid;gap:12px}.dt-correo-item{border:1px solid #dfebe3;border-radius:12px;padding:15px}.dt-correo-cabecera{display:flex;gap:10px;align-items:start;cursor:pointer}.dt-correo-cabecera input{margin-top:4px;accent-color:#207954}.dt-correo-cabecera small{overflow-wrap:anywhere;color:#65776c}.dt-correo-mensaje{white-space:pre-wrap;overflow-wrap:anywhere;max-height:190px;overflow:auto;margin:12px 0}.dt-correo-lista + button{margin-top:14px}
+.dt-correo-redactar form{display:grid;gap:10px}.dt-correo-redactar form label{font-weight:700;color:#284a38}.dt-correo-redactar form input,.dt-correo-redactar textarea{border:1px solid #bfcec5;border-radius:8px;padding:11px;font:inherit;width:100%;box-sizing:border-box}.dt-correo-redactar textarea{resize:vertical}.dt-correo-redactar small{line-height:1.5;color:#65776c}.dt-correo-redactar .dt-accion-principal{justify-content:center;margin-top:5px}.dt-correo-destinos{max-height:140px;overflow:auto;overflow-wrap:anywhere;padding-left:20px;color:#385a48}.dt-correo-error{background:#fff1f0;border:1px solid #f1c4c0;color:#8c2424;border-radius:10px;padding:12px}.dt-correo-resultados{border-top:1px solid #dfe9e3;margin-top:20px;padding-top:14px}.dt-correo-resultados li{margin-bottom:8px;overflow-wrap:anywhere}
+@media(max-width:900px){.dt-correos-layout{grid-template-columns:1fr}.dt-correo-panel{padding:16px}.dt-correo-titulo{flex-wrap:wrap}}
+
+.dt-correo-controles{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+
+.dt-correo-asunto{font-size:.9rem;margin:12px 0 0;overflow-wrap:anywhere}.dt-correo-asunto span{color:#257053}

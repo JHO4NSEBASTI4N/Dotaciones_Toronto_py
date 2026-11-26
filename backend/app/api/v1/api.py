@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     carrito,
     carga_masiva,
     contacto,
+    correos_admin,
     descuento,
     devolucion,
     factura_electronica,
@@ -24,6 +25,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Autenticacion"])
 api_router.include_router(carga_masiva.router, prefix="/cargas-masivas", tags=["Cargas masivas"])
 api_router.include_router(contacto.router, prefix="/contacto", tags=["Contacto"])
+api_router.include_router(correos_admin.router, prefix="/correos-admin", tags=["Correos administrador"])
 api_router.include_router(producto.router, prefix="/productos", tags=["Productos"])
 api_router.include_router(inventario.router, prefix="/inventario", tags=["Inventario"])
 api_router.include_router(descuento.router, prefix="/descuentos", tags=["Descuentos"])

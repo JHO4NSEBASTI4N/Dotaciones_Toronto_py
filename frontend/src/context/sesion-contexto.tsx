@@ -44,7 +44,7 @@ export const CLASE_ROL: Record<number, string> = {
 export const MODULOS_POR_ROL: Record<number, string[]> = {
   1: [
     "dashboard", "usuarios", "roles", "productos", "promociones", "pedidos", "ventas",
-    "devoluciones", "inventario", "alertas", "facturacion", "perfil",
+    "devoluciones", "inventario", "alertas", "facturacion", "correos", "perfil",
   ],
   2: ["dashboard", "catalogo", "carrito", "mis-pedidos", "devoluciones", "perfil"],
   3: ["dashboard", "pedidos", "ventas", "reportes", "devoluciones", "perfil"],

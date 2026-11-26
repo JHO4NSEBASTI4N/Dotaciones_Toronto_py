@@ -535,3 +535,30 @@ export const pesos = (valor: string | number | null | undefined): string =>
     currency: "COP",
     maximumFractionDigits: 0,
   });
+
+// Bandeja IMAP de entrada, disponible únicamente para administradores.
+export interface CorreoContacto {
+  uid: number;
+  nombre: string;
+  correo: string | null;
+  remitente: string | null;
+  asunto: string;
+  tipo: "formulario" | "correo";
+  mensaje: string;
+  fecha: string;
+}
+export interface BandejaContacto {
+  uidvalidity: number;
+  items: CorreoContacto[];
+  siguiente_antes: number | null;
+}
+export interface ResultadoCorreo {
+  uid: number;
+  correo: string;
+  estado: "aceptado" | "rechazado" | "desconocido" | "no_enviado";
+}
+export const correosAdmin = {
+  listar: (antes?: number) => api.get<BandejaContacto>(`/correos-admin${aQuery({ antes })}`, { redirigirEnError: false }),
+  responder: (datos: { uids: number[]; uidvalidity: number; asunto: string; mensaje: string }) =>
+    api.post<{ resultados: ResultadoCorreo[] }>("/correos-admin/responder", datos, { redirigirEnError: false }),
+};

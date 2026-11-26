@@ -9,7 +9,7 @@ import "./assets/style/cliente/index.css";
 import "./assets/style/bodeguero/index.css";
 import "./assets/style/vendedor/index.css";
 
-import App from './App.tsx'
+import App from '../App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
