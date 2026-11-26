@@ -234,6 +234,20 @@ def test_el_cufe_cambia_si_cambia_un_solo_peso():
 
 # --- generar ------------------------------------------------------------------
 
+def test_descargar_qr_svg_dian(cliente, vendedor, venta):
+    factura = cliente.get(
+        f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",
+        headers=vendedor,
+    ).json()
+    respuesta = cliente.get(
+        f"/api/v1/facturas-electronicas/{factura['id_factura']}/qr.svg",
+        headers=vendedor,
+    )
+    assert respuesta.status_code == 200, respuesta.text
+    assert respuesta.headers["content-type"].startswith("image/svg+xml")
+    assert b"<svg" in respuesta.content
+
+
 def test_descargar_representacion_pdf_dian(cliente, vendedor, venta):
     factura = cliente.get(
         f"/api/v1/facturas-electronicas/por-venta/{venta['id_venta']}",

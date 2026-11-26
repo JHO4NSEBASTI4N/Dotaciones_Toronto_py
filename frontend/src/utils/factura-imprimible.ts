@@ -21,6 +21,13 @@ export interface DatosFacturaImprimible {
   descuentoTotal: string | number;
   total: string | number;
   lineas: LineaFacturaImprimible[];
+  informacionDian?: {
+    numeroFactura: string;
+    cufe: string | null;
+    estado: string | null;
+    qrDataUrl?: string;
+    simulada: boolean;
+  };
 }
 
 const escaparHtml = (valor: unknown): string =>
@@ -56,6 +63,18 @@ export function crearHtmlFacturaImprimible(datos: DatosFacturaImprimible): strin
         .join("")
     : `<tr><td colspan="6">No se encontraron productos en el detalle de este pedido.</td></tr>`;
   const pedido = datos.idPedido ? `#${datos.idPedido}` : "—";
+  const informacionDian = datos.informacionDian
+    ? `
+      <div class="dian-extra">
+        <div>
+          <p><strong>Documento electrónico:</strong> ${escaparHtml(datos.informacionDian.numeroFactura)}</p>
+          <p><strong>Estado DIAN:</strong> ${escaparHtml(datos.informacionDian.estado || "Pendiente")}</p>
+          <p><strong>CUFE:</strong> ${escaparHtml(datos.informacionDian.cufe || "—")}</p>
+          ${datos.informacionDian.simulada ? "<p><strong>SIMULADA · SIN VALIDEZ FISCAL · NO TRANSMITIDA</strong></p>" : ""}
+        </div>
+        ${datos.informacionDian.qrDataUrl ? `<img class="qr-dian" src="${escaparHtml(datos.informacionDian.qrDataUrl)}" alt="QR de consulta DIAN" />` : ""}
+      </div>`
+    : "";
 
   return `<!doctype html>
 <html lang="es">
@@ -79,6 +98,9 @@ export function crearHtmlFacturaImprimible(datos: DatosFacturaImprimible): strin
     .totales div { display: flex; justify-content: space-between; padding: 5px 0; }
     .totales .total { border-top: 2px solid #0f172a; margin-top: 6px; padding-top: 8px; font-size: 16px; font-weight: 700; }
     .pie { margin-top: 28px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    .dian-extra { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 16px; overflow-wrap: anywhere; }
+    .dian-extra p { margin: 3px 0; }
+    .qr-dian { width: 76px; height: 76px; object-fit: contain; flex: 0 0 76px; }
     @media print { body { margin: 18px; } }
   </style>
 </head>
@@ -130,14 +152,17 @@ export function crearHtmlFacturaImprimible(datos: DatosFacturaImprimible): strin
     <div class="total"><span>Total del pedido</span><span>${escaparHtml(pesos(datos.total))}</span></div>
   </div>
 
-  <div class="pie"><p>Gracias por su compra · Dotaciones Toronto S.A.S.</p></div>
+  <div class="pie"><p>Gracias por su compra · Dotaciones Toronto S.A.S.</p>${informacionDian}</div>
   <script>window.onload = () => { window.print(); };</script>
 </body>
 </html>`;
 }
 
-export function abrirFacturaImprimible(datos: DatosFacturaImprimible): void {
-  const ventana = window.open("", "_blank", "width=960,height=900");
+export function abrirFacturaImprimible(
+  datos: DatosFacturaImprimible,
+  ventanaExistente?: Window | null
+): void {
+  const ventana = ventanaExistente ?? window.open("", "_blank", "width=960,height=900");
   if (!ventana) return;
   ventana.document.open();
   ventana.document.write(crearHtmlFacturaImprimible(datos));

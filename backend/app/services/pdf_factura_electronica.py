@@ -7,6 +7,7 @@ from decimal import Decimal
 from io import BytesIO
 from xml.sax.saxutils import escape
 
+from reportlab.graphics import renderSVG
 from reportlab.graphics.barcode.qr import QrCodeWidget
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib import colors
@@ -22,7 +23,6 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
-from reportlab.graphics import renderPDF
 
 
 NAVY = colors.HexColor("#16213e")
@@ -54,6 +54,17 @@ def _fecha(valor):
     if not valor:
         return "—"
     return valor.strftime("%d/%m/%Y %H:%M") if hasattr(valor, "strftime") else str(valor)
+
+
+def generar_qr_svg(url: str) -> str:
+    """Genera el QR de consulta como SVG inline para la plantilla imprimible."""
+    qr = QrCodeWidget(url)
+    x0, y0, x1, y1 = qr.getBounds()
+    lado = 180
+    escala = lado / max(x1 - x0, y1 - y0)
+    dibujo = Drawing(lado, lado, transform=[escala, 0, 0, escala, -x0 * escala, -y0 * escala])
+    dibujo.add(qr)
+    return renderSVG.drawToString(dibujo)
 
 
 def generar_pdf_representacion(factura: dict) -> bytes:

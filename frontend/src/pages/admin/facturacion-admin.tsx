@@ -5,13 +5,12 @@
 // anular y descargar el XML y la representación gráfica PDF del mismo documento.
 // La emisión actual es simulada, aunque conserva el flujo y los artefactos.
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CheckCircle2,
   Eye,
   FileText,
-  Plus,
   RefreshCw,
   Send,
   ShieldCheck,
@@ -19,6 +18,7 @@ import {
   X,
 } from "../../components/iconos";
 import { BASE_URL, facturas, pesos, traerTodo, ventas } from "../../services/api";
+import { abrirFacturaImprimible } from "../../utils/factura-imprimible";
 import { BotonesReportesAdmin } from "../../components/botones-reportes-admin";
 import { contarPorCategoria } from "../../services/analitica-reportes";
 import type { ReporteAdmin } from "../../services/reportes";
@@ -39,7 +39,6 @@ import {
   tonoDeEstado,
 } from "../../components/indicadores";
 import type { FacturaElectronica } from "../../facturacion/entity/FacturaElectronica";
-import type { Venta } from "../../entity/Venta";
 
 export default function FacturacionAdmin() {
   const { usuario } = useSesion();
@@ -55,12 +54,6 @@ export default function FacturacionAdmin() {
   const [filtroEstado, setFiltroEstado] = useState("");
   const [detalle, setDetalle] = useState<FacturaElectronica | null>(null);
   const [xml, setXml] = useState("");
-  const [modalGenerar, setModalGenerar] = useState(false);
-  const [ventasDisponibles, setVentasDisponibles] = useState<Venta[]>([]);
-  const [ventaSeleccionada, setVentaSeleccionada] = useState("");
-  const [cargandoVentas, setCargandoVentas] = useState(false);
-  const [generando, setGenerando] = useState(false);
-  const [errorGenerar, setErrorGenerar] = useState("");
 
   const cargarDatos = useCallback(async () => {
     setCargando(true);
@@ -81,59 +74,6 @@ export default function FacturacionAdmin() {
   useEffect(() => {
     void cargarDatos();
   }, [cargarDatos]);
-
-  const abrirGeneracion = async () => {
-    setModalGenerar(true);
-    setVentaSeleccionada("");
-    setVentasDisponibles([]);
-    setErrorGenerar("");
-    setCargandoVentas(true);
-    try {
-      const datos = await traerTodo((saltar, limite) =>
-        ventas.listar({ saltar, limite, estado: "Completada" })
-      );
-      const ventasConFactura = new Set(
-        lista.map((factura) => factura.id_venta_fk).filter((id): id is number => id !== null)
-      );
-      setVentasDisponibles(
-        datos.items.filter(
-          (venta) => venta.estado === "Completada" && !ventasConFactura.has(venta.id_venta)
-        )
-      );
-    } catch (fallo) {
-      setErrorGenerar(
-        fallo instanceof Error ? fallo.message : "No se pudieron consultar las ventas completadas."
-      );
-    } finally {
-      setCargandoVentas(false);
-    }
-  };
-
-  const generarFactura = async (evento: FormEvent<HTMLFormElement>) => {
-    evento.preventDefault();
-    const idVenta = Number(ventaSeleccionada);
-    if (!Number.isInteger(idVenta) || idVenta <= 0) {
-      setErrorGenerar("Selecciona una venta completada.");
-      return;
-    }
-
-    setGenerando(true);
-    setErrorGenerar("");
-    try {
-      const factura = await facturas.crear({ id_venta: idVenta });
-      setModalGenerar(false);
-      setMensaje(`Factura DIAN ${factura.numero_factura} generada en estado borrador.`);
-      await cargarDatos();
-    } catch (fallo) {
-      setErrorGenerar(
-        fallo instanceof Error
-          ? fallo.message
-          : "No se pudo generar la factura. Verifica que exista una resolución DIAN vigente."
-      );
-    } finally {
-      setGenerando(false);
-    }
-  };
 
   const resumen = useMemo(
     () => ({
@@ -280,33 +220,88 @@ export default function FacturacionAdmin() {
     URL.revokeObjectURL(enlace.href);
   };
 
-  const descargarRepresentacionDian = async (factura: FacturaElectronica) => {
+  const descargarRepresentacionDian = async (resumenFactura: FacturaElectronica) => {
+    // Reservar la ventana durante el clic del usuario para evitar el bloqueo
+    // del navegador mientras se consultan la factura y su venta asociada.
+    const ventana = window.open("", "_blank", "width=960,height=900");
+    if (!ventana) return;
+    ventana.document.write("<p style='font-family:Arial;padding:24px'>Preparando factura…</p>");
+
     try {
-      const token = localStorage.getItem("token");
-      const respuesta = await fetch(
-        `${BASE_URL}/facturas-electronicas/${factura.id_factura}/pdf`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-      );
-      if (!respuesta.ok) {
-        let mensaje = `No se pudo descargar el PDF DIAN (${respuesta.status}).`;
-        try {
-          const datos = await respuesta.json();
-          mensaje = datos?.detail ?? datos?.detalle ?? mensaje;
-        } catch { /* la respuesta puede no ser JSON */ }
-        throw new Error(mensaje);
+      const factura = await facturas.obtener(resumenFactura.id_factura);
+      const venta = factura.id_venta_fk
+        ? await ventas.obtener(factura.id_venta_fk)
+        : null;
+
+      let qrDataUrl: string | undefined;
+      if (factura.qr_url) {
+        const token = localStorage.getItem("token");
+        const respuestaQr = await fetch(
+          `${BASE_URL}/facturas-electronicas/${factura.id_factura}/qr.svg`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        if (respuestaQr.ok) {
+          const svg = await respuestaQr.text();
+          qrDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+        }
       }
-      const archivo = await respuesta.blob();
-      const url = URL.createObjectURL(archivo);
-      const enlace = document.createElement("a");
-      enlace.href = url;
-      enlace.download = `${factura.numero_factura}-DIAN.pdf`;
-      enlace.click();
-      URL.revokeObjectURL(url);
+
+      const idPedido = factura.id_pedido_fk ?? venta?.id_pedido_fk ?? null;
+      const lineasVenta = venta?.items?.length
+        ? venta.items.map((item) => ({
+            nombre: item.nombre_producto,
+            idProducto: item.id_producto,
+            cantidad: item.cantidad,
+            precioLista: item.precio_lista,
+            descuentoUnitario: item.descuento_unitario,
+            precioUnitario: item.precio_unitario,
+            subtotal: item.subtotal,
+          }))
+        : (factura.lineas ?? []).map((linea) => {
+            const cantidad = Number(linea.cantidad) || 0;
+            const descuentoUnitario = cantidad
+              ? Number(linea.descuento ?? 0) / cantidad
+              : 0;
+            return {
+              nombre: linea.descripcion,
+              idProducto: linea.codigo_producto ? Number(linea.codigo_producto) : null,
+              cantidad,
+              precioLista: Number(linea.precio_unitario ?? 0) + descuentoUnitario,
+              descuentoUnitario,
+              precioUnitario: linea.precio_unitario ?? 0,
+              subtotal: Number(linea.total_linea ?? 0) + Number(linea.iva_valor ?? 0),
+            };
+          });
+
+      abrirFacturaImprimible({
+        logoUrl: logoBlanco,
+        titulo: `FACTURA DE VENTA · PEDIDO #${idPedido ?? factura.id_venta_fk ?? factura.id_factura}`,
+        fecha: fecha(factura.fecha_emision),
+        estado: factura.estado_dian ?? factura.estado ?? "Pendiente",
+        cliente: factura.razon_social_adquirente ?? "Cliente",
+        correo:
+          (factura as FacturaElectronica & { correo_adquirente?: string | null })
+            .correo_adquirente ?? "—",
+        idPedido,
+        unidades: venta?.total_unidades ?? lineasVenta.reduce((total, linea) => total + linea.cantidad, 0),
+        subtotalLista: venta?.subtotal_lista ?? factura.valor_bruto ?? 0,
+        descuentoTotal: venta?.descuento_total ?? factura.descuento_total ?? 0,
+        total: factura.total_factura ?? venta?.total_pagado ?? 0,
+        lineas: lineasVenta,
+        informacionDian: {
+          numeroFactura: factura.numero_factura,
+          cufe: factura.cufe,
+          estado: factura.estado_dian ?? factura.estado,
+          qrDataUrl,
+          simulada: factura.simulado,
+        },
+      }, ventana);
     } catch (fallo) {
+      ventana.close();
       setError(
         fallo instanceof Error
           ? fallo.message
-          : "No se pudo descargar la representación gráfica DIAN."
+          : "No se pudo abrir la representación gráfica DIAN."
       );
     }
   };
@@ -321,9 +316,6 @@ export default function FacturacionAdmin() {
         accion={
           <div className="dt-acciones-admin-encabezado">
             <BotonesReportesAdmin crearReporte={crearReporte} alError={setError} deshabilitado={cargando} />
-            <button type="button" className="dt-accion-principal" onClick={() => void abrirGeneracion()}>
-              <Plus size={15} /> Generar factura DIAN
-            </button>
             <Link to="/admin/facturacion/config" className="dt-boton-secundario">
               <ShieldCheck size={14} /> Resoluciones
             </Link>
@@ -390,7 +382,7 @@ export default function FacturacionAdmin() {
         ) : filtradas.length === 0 ? (
           <TablaVacia
             titulo="No hay facturas"
-            mensaje="El PDF y el XML se descargan del mismo registro de factura electrónica DIAN. La factura convencional de Ventas es un comprobante distinto. Las nuevas entregas generan un borrador automáticamente cuando hay resolución vigente; usa «Generar factura DIAN» para recuperar ventas anteriores o pendientes."
+            mensaje="El PDF y el XML se descargan del mismo registro de factura electrónica DIAN. La factura convencional de Ventas es un comprobante distinto. Los pedidos nuevos generan su borrador automáticamente al entregarse."
             Icono={FileText}
           />
         ) : (
@@ -467,7 +459,7 @@ export default function FacturacionAdmin() {
                         <button
                           type="button"
                           className="dt-boton-icono"
-                          title="Descargar representación gráfica DIAN (PDF)"
+                          title="Imprimir o guardar PDF con el formato de Ventas"
                           onClick={() => void descargarRepresentacionDian(factura)}
                         >
                           <FileText size={14} />
@@ -529,92 +521,6 @@ export default function FacturacionAdmin() {
           </div>
         )}
       </section>
-
-      {modalGenerar && (
-        <div
-          className="dt-modal-fondo"
-          onMouseDown={(evento) => {
-            if (evento.target === evento.currentTarget && !generando) setModalGenerar(false);
-          }}
-        >
-          <section className="dt-modal" role="dialog" aria-modal="true" aria-labelledby="generar-factura-titulo">
-            <header className="dt-modal-encabezado">
-              <span className="dt-modal-icono"><FileText size={21} /></span>
-              <div className="dt-modal-titulo-grupo">
-                <span className="dt-migas">Facturación electrónica</span>
-                <h2 id="generar-factura-titulo">Generar factura DIAN</h2>
-                <p>Selecciona una venta completada que todavía no tenga documento electrónico.</p>
-              </div>
-              <button
-                type="button"
-                className="dt-boton-cerrar-modal"
-                onClick={() => setModalGenerar(false)}
-                disabled={generando}
-                aria-label="Cerrar"
-              >
-                <X size={16} />
-              </button>
-            </header>
-
-            <form onSubmit={(evento) => void generarFactura(evento)} noValidate>
-              <div className="dt-formulario-contenido">
-                <p style={{ marginTop: 0, fontSize: 13, color: "#475569" }}>
-                  Al entregar el pedido se crea este borrador automáticamente. En modo simulado se usa numeración SIM si falta resolución; no tiene validez fiscal ni se transmite. Para emisión DIAN real sí debes registrar una resolución oficial vigente.
-                  {" "}<Link to="/admin/facturacion/config">Consultar resoluciones</Link>
-                </p>
-
-                {errorGenerar && <Aviso tipo="error" mensaje={errorGenerar} />}
-
-                <label className="dt-campo-ancho">
-                  Venta completada <span>*</span>
-                  <select
-                    value={ventaSeleccionada}
-                    onChange={(evento) => setVentaSeleccionada(evento.target.value)}
-                    disabled={cargandoVentas || generando || ventasDisponibles.length === 0}
-                    required
-                  >
-                    <option value="">
-                      {cargandoVentas
-                        ? "Cargando ventas…"
-                        : ventasDisponibles.length
-                          ? "Selecciona una venta"
-                          : "No hay ventas pendientes de facturar"}
-                    </option>
-                    {ventasDisponibles.map((venta) => (
-                      <option key={venta.id_venta} value={venta.id_venta}>
-                        Venta #{venta.id_venta} · Pedido #{venta.id_pedido_fk ?? "—"} · {fecha(venta.fecha_venta)} · {pesos(venta.total_pagado)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {!cargandoVentas && ventasDisponibles.length === 0 && !errorGenerar && (
-                  <p role="status" style={{ fontSize: 13, color: "#64748b" }}>
-                    La venta y el pedido se conservan aunque falle la emisión DIAN; las ventas completadas sin documento quedan disponibles aquí para reintentar la generación.
-                  </p>
-                )}
-              </div>
-
-              <footer className="dt-modal-acciones">
-                <button
-                  type="button"
-                  className="dt-boton-secundario"
-                  onClick={() => setModalGenerar(false)}
-                  disabled={generando}
-                >Cancelar</button>
-                <button
-                  type="submit"
-                  className="dt-accion-principal"
-                  disabled={generando || cargandoVentas || !ventaSeleccionada}
-                >
-                  {generando ? <span className="dt-spinner" /> : <Plus size={15} />}
-                  {generando ? "Generando…" : "Crear borrador DIAN"}
-                </button>
-              </footer>
-            </form>
-          </section>
-        </div>
-      )}
 
       {detalle && (
         <div
@@ -846,7 +752,7 @@ export default function FacturacionAdmin() {
                 onClick={() => void descargarRepresentacionDian(detalle)}
               >
                 <FileText size={15} />
-                Descargar representación gráfica DIAN (PDF)
+                Imprimir / guardar PDF con formato de Ventas
               </button>
             </footer>
           </section>

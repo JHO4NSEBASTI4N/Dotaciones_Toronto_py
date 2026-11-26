@@ -27,6 +27,8 @@ export interface FacturaElectronica {
   razon_social_emisor: string | null;
   nit_adquirente: string | null;
   razon_social_adquirente: string | null;
+  correo_adquirente?: string | null;
+  qr_url?: string | null;
   estado_dian: string | null;
   mensaje_dian: string | null;
   track_id: string | null;

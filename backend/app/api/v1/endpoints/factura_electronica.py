@@ -224,6 +224,26 @@ def pdf_representacion(id_factura: int, sesion: SesionBD, usuario: UsuarioActual
     )
 
 
+@router.get("/{id_factura}/qr.svg")
+def qr_svg(id_factura: int, sesion: SesionBD, usuario: UsuarioActual):
+    """QR de consulta de la misma factura DIAN, para la plantilla imprimible."""
+    factura = servicio.obtener_factura(sesion, id_factura)
+
+    es_gestor = bool(roles_de(usuario) & {ROL_ADMINISTRADOR, ROL_VENDEDOR})
+    if not es_gestor and factura["id_cliente_fk"] != usuario.id_usuario:
+        raise Prohibido("Solo puede consultar sus propias facturas")
+    if not factura.get("qr_url"):
+        raise NoEncontrado("La factura no tiene una URL de consulta para el QR")
+
+    from app.services.pdf_factura_electronica import generar_qr_svg
+
+    return Response(
+        content=generar_qr_svg(factura["qr_url"]),
+        media_type="image/svg+xml",
+        headers={"Content-Disposition": "inline; filename=factura-dian-qr.svg"},
+    )
+
+
 @router.get("/{id_factura}/xml")
 def xml(id_factura: int, sesion: SesionBD, usuario: UsuarioActual):
     """Devuelve el XML UBL 2.1 como archivo descargable."""
