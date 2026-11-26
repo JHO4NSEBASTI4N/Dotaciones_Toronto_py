@@ -132,6 +132,7 @@ export default function InventarioVista() {
       const coincideTexto =
         !texto ||
         fila.nombre.toLowerCase().includes(texto) ||
+        String(fila.id_producto) === texto ||
         (fila.categoria ?? "").toLowerCase().includes(texto) ||
         (fila.talla ?? "").toLowerCase().includes(texto);
 
@@ -169,7 +170,7 @@ export default function InventarioVista() {
         { etiqueta: "Stock normal", valor: String(normales) },
       ],
       columnas: [
-        { clave: "id", titulo: "ID" },
+        { clave: "id", titulo: "ID producto" },
         { clave: "nombre", titulo: "Producto" },
         { clave: "categoria", titulo: "Categoría" },
         { clave: "talla", titulo: "Talla" },
@@ -228,6 +229,7 @@ export default function InventarioVista() {
         : filtrados;
 
     const encabezados = [
+      "ID producto",
       "Producto",
       "Categoría",
       "Talla",
@@ -237,6 +239,7 @@ export default function InventarioVista() {
       "Estado",
     ];
     const filasCsv = itemsAExportar.map((f) => [
+      f.id_producto,
       `"${f.nombre.replace(/"/g, '""')}"`,
       `"${(f.categoria ?? "General").replace(/"/g, '""')}"`,
       `"${f.talla ?? "—"}"`,
@@ -456,6 +459,31 @@ export default function InventarioVista() {
 
       {puedeCargarInventario && <CargaMasiva tipo="inventario" alGuardar={() => void cargarDatos()} />}
 
+      {!cargando && productosDisponibles.length > 0 && (
+        <details className="dt-listado" style={{ marginBottom: 20, padding: 16 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            Productos sin inventario ({productosDisponibles.length})
+          </summary>
+          <p>Estos productos aún no tienen inventario. Usa su ID de producto en la plantilla de carga masiva.</p>
+          <div className="dt-tabla-scroll">
+            <table className="dt-tabla">
+              <thead><tr><th>Producto</th><th>Talla / color</th></tr></thead>
+              <tbody>
+                {productosDisponibles.map((item) => (
+                  <tr key={item.id_producto}>
+                    <td>
+                      <span className="dt-fila-principal">{item.nombre}</span>
+                      <span className="dt-fila-secundaria">Código #{item.id_producto}</span>
+                    </td>
+                    <td>{item.talla ?? "—"} / {item.color ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+
       {error && !modalCrearAbierto && !modalAbierto && (
         <Aviso tipo="error" mensaje={error} onCerrar={() => setError("")} />
       )}
@@ -554,7 +582,7 @@ export default function InventarioVista() {
             <CajaBusqueda
               valor={busqueda}
               onCambio={setBusqueda}
-              marcador="Producto, categoría o talla"
+              marcador="ID producto, nombre, categoría o talla"
             />
 
             <FiltroEstado
@@ -654,6 +682,7 @@ export default function InventarioVista() {
                             </span>
                             <div>
                               <span className="dt-fila-principal">{fila.nombre}</span>
+                              <span className="dt-fila-secundaria">Código #{fila.id_producto}</span>
                               <span className="dt-fila-secundaria">
                                 {fila.filas_inventario} fila(s) de inventario
                               </span>
@@ -889,7 +918,7 @@ export default function InventarioVista() {
                         <option value="">Selecciona un producto</option>
                         {productosDisponibles.map((item) => (
                           <option key={item.id_producto} value={item.id_producto}>
-                            {[item.nombre, item.talla, item.color].filter(Boolean).join(" · ")}
+                            {[`Código #${item.id_producto}`, item.nombre, item.talla, item.color].filter(Boolean).join(" · ")}
                           </option>
                         ))}
                       </select>
