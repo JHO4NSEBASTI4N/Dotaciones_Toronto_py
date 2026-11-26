@@ -92,7 +92,9 @@ export default function PedidosVendedor() {
       const datos = await traerTodo((saltar, limite) =>
         pedidos.listar({ saltar, limite })
       );
-      setLista(datos.items);
+      // Defensa adicional en la interfaz: ocultamos por estado, no por el bit
+      // legacy `oculto`, para conservar pendientes/enviados aunque ese bit esté mal.
+      setLista(datos.items.filter((pedido) => pedido.estado !== "Entregado"));
     } catch (fallo) {
       setError(
         fallo instanceof Error
@@ -184,8 +186,21 @@ export default function PedidosVendedor() {
     ),
   });
 
-  /** Reemplaza en memoria el pedido actualizado sin recargar toda la tabla. */
+  /**
+   * Sincroniza el pedido actualizado en memoria. Si quedó oculto (como al
+   * entregarlo), lo quitamos de inmediato del listado sin esperar a recargar.
+   */
   const reemplazarPedido = (actualizado: Pedido) => {
+    if (actualizado.estado === "Entregado") {
+      setLista((actual) =>
+        actual.filter((item) => item.id_pedido !== actualizado.id_pedido)
+      );
+      setDetalle((actual) =>
+        actual?.id_pedido === actualizado.id_pedido ? null : actual
+      );
+      return;
+    }
+
     setLista((actual) =>
       actual.map((item) =>
         item.id_pedido === actualizado.id_pedido ? actualizado : item
@@ -587,6 +602,45 @@ export default function PedidosVendedor() {
             </header>
 
             <div className="dt-formulario-contenido">
+              <section style={{
+                marginBottom: 18,
+                padding: "16px 18px",
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #f8fafc, #ffffff)",
+              }}>
+                <div style={{ marginBottom: 12 }}>
+                  <span style={{ display: "block", color: "#64748b", fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>
+                    Información del cliente
+                  </span>
+                  <strong style={{ display: "block", marginTop: 4, color: "#0f172a", fontSize: 16 }}>
+                    {detalle.cliente?.nombre ?? "Cliente sin información"}
+                  </strong>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "12px 18px" }}>
+                  <div>
+                    <span style={{ display: "block", color: "#64748b", fontSize: 12 }}>Documento</span>
+                    <strong style={{ color: "#1e293b", fontSize: 13 }}>{detalle.cliente?.documento || "No registrado"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: "block", color: "#64748b", fontSize: 12 }}>Teléfono</span>
+                    <strong style={{ color: "#1e293b", fontSize: 13 }}>{detalle.cliente?.telefono || "No registrado"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: "block", color: "#64748b", fontSize: 12 }}>Correo</span>
+                    <strong style={{ color: "#1e293b", fontSize: 13, overflowWrap: "anywhere" }}>{detalle.cliente?.correo || "No registrado"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: "block", color: "#64748b", fontSize: 12 }}>Dirección de entrega</span>
+                    <strong style={{ color: "#1e293b", fontSize: 13 }}>{detalle.cliente?.direccion || "No registrada"}</strong>
+                  </div>
+                  <div>
+                    <span style={{ display: "block", color: "#64748b", fontSize: 12 }}>ID de cliente</span>
+                    <strong style={{ color: "#1e293b", fontSize: 13 }}>{detalle.cliente?.id_usuario ?? detalle.id_usuario_fk ?? "—"}</strong>
+                  </div>
+                </div>
+              </section>
+
               <div className="dt-tabla-scroll">
                 <table className="dt-tabla">
                   <thead>

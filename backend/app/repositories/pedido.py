@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from app.models.detalle_pedido import DetallePedido
 from app.models.pedido import Pedido
@@ -20,7 +20,12 @@ class PedidoRepositorio:
         if estado is not None:
             consulta = consulta.where(Pedido.estado == estado)
         if not incluir_ocultos:
-            consulta = consulta.where(Pedido.oculto.is_(None) | (Pedido.oculto == False))
+            # En la bandeja operativa solo desaparecen los pedidos ya entregados
+            # (convertidos en venta). No ocultar otros estados por el valor legacy
+            # del bit `oculto`, que puede venir inconsistente en datos existentes.
+            consulta = consulta.where(
+                or_(Pedido.estado.is_(None), Pedido.estado != "Entregado")
+            )
         return consulta
 
     def listar(self, saltar: int=0, limite: int=20, id_usuario: int | None=None, estado: str | None=None, incluir_ocultos: bool=True) -> list[Pedido]:

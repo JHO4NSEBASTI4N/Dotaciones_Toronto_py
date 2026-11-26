@@ -16,11 +16,13 @@ def _es_vendedor(usuario) -> bool:
     return ROL_VENDEDOR in roles_de(usuario)
 
 @router.get('', response_model=PaginaRespuesta[PedidoRespuesta])
-def listar(sesion: SesionBD, usuario: UsuarioActual, paginacion: ParametrosPaginacion=Depends(), estado: Optional[str]=Query(None, description='Pendiente, Enviado, Entregado o Cancelado'), id_usuario: Optional[int]=Query(None, description='Solo administrador/vendedor'), incluir_ocultos: Optional[bool]=Query(None, description='Por defecto el cliente no ve los entregados')):
+def listar(sesion: SesionBD, usuario: UsuarioActual, paginacion: ParametrosPaginacion=Depends(), estado: Optional[str]=Query(None, description='Pendiente, Enviado, Entregado o Cancelado'), id_usuario: Optional[int]=Query(None, description='Solo administrador/vendedor'), incluir_ocultos: Optional[bool]=Query(None, description='Incluir pedidos ocultos como los ya entregados y convertidos en venta')):
     staff = _es_staff(usuario)
     filtro_usuario = id_usuario if staff else usuario.id_usuario
     if incluir_ocultos is None:
-        incluir_ocultos = staff
+        # Los pedidos ocultos (por ejemplo, ya entregados y convertidos en venta)
+        # no aparecen en el listado normal para ningún rol.
+        incluir_ocultos = False
     items, total = servicio.listar_pedidos(sesion, saltar=paginacion.saltar, limite=paginacion.limite, id_usuario=filtro_usuario, estado=estado, incluir_ocultos=incluir_ocultos)
     return PaginaRespuesta[PedidoRespuesta](total=total, saltar=paginacion.saltar, limite=paginacion.limite, items=[PedidoRespuesta.model_validate(p) for p in items])
 

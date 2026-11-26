@@ -112,6 +112,8 @@ def venta(cliente, cabeceras_admin, cabeceras_vendedor, cabeceras_cliente, produ
 
 def test_entregar_genera_la_venta(venta):
     assert venta["estado"] == "Completada"
+    assert venta["cliente"]["nombre"] == "cliente"
+    assert venta["cliente"]["correo"] == "cliente@toronto.com"
     assert venta["total_unidades"] == 2
     assert venta["total_pagado"] == "60000.00"
     assert len(venta["items"]) == 1

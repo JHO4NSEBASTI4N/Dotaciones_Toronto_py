@@ -206,6 +206,7 @@ def _armar_respuesta(sesion: Session, venta: Venta) -> dict:
         "id_venta": venta.id_venta,
         "id_usuario_fk": venta.id_usuario_fk,
         "id_pedido_fk": venta.id_pedido_fk,
+        "usuario": venta.usuario,
         "fecha_venta": venta.fecha_venta,
         "estado": venta.estado or ESTADO_COMPLETADA,
         "items": items,

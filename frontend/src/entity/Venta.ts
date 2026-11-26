@@ -9,6 +9,7 @@ export interface Venta {
   id_venta: number;
   id_usuario_fk: number | null;
   id_pedido_fk: number | null;
+  cliente?: ClienteVenta | null;
   fecha_venta: string | null;
   estado: string; // Completada | Anulada
   items: DetalleVenta[];
@@ -17,6 +18,14 @@ export interface Venta {
   subtotal_lista: string;
   descuento_total: string;
   total_pagado: string;
+}
+
+export interface ClienteVenta {
+  id_usuario: number;
+  nombre: string;
+  correo: string;
+  telefono: string | null;
+  direccion: string | null;
 }
 
 export interface DetalleVenta {

@@ -228,6 +228,33 @@ def test_no_se_puede_quitar_todos_los_productos(cliente, cabeceras_cliente, pedi
     )
     assert respuesta.status_code == 422
 
+def test_staff_ve_datos_de_contacto_del_cliente_en_pedido(
+    cliente, cabeceras_admin, cabeceras_vendedor, pedido, sesion
+):
+    usuario = sesion.get(Usuario, pedido['id_usuario_fk'])
+    usuario.documento = '123456789'
+    usuario.telefono = '3001234567'
+    usuario.direccion = 'Calle 10 # 20-30, Bogotá'
+    sesion.commit()
+
+    for cabeceras in (cabeceras_admin, cabeceras_vendedor):
+        detalle = cliente.get(
+            f"/api/v1/pedidos/{pedido['id_pedido']}", headers=cabeceras
+        )
+        assert detalle.status_code == 200, detalle.text
+        contacto = detalle.json()['cliente']
+        assert contacto['id_usuario'] == usuario.id_usuario
+        assert contacto['nombre'] == usuario.nombre
+        assert contacto['documento'] == '123456789'
+        assert contacto['correo'] == usuario.correo
+        assert contacto['telefono'] == '3001234567'
+        assert contacto['direccion'] == 'Calle 10 # 20-30, Bogotá'
+
+        listado = cliente.get('/api/v1/pedidos', headers=cabeceras)
+        assert listado.status_code == 200, listado.text
+        assert listado.json()['items'][0]['cliente']['telefono'] == '3001234567'
+
+
 def test_detalle_inexistente_da_404(cliente, cabeceras_admin):
     assert cliente.get('/api/v1/pedidos/9999', headers=cabeceras_admin).status_code == 404
 
@@ -418,10 +445,27 @@ def test_cliente_no_ve_sus_pedidos_entregados(cliente, cabeceras_vendedor, cabec
     con_ocultos = cliente.get('/api/v1/pedidos?incluir_ocultos=true', headers=cabeceras_cliente).json()
     assert con_ocultos['total'] == 1
 
-def test_admin_si_ve_los_entregados(cliente, cabeceras_admin, cabeceras_vendedor, pedido):
+def test_admin_no_ve_pedidos_entregados_en_listado_normal(cliente, cabeceras_admin, cabeceras_vendedor, pedido):
     for estado in ('Enviado', 'Entregado'):
         cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
-    assert cliente.get('/api/v1/pedidos', headers=cabeceras_admin).json()['total'] == 1
+    assert cliente.get('/api/v1/pedidos', headers=cabeceras_admin).json()['total'] == 0
+    assert cliente.get('/api/v1/pedidos?incluir_ocultos=true', headers=cabeceras_admin).json()['total'] == 1
+
+def test_vendedor_no_ve_pedidos_entregados_en_listado_normal(cliente, cabeceras_vendedor, pedido):
+    for estado in ('Enviado', 'Entregado'):
+        cliente.patch(f"/api/v1/pedidos/{pedido['id_pedido']}/estado", json={'estado': estado}, headers=cabeceras_vendedor)
+    assert cliente.get('/api/v1/pedidos', headers=cabeceras_vendedor).json()['total'] == 0
+
+def test_pedido_pendiente_no_desaparece_por_bit_oculto_legacy(
+    cliente, cabeceras_admin, pedido, sesion
+):
+    registro = sesion.get(Pedido, pedido['id_pedido'])
+    registro.oculto = True
+    sesion.commit()
+    respuesta = cliente.get('/api/v1/pedidos', headers=cabeceras_admin)
+    assert respuesta.status_code == 200
+    assert respuesta.json()['total'] == 1
+    assert respuesta.json()['items'][0]['estado'] == 'Pendiente'
 
 def test_cliente_puede_consultar_su_pedido_entregado_por_id(cliente, cabeceras_vendedor, cabeceras_cliente, pedido):
     for estado in ('Enviado', 'Entregado'):

@@ -10,7 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class DetalleVentaRespuesta(BaseModel):
@@ -39,12 +39,23 @@ class FacturaRespuesta(BaseModel):
     estado: str = "Vigente"
 
 
+class ClienteVentaRespuesta(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_usuario: int
+    nombre: str
+    correo: str
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
+
+
 class VentaRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id_venta: int
     id_usuario_fk: Optional[int] = None
     id_pedido_fk: Optional[int] = None
+    cliente: Optional[ClienteVentaRespuesta] = Field(default=None, validation_alias="usuario")
     fecha_venta: Optional[datetime] = None
     estado: str = "Completada"
     metodo_pago: Optional[str] = None

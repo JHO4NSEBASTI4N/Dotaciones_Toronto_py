@@ -42,6 +42,18 @@ class PedidoItemsActualizar(BaseModel):
         return self
 
 
+class ClientePedidoRespuesta(BaseModel):
+    """Datos de contacto del cliente visibles en pedidos para roles autorizados."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id_usuario: int
+    nombre: str
+    documento: Optional[str] = None
+    correo: str
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
+
+
 class ItemPedidoRespuesta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id_detalle_pedido: int
@@ -62,6 +74,7 @@ class PedidoRespuesta(BaseModel):
     fecha_pedido: Optional[datetime] = None
     estado: Optional[str] = None
     oculto: bool = False
+    cliente: Optional[ClientePedidoRespuesta] = Field(default=None, validation_alias="usuario")
     items: list[ItemPedidoRespuesta]
     total_unidades: int
     subtotal_lista: Decimal

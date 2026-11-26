@@ -201,6 +201,7 @@ def _armar_respuesta(sesion: Session, pedido: Pedido) -> dict:
     return {
         "id_pedido": pedido.id_pedido,
         "id_usuario_fk": pedido.id_usuario_fk,
+        "usuario": pedido.usuario,
         "fecha_pedido": pedido.fecha_pedido,
         "estado": pedido.estado,
         "oculto": pedido.oculto,

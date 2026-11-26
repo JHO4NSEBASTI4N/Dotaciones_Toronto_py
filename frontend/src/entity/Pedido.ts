@@ -11,11 +11,21 @@ export interface Pedido {
   fecha_pedido: string | null;
   estado: string | null; // Pendiente | Enviado | Entregado | Cancelado
   oculto: boolean;
+  cliente?: ClientePedido | null;
   items: ItemPedido[];
   total_unidades: number;
   subtotal_lista: string;
   descuento_total: string;
   total: string;
+}
+
+export interface ClientePedido {
+  id_usuario: number;
+  nombre: string;
+  documento: string | null;
+  correo: string;
+  telefono: string | null;
+  direccion: string | null;
 }
 
 export interface ItemPedido {
